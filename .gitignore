@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local uploads (dev fallback for Vercel Blob)
+.uploads/
+
+# env
+.env
+
+# playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
