@@ -208,6 +208,64 @@ export async function getSubmissionDetail(
   };
 }
 
+export interface HistoryRow {
+  gradingId: string;
+  createdAt: Date;
+  score: string | null;
+  maxScore: string | null;
+  result: "ok" | "ng" | null;
+  comment: string;
+  requiresResubmit: boolean;
+  attemptNo: number;
+  submissionId: string;
+  sessionNo: number;
+  rangeText: string;
+  assignmentTitle: string;
+  materialName: string;
+  subject: string;
+  studentId: string;
+  studentName: string;
+}
+
+/** 採点(返却)履歴。生徒の成績・学習履歴表示に使う。新しい順。 */
+export async function listGradingHistory(
+  organizationId: string,
+  opts: { studentIds?: string[] } = {},
+): Promise<HistoryRow[]> {
+  const conditions = [eq(gradings.organizationId, organizationId)];
+  if (opts.studentIds) {
+    if (opts.studentIds.length === 0) return [];
+    conditions.push(inArray(submissions.studentId, opts.studentIds));
+  }
+
+  return db
+    .select({
+      gradingId: gradings.id,
+      createdAt: gradings.createdAt,
+      score: gradings.score,
+      maxScore: gradings.maxScore,
+      result: gradings.result,
+      comment: gradings.comment,
+      requiresResubmit: gradings.requiresResubmit,
+      attemptNo: gradings.attemptNo,
+      submissionId: submissions.id,
+      sessionNo: submissions.sessionNo,
+      rangeText: submissions.rangeText,
+      assignmentTitle: assignments.title,
+      materialName: materials.name,
+      subject: materials.subject,
+      studentId: students.id,
+      studentName: students.name,
+    })
+    .from(gradings)
+    .innerJoin(submissions, eq(gradings.submissionId, submissions.id))
+    .innerJoin(assignments, eq(submissions.assignmentId, assignments.id))
+    .innerJoin(materials, eq(assignments.materialId, materials.id))
+    .innerJoin(students, eq(submissions.studentId, students.id))
+    .where(and(...conditions))
+    .orderBy(desc(gradings.createdAt));
+}
+
 /** org のミス分類マスタ。 */
 export async function listMistakeTags(
   organizationId: string,

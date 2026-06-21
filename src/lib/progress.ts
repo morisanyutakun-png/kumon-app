@@ -7,19 +7,16 @@
  *   - pointer       : 表示用の回数カウンタ (1始まり)
  *
  * トラック種別:
- *   - chapter / etore: units(単元) ベース。chunk = units[progress .. progress+per-1]
- *   - number         : 数値範囲ベース。chunk = [numberStart+progress, ...]
- *   - manual         : 範囲は毎回手入力 (自動計算しない。pointer のみ進む)
+ *   - chapter: units(単元) ベース。chunk = units[progress .. progress+per-1]
+ *   - number : 数値範囲ベース。chunk = [numberStart+progress, ...]
+ *   - manual : 範囲は毎回手入力 (自動計算しない。pointer のみ進む)
  *
  * 合格(OK)で progressIndex がペース分前進。完了時は completionAction により
  *   - delete     : 割当を完了 (completed)
  *   - review_loop: 全範囲の「総復習」を反復 (totalReview)
- *
- * ※ 既存 PHP の「教材ミックス(2教材交互)」と eトレのバッチ列連携は本移植では未対応。
- *   eトレは「復習なし・単一列」として chapter と同様に扱う。
  */
 
-export type ProgressType = "chapter" | "number" | "etore" | "manual";
+export type ProgressType = "chapter" | "number" | "manual";
 export type CompletionAction = "delete" | "review_loop";
 
 export const TOTAL_REVIEW_LABEL = "総復習";
@@ -42,7 +39,7 @@ export interface AssignmentProgress {
   unitsPerSession: number;
   unitsPerSessionPending?: number | null;
   pointer: number;
-  /** 復習範囲を出すか (未設定は true)。eトレ等は false。 */
+  /** 復習範囲を出すか (未設定は true)。 */
   reviewEnabled?: boolean;
 }
 
@@ -74,8 +71,7 @@ export interface SessionPlan {
 // 基本ユーティリティ
 // ---------------------------------------------------------------------------
 
-const isUnitBased = (m: MaterialInfo) =>
-  m.progressType === "chapter" || m.progressType === "etore";
+const isUnitBased = (m: MaterialInfo) => m.progressType === "chapter";
 const isNumber = (m: MaterialInfo) => m.progressType === "number";
 const isManual = (m: MaterialInfo) => m.progressType === "manual";
 

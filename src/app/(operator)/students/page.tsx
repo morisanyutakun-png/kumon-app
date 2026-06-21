@@ -86,7 +86,12 @@ export default async function StudentsPage() {
                   {rows.map((s) => (
                     <TableRow key={s.id}>
                       <TableCell className="font-medium">
-                        {s.name}
+                        <Link
+                          href={`/students/${s.id}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {s.name}
+                        </Link>
                         {!s.active && (
                           <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">
                             停止中

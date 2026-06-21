@@ -1,7 +1,7 @@
 CREATE TYPE "public"."completion_action" AS ENUM('delete', 'review_loop');--> statement-breakpoint
 CREATE TYPE "public"."grading_result" AS ENUM('ok', 'ng');--> statement-breakpoint
 CREATE TYPE "public"."material_file_kind" AS ENUM('assignment', 'answer_key', 'other');--> statement-breakpoint
-CREATE TYPE "public"."progress_type" AS ENUM('chapter', 'number', 'etore', 'manual');--> statement-breakpoint
+CREATE TYPE "public"."progress_type" AS ENUM('chapter', 'number', 'manual');--> statement-breakpoint
 CREATE TYPE "public"."submission_status" AS ENUM('not_submitted', 'submitted', 'grading', 'returned', 'resubmit_required', 'done');--> statement-breakpoint
 CREATE TYPE "public"."user_role" AS ENUM('admin', 'operator', 'student', 'parent');--> statement-breakpoint
 CREATE TABLE "assignments" (
@@ -134,6 +134,8 @@ CREATE TABLE "submissions" (
 	"assignment_id" uuid NOT NULL,
 	"student_id" uuid NOT NULL,
 	"status" "submission_status" DEFAULT 'not_submitted' NOT NULL,
+	"session_no" integer DEFAULT 1 NOT NULL,
+	"range_text" varchar(255) DEFAULT '' NOT NULL,
 	"attempt_count" integer DEFAULT 0 NOT NULL,
 	"submitted_at" timestamp with time zone,
 	"returned_at" timestamp with time zone,
@@ -192,5 +194,5 @@ ALTER TABLE "users" ADD CONSTRAINT "users_organization_id_organizations_id_fk" F
 CREATE UNIQUE INDEX "grading_mistakes_unique" ON "grading_mistakes" USING btree ("grading_id","mistake_tag_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "guardian_students_unique" ON "guardian_students" USING btree ("guardian_user_id","student_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "students_login_id_unique" ON "students" USING btree ("login_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "submissions_assignment_unique" ON "submissions" USING btree ("assignment_id");--> statement-breakpoint
+CREATE INDEX "submissions_assignment_idx" ON "submissions" USING btree ("assignment_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "users_email_unique" ON "users" USING btree ("email");

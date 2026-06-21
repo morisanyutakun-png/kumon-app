@@ -1,5 +1,5 @@
 {
-  "id": "6f5f8fb1-5797-4d69-9772-0621a87aaa06",
+  "id": "980095d7-5049-43dc-94b6-0036f16c4c10",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1155,6 +1155,20 @@
           "notNull": true,
           "default": "'not_submitted'"
         },
+        "session_no": {
+          "name": "session_no",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "range_text": {
+          "name": "range_text",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
         "attempt_count": {
           "name": "attempt_count",
           "type": "integer",
@@ -1190,8 +1204,8 @@
         }
       },
       "indexes": {
-        "submissions_assignment_unique": {
-          "name": "submissions_assignment_unique",
+        "submissions_assignment_idx": {
+          "name": "submissions_assignment_idx",
           "columns": [
             {
               "expression": "assignment_id",
@@ -1200,7 +1214,7 @@
               "nulls": "last"
             }
           ],
-          "isUnique": true,
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -1455,7 +1469,6 @@
       "values": [
         "chapter",
         "number",
-        "etore",
         "manual"
       ]
     },

@@ -5,6 +5,7 @@ import { NavLink } from "@/components/nav-link";
 const LINKS = [
   { href: "/dashboard", label: "ダッシュボード" },
   { href: "/grading", label: "採点" },
+  { href: "/grading/batch", label: "一括採点" },
   { href: "/students", label: "生徒" },
   { href: "/guardians", label: "保護者" },
   { href: "/materials", label: "教材" },

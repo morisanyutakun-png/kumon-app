@@ -256,6 +256,85 @@ export async function gradeSubmission(submissionId: string, formData: FormData) 
   revalidateAll(submissionId);
 }
 
+export interface BatchGradeItem {
+  submissionId: string;
+  score?: string;
+  maxScore?: string;
+  result?: "ok" | "ng" | "";
+  comment?: string;
+  /** "return" 返却 / "resubmit" 再提出依頼。 */
+  mode: "return" | "resubmit";
+}
+
+/**
+ * Excel 風の一括採点。提出済み(または採点中)の複数提出物をまとめて採点・返却する。
+ * 各行ごとに 提出済み→採点中→返却/再提出 と正しく遷移し、合格返却なら進度を前進。
+ * 戻り値は処理件数とスキップ件数。
+ */
+export async function batchGrade(
+  items: BatchGradeItem[],
+): Promise<{ processed: number; skipped: number }> {
+  const p = await getPrincipal();
+  if (!p || !isOperator(p)) throw new ActionError("権限がありません。");
+
+  let processed = 0;
+  let skipped = 0;
+
+  for (const it of items) {
+    const sub = await loadSubmission(p, it.submissionId);
+    if (sub.status !== "submitted" && sub.status !== "grading") {
+      skipped++;
+      continue;
+    }
+
+    // 提出済みならまず採点中へ。
+    let current = sub;
+    if (current.status === "submitted") {
+      await applyTransition(p, current, "grading", "採点を開始(一括)");
+      current = { ...current, status: "grading" };
+    }
+
+    const requiresResubmit = it.mode === "resubmit";
+    const score = (it.score ?? "").trim();
+    const maxScore = (it.maxScore ?? "").trim();
+    const result = it.result === "ok" || it.result === "ng" ? it.result : null;
+
+    await db.insert(gradings).values({
+      organizationId: current.organizationId,
+      submissionId: current.id,
+      attemptNo: current.attemptCount,
+      graderId: p.id,
+      score: score === "" ? null : score,
+      maxScore: maxScore === "" ? null : maxScore,
+      result,
+      comment: (it.comment ?? "").trim(),
+      requiresResubmit,
+    });
+
+    const to: SubmissionStatus = requiresResubmit
+      ? "resubmit_required"
+      : "returned";
+    await applyTransition(
+      p,
+      current,
+      to,
+      requiresResubmit ? "再提出を依頼(一括)" : "採点結果を返却(一括)",
+      to === "returned" ? { returnedAt: new Date() } : {},
+    );
+
+    if (!requiresResubmit && result === "ok") {
+      await advanceProgressAfterPass(current);
+    }
+    processed++;
+  }
+
+  revalidatePath("/grading");
+  revalidatePath("/grading/batch");
+  revalidatePath("/dashboard");
+  revalidatePath("/home");
+  return { processed, skipped };
+}
+
 /**
  * 合格返却後の進度前進。割当を1つ進め、次の範囲があれば新しい提出物(未提出)を作る。
  * 手入力(manual)教材は自動進行しない。

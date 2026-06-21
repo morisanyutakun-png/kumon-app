@@ -17,9 +17,19 @@ export default async function StudentLayout({
     <div className="flex flex-1 flex-col">
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-          <Link href="/home" className="text-lg font-bold">
-            まなび教室
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/home" className="text-lg font-bold">
+              まなび教室
+            </Link>
+            <nav className="flex gap-1 text-sm">
+              <Link href="/home" className="rounded px-2 py-1 text-slate-600 hover:bg-slate-100">
+                課題
+              </Link>
+              <Link href="/history" className="rounded px-2 py-1 text-slate-600 hover:bg-slate-100">
+                履歴
+              </Link>
+            </nav>
+          </div>
           <div className="flex items-center gap-3 text-sm text-slate-500">
             <span>
               {p.name}

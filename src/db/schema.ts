@@ -35,12 +35,15 @@ export const userRoleEnum = pgEnum("user_role", [
   "parent",
 ]);
 
-/** 教材の進め方 (既存 PHP の progress_type を継承)。MVP では主に manual を使用。 */
+/**
+ * 教材の進め方。小学生向けの反復学習に必要な3種類:
+ *   chapter 章(単元)ごと / number 番号ごと / manual 手入力。
+ * (公文式固有の「eトレ」等は本アプリでは不要のため採用しない)
+ */
 export const progressTypeEnum = pgEnum("progress_type", [
-  "chapter", // 章ごと
+  "chapter", // 章(単元)ごと
   "number", // 番号ごと (例: 1〜1200)
-  "etore", // eトレ (復習なし・合格数だけ前進)
-  "manual", // 手入力
+  "manual", // 手入力 (範囲を毎回指定)
 ]);
 
 /** 教材完了時の動作。 */
