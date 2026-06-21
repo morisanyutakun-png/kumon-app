@@ -7,6 +7,7 @@
  *   - 答案画像などの個人データは canAccessStudent() を必ず通す。
  */
 import { and, eq } from "drizzle-orm";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
@@ -14,8 +15,15 @@ import type { Principal } from "@/auth";
 import { db } from "@/db";
 import { guardianStudents } from "@/db/schema";
 import type { UserRole } from "@/db/schema";
+import { DEMO_COOKIE, demoPrincipal, isDemoMode } from "@/lib/demo";
 
 export async function getPrincipal(): Promise<Principal | null> {
+  // デモモード: ログイン不要。cookie のロールから principal を作る (未選択なら null)。
+  if (isDemoMode()) {
+    const role = (await cookies()).get(DEMO_COOKIE)?.value;
+    return role ? demoPrincipal(role) : null;
+  }
+
   const session = await auth();
   if (!session?.user) return null;
   return {

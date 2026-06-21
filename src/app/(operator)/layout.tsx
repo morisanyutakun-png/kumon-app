@@ -1,4 +1,5 @@
 import { requireOperator } from "@/lib/access";
+import { DemoBanner } from "@/components/demo-banner";
 import { LogoutButton } from "@/components/logout-button";
 import { NavLink } from "@/components/nav-link";
 
@@ -21,6 +22,7 @@ export default async function OperatorLayout({
 
   return (
     <div className="flex flex-1 flex-col">
+      <DemoBanner />
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3">
           <div className="flex items-center justify-between">

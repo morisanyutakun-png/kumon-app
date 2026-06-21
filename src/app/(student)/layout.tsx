@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 import { getPrincipal, isOperator } from "@/lib/access";
+import { DemoBanner } from "@/components/demo-banner";
 import { LogoutButton } from "@/components/logout-button";
 
 export default async function StudentLayout({
@@ -15,6 +16,7 @@ export default async function StudentLayout({
 
   return (
     <div className="flex flex-1 flex-col">
+      <DemoBanner />
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">

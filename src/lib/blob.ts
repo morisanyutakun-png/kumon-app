@@ -9,9 +9,14 @@
  * DB には pathname と (Blob時の) url を保存する。
  */
 import { promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
-const LOCAL_DIR = path.join(process.cwd(), ".uploads");
+// Vercel ではプロジェクト配下が読み取り専用なので /tmp を使う (デモ/フォールバック用)。
+// ローカル開発では ./.uploads (gitignore 済) に置く。
+const LOCAL_DIR = process.env.VERCEL
+  ? path.join(os.tmpdir(), "kumon-uploads")
+  : path.join(process.cwd(), ".uploads");
 const LOCAL_PREFIX = "local://";
 
 export interface StoredBlob {

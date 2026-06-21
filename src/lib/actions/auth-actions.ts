@@ -1,8 +1,11 @@
 "use server";
 
 import { AuthError } from "next-auth";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { signIn, signOut } from "@/auth";
+import { DEMO_COOKIE, isDemoMode } from "@/lib/demo";
 
 export interface LoginState {
   error?: string;
@@ -34,5 +37,20 @@ export async function loginAction(
 }
 
 export async function logoutAction() {
+  if (isDemoMode()) {
+    (await cookies()).delete(DEMO_COOKIE);
+    redirect("/login");
+  }
   await signOut({ redirectTo: "/login" });
+}
+
+/** デモ(ゲスト)入室。選んだロールを cookie に保存してトップへ。 */
+export async function enterAsGuest(role: "operator" | "student" | "parent" | "admin") {
+  (await cookies()).set(DEMO_COOKIE, role, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+  redirect("/");
 }
