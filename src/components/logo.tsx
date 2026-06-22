@@ -1,9 +1,8 @@
 /**
- * ブランドロゴ。public/brand/logo.svg を表示する。
- * 実ロゴに差し替えるときは public/brand/logo.svg を上書き
- * (PNGにする場合は src を /brand/logo.png に変更)。
+ * ブランドロゴ。public/brand/logo.png を表示する。
+ * 差し替えるときは public/brand/logo.png を上書き。
  */
 export function Logo({ className }: { className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src="/brand/logo.svg" alt="ノビットスタディ" className={className} />;
+  return <img src="/brand/logo.png" alt="ノビットスタディ" className={className} />;
 }

@@ -3,7 +3,6 @@ import Link from "next/link";
 
 import { getPrincipal, isOperator } from "@/lib/access";
 import { DemoBanner } from "@/components/demo-banner";
-import { Logo } from "@/components/logo";
 import { LogoutButton } from "@/components/logout-button";
 import { SheetTabs, type SheetTabItem } from "@/components/sheet-tabs";
 
@@ -28,7 +27,8 @@ export default async function StudentLayout({
 
       <div className="sheet-tabbar" role="navigation" aria-label="メニュー">
         <Link href="/home" className="sheet-brand" aria-label="ノビットスタディ">
-          <Logo className="sheet-logo" />
+          <span className="sheet-mark">ノ</span>
+          <strong className="sheet-wordmark">ノビットスタディ</strong>
         </Link>
         <SheetTabs items={TABS} />
         <div className="sheet-status">
