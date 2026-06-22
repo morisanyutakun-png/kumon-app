@@ -106,8 +106,13 @@ export async function updateStudent(
     active,
   };
   // PIN は入力があったときだけ更新。loginId を消したら pin も消す。
-  if (!loginId) patch.pinHash = null;
-  else if (pin) patch.pinHash = await bcrypt.hash(pin, 10);
+  if (!loginId) {
+    patch.pinHash = null;
+    patch.pinPlain = null;
+  } else if (pin) {
+    patch.pinHash = await bcrypt.hash(pin, 10);
+    patch.pinPlain = pin;
+  }
 
   await db.update(students).set(patch).where(eq(students.id, id));
 
@@ -167,6 +172,7 @@ export async function quickAddStudent(
     grade,
     loginId,
     pinHash: await bcrypt.hash(pin, 10),
+    pinPlain: pin,
     active: true,
   });
 
@@ -619,7 +625,10 @@ export async function issueStudentCredentials(studentId: string, fd: FormData) {
   }
 
   const patch: Partial<typeof students.$inferInsert> = { loginId, active: true };
-  if (pin) patch.pinHash = await bcrypt.hash(pin, 10);
+  if (pin) {
+    patch.pinHash = await bcrypt.hash(pin, 10);
+    patch.pinPlain = pin;
+  }
   await db.update(students).set(patch).where(eq(students.id, studentId));
 
   revalidatePath(`/students/${studentId}`);

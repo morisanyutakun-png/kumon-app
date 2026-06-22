@@ -13,6 +13,7 @@ export default async function StudentsPage() {
     .where(eq(students.organizationId, p.organizationId))
     .orderBy(asc(students.name));
 
+  const isAdmin = p.role === "admin";
   const list: StudentRow[] = rows.map((s) => ({
     id: s.id,
     name: s.name,
@@ -20,6 +21,8 @@ export default async function StudentsPage() {
     loginId: s.loginId,
     active: s.active,
     hasPin: s.pinHash != null,
+    // PINの平文は管理者にのみ渡す(最高権限)。
+    pin: isAdmin ? s.pinPlain : undefined,
   }));
 
   return (

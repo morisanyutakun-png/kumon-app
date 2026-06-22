@@ -1,0 +1,1 @@
+ALTER TABLE "students" ADD COLUMN "pin_plain" varchar(16);

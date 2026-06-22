@@ -15,6 +15,13 @@
       "when": 1782120698771,
       "tag": "0001_grading_drafts_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782138004863,
+      "tag": "0002_student_pin_plain",
+      "breakpoints": true
     }
   ]
 }

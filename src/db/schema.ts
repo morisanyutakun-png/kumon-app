@@ -128,6 +128,8 @@ export const students = pgTable(
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
     loginId: varchar("login_id", { length: 64 }),
     pinHash: text("pin_hash"),
+    // 管理者のみが閲覧できる平文PIN (本人へ伝達する用途)。認証は pinHash を使用。
+    pinPlain: varchar("pin_plain", { length: 16 }),
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },

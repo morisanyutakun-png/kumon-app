@@ -16,6 +16,8 @@ export interface StudentRow {
   loginId: string | null;
   active: boolean;
   hasPin: boolean;
+  /** 管理者のみ渡される平文PIN。 */
+  pin?: string | null;
 }
 
 function genPin() {
@@ -110,7 +112,13 @@ export function StudentsGrid({ students }: { students: StudentRow[] }) {
                 </td>
                 <td>{s.grade || "—"}</td>
                 <td className="muted">{s.loginId || "—"}</td>
-                <td className="muted">{s.hasPin ? "設定済み" : "未設定"}</td>
+                <td>
+                  {s.pin ? (
+                    <code style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em" }}>{s.pin}</code>
+                  ) : (
+                    <span className="muted">{s.hasPin ? "設定済み" : "未設定"}</span>
+                  )}
+                </td>
                 <td className="right">
                   <span style={{ display: "inline-flex", gap: 6, justifyContent: "flex-end" }}>
                     <Link href={`/students/${s.id}/edit`} className="db-badge">編集</Link>
