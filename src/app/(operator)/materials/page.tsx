@@ -12,10 +12,12 @@ import {
 import { ActionButton } from "@/components/action-button";
 import { ActionForm } from "@/components/action-form";
 import { FileUploadForm } from "@/components/file-upload-form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+
+const PROGRESS_LABEL: Record<string, string> = {
+  manual: "手入力",
+  chapter: "章ごと",
+  number: "番号ごと",
+};
 
 export default async function MaterialsPage() {
   const p = await requireOperator();
@@ -30,12 +32,7 @@ export default async function MaterialsPage() {
       ? await db
           .select()
           .from(materialFiles)
-          .where(
-            inArray(
-              materialFiles.materialId,
-              rows.map((r) => r.id),
-            ),
-          )
+          .where(inArray(materialFiles.materialId, rows.map((r) => r.id)))
       : [];
   const filesByMaterial = new Map<string, typeof files>();
   for (const f of files) {
@@ -45,99 +42,96 @@ export default async function MaterialsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">教材管理</h1>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-base">教材を追加</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ActionForm action={createMaterial} submitLabel="追加">
-              <div className="space-y-2">
-                <Label htmlFor="name">教材名 *</Label>
-                <Input id="name" name="name" required placeholder="たし算プリント A" />
+    <div>
+      <div className="page-head-row">
+        <div className="page-head">
+          <h1>教材管理</h1>
+          <p>教材の登録・編集と、課題ファイル(PDF/画像)のアップロードを管理します。</p>
+          <div className="metric-row">
+            <span className="metric-chip">{rows.length} 件</span>
+          </div>
+        </div>
+        <details className="action-menu">
+          <summary className="btn-primary">教材を追加</summary>
+          <div className="action-menu-body">
+            <ActionForm action={createMaterial} submitLabel="登録する">
+              <div className="form-row">
+                <label htmlFor="name">教材名 *</label>
+                <input id="name" name="name" required placeholder="たし算プリント A" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="subject">教科</Label>
-                <Input id="subject" name="subject" placeholder="数学" />
+              <div className="form-row">
+                <label htmlFor="subject">教科</label>
+                <input id="subject" name="subject" placeholder="数学" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">説明</Label>
-                <Textarea id="description" name="description" rows={3} />
+              <div className="form-row">
+                <label htmlFor="description">説明</label>
+                <textarea id="description" name="description" rows={3} />
               </div>
             </ActionForm>
-          </CardContent>
-        </Card>
+          </div>
+        </details>
+      </div>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">教材一覧 ({rows.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {rows.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-500">
-                まだ教材が登録されていません。
-              </p>
-            ) : (
-              <ul className="divide-y">
-                {rows.map((m) => (
-                  <li key={m.id} className="space-y-2 py-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        {m.subject && (
-                          <span className="rounded bg-slate-100 px-2 py-0.5 text-xs">
-                            {m.subject}
-                          </span>
-                        )}
-                        <span className="font-medium">{m.name}</span>
+      <div className="card">
+        <h2>教材一覧 ({rows.length}件)</h2>
+        <div className="grid-scroll" style={{ border: "none" }}>
+          <table className="record-table">
+            <thead>
+              <tr>
+                <th>教科</th>
+                <th>教材名</th>
+                <th>進め方</th>
+                <th>課題ファイル</th>
+                <th className="right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr><td colSpan={5} className="empty">教材がありません</td></tr>
+              ) : (
+                rows.map((m) => (
+                  <tr key={m.id}>
+                    <td>
+                      {m.subject ? <span className="badge">{m.subject}</span> : <span className="muted">—</span>}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{m.name}</div>
+                      {m.description && <div className="muted">{m.description}</div>}
+                    </td>
+                    <td className="muted">{PROGRESS_LABEL[m.progressType] ?? m.progressType}</td>
+                    <td>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
+                        {(filesByMaterial.get(m.id) ?? []).map((f) => (
+                          <a key={f.id} href={`/api/files/material/${f.id}`} target="_blank" rel="noreferrer" className="db-badge">
+                            📎 {f.fileName}
+                          </a>
+                        ))}
+                        <FileUploadForm
+                          action={uploadMaterialFile.bind(null, m.id)}
+                          accept="application/pdf,image/*"
+                          buttonLabel="ファイル追加"
+                        />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/materials/${m.id}/edit`}
-                          className="text-sm text-blue-600 hover:underline"
-                        >
-                          編集
-                        </Link>
+                    </td>
+                    <td className="right">
+                      <span style={{ display: "inline-flex", gap: 6, justifyContent: "flex-end" }}>
+                        <Link href={`/materials/${m.id}/edit`} className="db-badge">編集</Link>
                         <ActionButton
                           action={deleteMaterial.bind(null, m.id)}
-                          variant="ghost"
-                          confirm={`「${m.name}」を削除しますか？`}
+                          variant="destructive"
+                          confirm={`教材「${m.name}」を削除しますか?`}
                           successMessage="削除しました。"
-                          className="h-auto px-2 py-0 text-sm text-rose-600 hover:text-rose-700"
                         >
                           削除
                         </ActionButton>
-                      </div>
-                    </div>
-                    {m.description && (
-                      <p className="text-sm text-slate-500">{m.description}</p>
-                    )}
-                    <div className="flex flex-wrap items-center gap-2">
-                      {(filesByMaterial.get(m.id) ?? []).map((f) => (
-                        <a
-                          key={f.id}
-                          href={`/api/files/material/${f.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded border bg-white px-2 py-1 text-xs text-blue-600 hover:underline"
-                        >
-                          📎 {f.fileName}
-                        </a>
-                      ))}
-                    </div>
-                    <FileUploadForm
-                      action={uploadMaterialFile.bind(null, m.id)}
-                      accept="application/pdf,image/*"
-                      buttonLabel="課題ファイル追加"
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

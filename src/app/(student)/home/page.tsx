@@ -3,32 +3,24 @@ import Link from "next/link";
 import { accessibleStudentIds, requirePrincipal } from "@/lib/access";
 import { listSubmissions } from "@/lib/queries";
 import { StatusBadge } from "@/components/status-badge";
-import { Card, CardContent } from "@/components/ui/card";
 import type { SubmissionStatus } from "@/db/schema";
 
 const ACTION_HINT: Partial<Record<SubmissionStatus, string>> = {
-  not_submitted: "答案を提出しましょう",
-  resubmit_required: "再提出してください",
-  returned: "結果を確認できます",
+  not_submitted: "提出する",
+  resubmit_required: "再提出する",
+  returned: "結果を見る",
 };
 
 function fmtDue(d: Date | null): string {
-  if (!d) return "";
-  return new Date(d).toLocaleDateString("ja-JP", {
-    month: "numeric",
-    day: "numeric",
-  });
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
 }
 
 export default async function StudentHome() {
   const p = await requirePrincipal();
   const ids = await accessibleStudentIds(p);
-  const rows =
-    ids === "*"
-      ? []
-      : await listSubmissions(p.organizationId, { studentIds: ids });
+  const rows = ids === "*" ? [] : await listSubmissions(p.organizationId, { studentIds: ids });
 
-  // 未提出・再提出依頼を上に
   const order: Record<SubmissionStatus, number> = {
     resubmit_required: 0,
     not_submitted: 1,
@@ -40,43 +32,53 @@ export default async function StudentHome() {
   rows.sort((a, b) => order[a.status] - order[b.status]);
 
   return (
-    <div className="space-y-5">
-      <h1 className="text-2xl font-bold">課題一覧</h1>
+    <div>
+      <div className="page-head" style={{ marginBottom: 14 }}>
+        <h1>課題一覧</h1>
+        <p>提出する課題と、返却された結果を確認できます。</p>
+      </div>
 
-      {rows.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-500">
-          現在、割り当てられた課題はありません。
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {rows.map((r) => (
-            <Link key={r.submissionId} href={`/submissions/${r.submissionId}`}>
-              <Card className="transition-colors hover:bg-slate-50">
-                <CardContent className="flex items-center justify-between gap-3 py-4">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-medium">
+      <div className="card">
+        <div className="grid-scroll" style={{ border: "none" }}>
+          <table className="record-table">
+            <thead>
+              <tr>
+                <th>課題</th>
+                <th>教科 / 範囲</th>
+                <th>状態</th>
+                <th>期限</th>
+                <th className="right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr><td colSpan={5} className="empty">現在、割り当てられた課題はありません。</td></tr>
+              ) : (
+                rows.map((r) => (
+                  <tr key={r.submissionId}>
+                    <td>
+                      <Link href={`/submissions/${r.submissionId}`} style={{ fontWeight: 600 }}>
                         {r.assignmentTitle || r.materialName}
-                      </span>
-                      <StatusBadge status={r.status} />
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      {r.studentName} ・ {r.subject}
-                      {r.rangeText ? ` ・ ${r.rangeText}` : ""}
-                      {r.dueDate ? ` ・ 期限 ${fmtDue(r.dueDate)}` : ""}
-                    </div>
-                  </div>
-                  {ACTION_HINT[r.status] && (
-                    <span className="shrink-0 text-xs font-medium text-blue-600">
-                      {ACTION_HINT[r.status]} →
-                    </span>
-                  )}
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                      </Link>
+                      <div className="muted">{r.studentName}</div>
+                    </td>
+                    <td className="muted">
+                      {r.subject}{r.rangeText ? ` / ${r.rangeText}` : ""}
+                    </td>
+                    <td><StatusBadge status={r.status} /></td>
+                    <td className="muted">{fmtDue(r.dueDate)}</td>
+                    <td className="right">
+                      <Link href={`/submissions/${r.submissionId}`} className={ACTION_HINT[r.status] ? "btn-primary" : "db-badge"} style={{ padding: "5px 12px", fontSize: 12 }}>
+                        {ACTION_HINT[r.status] ?? "開く"}
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
     </div>
   );
 }

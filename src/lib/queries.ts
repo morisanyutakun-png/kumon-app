@@ -266,6 +266,107 @@ export async function listGradingHistory(
     .orderBy(desc(gradings.createdAt));
 }
 
+export interface AssignmentCell {
+  assignmentId: string;
+  materialName: string;
+  subject: string;
+  rangeText: string;
+  status: SubmissionStatus | null;
+  submissionId: string | null;
+}
+export interface AssignmentMatrixStudent {
+  studentId: string;
+  studentName: string;
+  grade: string;
+  cells: AssignmentCell[];
+}
+export interface AssignmentMatrix {
+  students: AssignmentMatrixStudent[];
+  maxCols: number;
+  materials: { id: string; name: string; subject: string }[];
+}
+
+/** 課題割り当てのマトリクス表 (行=生徒, 列=課題1..N) 用データ。 */
+export async function assignmentMatrix(
+  organizationId: string,
+): Promise<AssignmentMatrix> {
+  const studentRows = await db
+    .select({ id: students.id, name: students.name, grade: students.grade })
+    .from(students)
+    .where(eq(students.organizationId, organizationId))
+    .orderBy(asc(students.name));
+
+  const assignRows = await db
+    .select({
+      assignmentId: assignments.id,
+      studentId: assignments.studentId,
+      rangeText: assignments.rangeText,
+      createdAt: assignments.createdAt,
+      materialName: materials.name,
+      subject: materials.subject,
+    })
+    .from(assignments)
+    .innerJoin(materials, eq(assignments.materialId, materials.id))
+    .where(eq(assignments.organizationId, organizationId))
+    .orderBy(asc(assignments.createdAt));
+
+  // 各割当の最新セッション(提出物)を取得して範囲・状態・リンクに使う。
+  const subRows = await db
+    .select({
+      assignmentId: submissions.assignmentId,
+      submissionId: submissions.id,
+      status: submissions.status,
+      rangeText: submissions.rangeText,
+      sessionNo: submissions.sessionNo,
+    })
+    .from(submissions)
+    .where(eq(submissions.organizationId, organizationId))
+    .orderBy(asc(submissions.sessionNo));
+  const latestByAssignment = new Map<
+    string,
+    { submissionId: string; status: SubmissionStatus; rangeText: string }
+  >();
+  for (const s of subRows) {
+    latestByAssignment.set(s.assignmentId, {
+      submissionId: s.submissionId,
+      status: s.status,
+      rangeText: s.rangeText,
+    });
+  }
+
+  const cellsByStudent = new Map<string, AssignmentCell[]>();
+  for (const a of assignRows) {
+    const latest = latestByAssignment.get(a.assignmentId);
+    const cell: AssignmentCell = {
+      assignmentId: a.assignmentId,
+      materialName: a.materialName,
+      subject: a.subject,
+      rangeText: latest?.rangeText || a.rangeText,
+      status: latest?.status ?? null,
+      submissionId: latest?.submissionId ?? null,
+    };
+    const arr = cellsByStudent.get(a.studentId) ?? [];
+    arr.push(cell);
+    cellsByStudent.set(a.studentId, arr);
+  }
+
+  const studentsOut: AssignmentMatrixStudent[] = studentRows.map((s) => ({
+    studentId: s.id,
+    studentName: s.name,
+    grade: s.grade,
+    cells: cellsByStudent.get(s.id) ?? [],
+  }));
+  const maxCols = studentsOut.reduce((m, s) => Math.max(m, s.cells.length), 0);
+
+  const materialRows = await db
+    .select({ id: materials.id, name: materials.name, subject: materials.subject })
+    .from(materials)
+    .where(eq(materials.organizationId, organizationId))
+    .orderBy(asc(materials.name));
+
+  return { students: studentsOut, maxCols, materials: materialRows };
+}
+
 /** org のミス分類マスタ。 */
 export async function listMistakeTags(
   organizationId: string,

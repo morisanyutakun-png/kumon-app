@@ -1,10 +1,9 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { submitAnswer } from "@/lib/actions/submission-actions";
-import { Button } from "@/components/ui/button";
 
 export function SubmitForm({
   submissionId,
@@ -13,7 +12,6 @@ export function SubmitForm({
   submissionId: string;
   resubmit?: boolean;
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [count, setCount] = useState(0);
 
@@ -34,11 +32,9 @@ export function SubmitForm({
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="space-y-3">
-      <label className="block">
-        <span className="mb-1 block text-sm font-medium">
-          答案の写真を選ぶ（複数可）
-        </span>
+    <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
+      <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ fontSize: 13, fontWeight: 600 }}>答案の写真を選ぶ（複数可）</span>
         <input
           type="file"
           name="images"
@@ -47,15 +43,14 @@ export function SubmitForm({
           multiple
           required
           onChange={(e) => setCount(e.currentTarget.files?.length ?? 0)}
-          className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:text-white"
         />
       </label>
-      {count > 0 && (
-        <p className="text-xs text-slate-500">{count} 枚 選択中</p>
-      )}
-      <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "送信中..." : resubmit ? "再提出する" : "提出する"}
-      </Button>
+      {count > 0 && <p className="muted" style={{ margin: 0 }}>{count} 枚 選択中</p>}
+      <div>
+        <button type="submit" className="btn-primary big" disabled={pending}>
+          {pending ? "送信中..." : resubmit ? "再提出する" : "提出する"}
+        </button>
+      </div>
     </form>
   );
 }

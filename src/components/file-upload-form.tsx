@@ -3,11 +3,7 @@
 import { useRef, useTransition } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-
-/**
- * 単一ファイルをバウンド済みサーバーアクションへアップロードするフォーム。
- */
+/** 単一ファイルをバウンド済みサーバーアクションへアップロードするフォーム。 */
 export function FileUploadForm({
   action,
   accept,
@@ -38,17 +34,17 @@ export function FileUploadForm({
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="flex items-center gap-2">
+    <form ref={formRef} onSubmit={onSubmit} style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <input
         type="file"
         name="file"
         accept={accept}
         required
-        className="text-sm file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm"
+        style={{ fontSize: 12 }}
       />
-      <Button type="submit" size="sm" variant="secondary" disabled={pending}>
-        {pending ? "..." : buttonLabel}
-      </Button>
+      <button type="submit" className="btn-secondary" style={{ padding: "5px 10px", fontSize: 12 }} disabled={pending}>
+        {pending ? "…" : buttonLabel}
+      </button>
     </form>
   );
 }

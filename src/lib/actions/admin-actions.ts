@@ -416,3 +416,71 @@ export async function createAssignment(
   revalidatePath("/dashboard");
   redirect("/assignments");
 }
+
+/** マトリクス表の「＋」セルからのインライン割当 (リダイレクトせず再描画のみ)。 */
+export async function addAssignment(fd: FormData) {
+  const p = await requireOperator();
+  const studentId = str(fd, "studentId");
+  const materialId = str(fd, "materialId");
+  const rangeText = str(fd, "rangeText");
+  if (!studentId || !materialId) throw new Error("生徒と教材を選んでください。");
+
+  const [s] = await db
+    .select()
+    .from(students)
+    .where(and(eq(students.id, studentId), eq(students.organizationId, p.organizationId)))
+    .limit(1);
+  const [m] = await db
+    .select()
+    .from(materials)
+    .where(and(eq(materials.id, materialId), eq(materials.organizationId, p.organizationId)))
+    .limit(1);
+  if (!s || !m) throw new Error("生徒または教材が見つかりません。");
+
+  const unitRows = await db
+    .select()
+    .from(units)
+    .where(eq(units.materialId, materialId))
+    .orderBy(asc(units.sortOrder));
+  const sessionRange = initialSessionRange(m, unitRows, 1) || rangeText;
+
+  await db.transaction(async (tx) => {
+    const [assign] = await tx
+      .insert(assignments)
+      .values({
+        organizationId: p.organizationId,
+        studentId,
+        materialId,
+        title: m.name,
+        rangeText: sessionRange,
+        assignedById: p.id,
+      })
+      .returning();
+    await tx.insert(submissions).values({
+      organizationId: p.organizationId,
+      assignmentId: assign.id,
+      studentId,
+      status: "not_submitted",
+      sessionNo: 1,
+      rangeText: sessionRange,
+    });
+  });
+
+  revalidatePath("/assignments");
+  revalidatePath("/dashboard");
+}
+
+/** 割当を削除 (関連する提出物もカスケード削除)。 */
+export async function deleteAssignment(assignmentId: string) {
+  const p = await requireOperator();
+  await db
+    .delete(assignments)
+    .where(
+      and(
+        eq(assignments.id, assignmentId),
+        eq(assignments.organizationId, p.organizationId),
+      ),
+    );
+  revalidatePath("/assignments");
+  revalidatePath("/dashboard");
+}
