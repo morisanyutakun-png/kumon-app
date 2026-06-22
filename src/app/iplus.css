@@ -610,66 +610,96 @@ body {
 .btn-primary { box-shadow: 0 2px 8px rgba(37, 99, 235, 0.22); }
 .brand-mark { letter-spacing: 0; font-weight: 900; }
 
-/* ===== ログイン (EdTech / 信頼感 / ユニバーサル) ===== */
-.login-page {
+/* ===== ログイン (2カラム: 左ブランド / 右フォーム) ===== */
+.login-split {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
-  background:
-    radial-gradient(1100px 520px at 12% -10%, #dbeafe 0%, rgba(219, 234, 254, 0) 55%),
-    radial-gradient(900px 480px at 110% 10%, #ede9fe 0%, rgba(237, 233, 254, 0) 55%),
-    linear-gradient(180deg, #f8fafc, #eef2f9);
-}
-.login-card {
-  width: 100%;
-  max-width: 430px;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  min-height: 100vh;
   background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  padding: 32px 30px 26px;
-  box-shadow: 0 24px 60px -24px rgba(15, 23, 42, 0.35), 0 2px 6px rgba(15, 23, 42, 0.05);
 }
-.login-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
-.login-mark {
-  width: 52px; height: 52px; border-radius: 16px;
+.login-aside {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 56px 60px;
+  color: #fff;
+  overflow: hidden;
+  background:
+    radial-gradient(680px 380px at 85% -10%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 60%),
+    linear-gradient(150deg, #1e3a8a 0%, #2563eb 48%, #4f46e5 100%);
+}
+.login-aside-brand { display: flex; align-items: center; gap: 12px; }
+.login-aside-mark {
+  width: 46px; height: 46px; border-radius: 13px;
   display: inline-flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
-  color: #fff; font-size: 26px; font-weight: 900;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-size: 22px; font-weight: 900; color: #fff;
 }
-.login-name { font-size: 20px; font-weight: 900; letter-spacing: 0.01em; }
-.login-tag { font-size: 12px; color: var(--muted); font-weight: 700; letter-spacing: 0.08em; }
-.login-title { margin: 0 0 4px; font-size: 26px; font-weight: 900; letter-spacing: 0.01em; }
-.login-lead { margin: 0 0 20px; color: var(--muted); font-size: 14px; line-height: 1.6; }
-.login-form { display: grid; gap: 16px; }
-.login-field { display: grid; gap: 6px; }
+.login-aside-name { font-size: 18px; font-weight: 900; letter-spacing: 0.02em; }
+.login-aside-tag { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: rgba(255, 255, 255, 0.78); }
+.login-aside-copy h2 { margin: 0 0 12px; font-size: 30px; line-height: 1.35; font-weight: 900; letter-spacing: 0.01em; }
+.login-aside-copy > p { margin: 0 0 24px; font-size: 15px; line-height: 1.7; color: rgba(255, 255, 255, 0.86); max-width: 420px; }
+.login-features { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.login-features li {
+  position: relative; padding-left: 30px; font-size: 14.5px; font-weight: 600; color: rgba(255, 255, 255, 0.94);
+}
+.login-features li::before {
+  content: "✓"; position: absolute; left: 0; top: -1px;
+  width: 20px; height: 20px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.18); font-size: 12px; font-weight: 900;
+}
+.login-aside-foot { font-size: 12px; color: rgba(255, 255, 255, 0.7); }
+
+.login-main { display: flex; align-items: center; justify-content: center; padding: 48px 28px; }
+.login-box { width: 100%; max-width: 380px; }
+.login-mobile-brand { display: none; align-items: center; gap: 10px; margin-bottom: 24px; }
+.login-mark-sm {
+  width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #2563eb, #4f46e5); color: #fff; font-size: 21px; font-weight: 900;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.32);
+}
+.login-mobile-name { font-size: 18px; font-weight: 900; }
+
+.login-title { margin: 0 0 6px; font-size: 28px; font-weight: 900; letter-spacing: 0.01em; }
+.login-lead { margin: 0 0 26px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+.login-form { display: grid; gap: 18px; }
+.login-field { display: grid; gap: 7px; }
 .login-field label { font-size: 13px; font-weight: 800; color: #334155; }
 .login-field input {
-  height: 52px;
-  border: 1.5px solid var(--line);
-  border-radius: 14px;
-  padding: 0 16px;
+  height: 50px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0 14px;
   font-size: 16px; /* 16px以上でモバイルの自動ズームを防ぐ */
   background: #fff;
   transition: border-color 0.12s, box-shadow 0.12s;
 }
-.login-field input::placeholder { color: #94a3b8; }
+.login-field input::placeholder { color: #9aa7b8; }
 .login-field input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
 .login-hint { font-size: 12px; color: var(--muted); }
 .login-error {
-  margin: 0; padding: 10px 12px; border-radius: 12px;
+  margin: 0; padding: 10px 12px; border-radius: 10px;
   background: var(--danger-bg); color: var(--danger-fg); font-size: 13px; font-weight: 700;
 }
-.login-submit {
-  height: 54px; width: 100%; font-size: 17px; font-weight: 800; border-radius: 14px; margin-top: 2px;
-}
-.login-foot { margin: 18px 0 0; text-align: center; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
-.login-demo { margin-top: 20px; padding-top: 18px; border-top: 1px dashed var(--line); }
-.login-demo-label { font-size: 12px; color: var(--muted); font-weight: 800; margin-bottom: 8px; text-align: center; }
+.login-submit { height: 50px; width: 100%; font-size: 16px; font-weight: 800; border-radius: 12px; margin-top: 4px; }
+.login-foot { margin: 22px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
+.login-demo { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.login-demo-label { font-size: 12px; color: var(--muted); font-weight: 800; margin-bottom: 8px; }
 .login-demo-btns { display: grid; gap: 8px; }
 .login-demo-btns .btn-secondary { width: 100%; }
+
+@media (max-width: 860px) {
+  .login-aside { display: none; }
+  .login-split { grid-template-columns: 1fr; }
+  .login-mobile-brand { display: flex; }
+  .login-main { padding: 32px 22px; align-items: flex-start; }
+  .login-box { padding-top: 8vh; }
+}
 
 /* ===== ログイン情報の発行UI ===== */
 .cred-form { display: grid; gap: 12px; max-width: 460px; }

@@ -17,40 +17,65 @@ export default async function LoginPage() {
   if (p && !demo) redirect("/");
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="login-brand">
-          <span className="login-mark">ま</span>
+    <div className="login-split">
+      {/* 左: ブランドパネル (PC表示) */}
+      <aside className="login-aside">
+        <div className="login-aside-brand">
+          <span className="login-aside-mark">ま</span>
           <div>
-            <div className="login-name">まなび教室</div>
-            <div className="login-tag">学習管理システム</div>
+            <div className="login-aside-name">まなび教室</div>
+            <div className="login-aside-tag">学習管理システム</div>
           </div>
         </div>
 
-        <h1 className="login-title">ログイン</h1>
-        <p className="login-lead">
-          先生・保護者・お子さま、どなたも同じ画面からログインできます。
-        </p>
+        <div className="login-aside-copy">
+          <h2>毎日の学習を、ひとつの教室に。</h2>
+          <p>課題の配布から提出・採点・返却、成績の管理までをまとめて。</p>
+          <ul className="login-features">
+            <li>課題の配布と答案の提出</li>
+            <li>タブレットでの採点・コメント返却</li>
+            <li>成績と学習履歴の見える化</li>
+          </ul>
+        </div>
 
-        <LoginForm />
+        <div className="login-aside-foot">
+          © {new Date().getFullYear()} まなび教室
+        </div>
+      </aside>
 
-        <p className="login-foot">
-          ログイン情報がわからないときは、教室の先生におたずねください。
-        </p>
-
-        {demo && (
-          <div className="login-demo">
-            <div className="login-demo-label">デモ体験（ゲスト）</div>
-            <div className="login-demo-btns">
-              {GUESTS.map((g) => (
-                <form key={g.role} action={enterAsGuest.bind(null, g.role)}>
-                  <button type="submit" className="btn-secondary">{g.label}</button>
-                </form>
-              ))}
-            </div>
+      {/* 右: ログインフォーム */}
+      <main className="login-main">
+        <div className="login-box">
+          <div className="login-mobile-brand">
+            <span className="login-mark-sm">ま</span>
+            <span className="login-mobile-name">まなび教室</span>
           </div>
-        )}
-      </div>
+
+          <h1 className="login-title">ログイン</h1>
+          <p className="login-lead">
+            先生・保護者・お子さま、どなたも同じ画面からご利用いただけます。
+          </p>
+
+          <LoginForm />
+
+          <p className="login-foot">
+            ログイン情報がわからないときは、教室の先生におたずねください。
+          </p>
+
+          {demo && (
+            <div className="login-demo">
+              <div className="login-demo-label">デモ体験（ゲスト）</div>
+              <div className="login-demo-btns">
+                {GUESTS.map((g) => (
+                  <form key={g.role} action={enterAsGuest.bind(null, g.role)}>
+                    <button type="submit" className="btn-secondary">{g.label}</button>
+                  </form>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }
