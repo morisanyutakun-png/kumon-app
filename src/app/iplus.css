@@ -631,37 +631,42 @@ body {
     radial-gradient(680px 380px at 85% -10%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 60%),
     linear-gradient(150deg, #1e3a8a 0%, #2563eb 48%, #4f46e5 100%);
 }
+.login-aside-deco {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(420px 320px at 110% 0%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%),
+    radial-gradient(360px 300px at -10% 110%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 60%);
+}
+.login-aside > * { position: relative; z-index: 1; }
 .login-aside-brand { display: flex; align-items: center; gap: 12px; }
-.login-aside-mark {
-  width: 46px; height: 46px; border-radius: 13px;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  font-size: 22px; font-weight: 900; color: #fff;
+.login-aside-mark { width: 48px; height: 48px; display: block; filter: drop-shadow(0 8px 16px rgba(15, 23, 42, 0.25)); }
+.login-aside-name { font-size: 19px; font-weight: 900; letter-spacing: 0.02em; line-height: 1.2; }
+.login-aside-tag { font-size: 11px; font-weight: 800; letter-spacing: 0.22em; color: rgba(255, 255, 255, 0.7); }
+
+.login-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 22px; }
+.login-art {
+  width: 100%; max-width: 380px; height: auto; align-self: center;
+  filter: drop-shadow(0 24px 40px rgba(15, 23, 42, 0.28));
 }
-.login-aside-name { font-size: 18px; font-weight: 900; letter-spacing: 0.02em; }
-.login-aside-tag { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: rgba(255, 255, 255, 0.78); }
-.login-aside-copy h2 { margin: 0 0 12px; font-size: 30px; line-height: 1.35; font-weight: 900; letter-spacing: 0.01em; }
-.login-aside-copy > p { margin: 0 0 24px; font-size: 15px; line-height: 1.7; color: rgba(255, 255, 255, 0.86); max-width: 420px; }
-.login-features { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.login-features li {
-  position: relative; padding-left: 30px; font-size: 14.5px; font-weight: 600; color: rgba(255, 255, 255, 0.94);
+.login-hero-title { margin: 0; font-size: 30px; line-height: 1.4; font-weight: 900; letter-spacing: 0.02em; }
+.login-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.login-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 14px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff; font-size: 13px; font-weight: 800;
+  backdrop-filter: blur(4px);
 }
-.login-features li::before {
-  content: "✓"; position: absolute; left: 0; top: -1px;
-  width: 20px; height: 20px; border-radius: 999px;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, 0.18); font-size: 12px; font-weight: 900;
-}
-.login-aside-foot { font-size: 12px; color: rgba(255, 255, 255, 0.7); }
+.login-chip svg { opacity: 0.95; }
+.login-aside-foot { font-size: 12px; color: rgba(255, 255, 255, 0.65); }
 
 .login-main { display: flex; align-items: center; justify-content: center; padding: 48px 28px; }
 .login-box { width: 100%; max-width: 380px; }
 .login-mobile-brand { display: none; align-items: center; gap: 10px; margin-bottom: 24px; }
 .login-mark-sm {
-  width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #2563eb, #4f46e5); color: #fff; font-size: 21px; font-weight: 900;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.32);
+  width: 42px; height: 42px; display: block;
+  filter: drop-shadow(0 8px 18px rgba(37, 99, 235, 0.3));
 }
 .login-mobile-name { font-size: 18px; font-weight: 900; }
 

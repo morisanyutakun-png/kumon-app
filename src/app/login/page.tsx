@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getPrincipal } from "@/lib/access";
 import { isDemoMode } from "@/lib/demo";
 import { enterAsGuest } from "@/lib/actions/auth-actions";
+import { BrandMark, LoginArt } from "./brand";
 import { LoginForm } from "./login-form";
 
 const GUESTS: { role: "operator" | "student" | "parent"; label: string }[] = [
@@ -10,6 +11,21 @@ const GUESTS: { role: "operator" | "student" | "parent"; label: string }[] = [
   { role: "student", label: "生徒として体験" },
   { role: "parent", label: "保護者として体験" },
 ];
+
+const CHIPS: { icon: "doc" | "check" | "chart"; label: string }[] = [
+  { icon: "doc", label: "課題・提出" },
+  { icon: "check", label: "採点・返却" },
+  { icon: "chart", label: "成績管理" },
+];
+
+function ChipIcon({ name }: { name: "doc" | "check" | "chart" }) {
+  const common = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  if (name === "doc")
+    return (<svg {...common}><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z" /><path d="M9 13h6M9 17h4" /></svg>);
+  if (name === "check")
+    return (<svg {...common}><path d="M9 12l2 2 4-4" /><circle cx="12" cy="12" r="9" /></svg>);
+  return (<svg {...common}><path d="M4 19V5M4 19h16" /><rect x="8" y="11" width="3" height="5" /><rect x="13" y="7" width="3" height="9" /></svg>);
+}
 
 export default async function LoginPage() {
   const demo = isDemoMode();
@@ -20,34 +36,36 @@ export default async function LoginPage() {
     <div className="login-split">
       {/* 左: ブランドパネル (PC表示) */}
       <aside className="login-aside">
+        <div className="login-aside-deco" aria-hidden />
         <div className="login-aside-brand">
-          <span className="login-aside-mark">ま</span>
+          <BrandMark className="login-aside-mark" />
           <div>
             <div className="login-aside-name">まなび教室</div>
-            <div className="login-aside-tag">学習管理システム</div>
+            <div className="login-aside-tag">MANABI LEARNING</div>
           </div>
         </div>
 
-        <div className="login-aside-copy">
-          <h2>毎日の学習を、ひとつの教室に。</h2>
-          <p>課題の配布から提出・採点・返却、成績の管理までをまとめて。</p>
-          <ul className="login-features">
-            <li>課題の配布と答案の提出</li>
-            <li>タブレットでの採点・コメント返却</li>
-            <li>成績と学習履歴の見える化</li>
-          </ul>
+        <div className="login-hero">
+          <LoginArt />
+          <h2 className="login-hero-title">学びの毎日を、ひとつに。</h2>
+          <div className="login-chips">
+            {CHIPS.map((c) => (
+              <span key={c.label} className="login-chip">
+                <ChipIcon name={c.icon} />
+                {c.label}
+              </span>
+            ))}
+          </div>
         </div>
 
-        <div className="login-aside-foot">
-          © {new Date().getFullYear()} まなび教室
-        </div>
+        <div className="login-aside-foot">© {new Date().getFullYear()} まなび教室</div>
       </aside>
 
       {/* 右: ログインフォーム */}
       <main className="login-main">
         <div className="login-box">
           <div className="login-mobile-brand">
-            <span className="login-mark-sm">ま</span>
+            <BrandMark className="login-mark-sm" />
             <span className="login-mobile-name">まなび教室</span>
           </div>
 
