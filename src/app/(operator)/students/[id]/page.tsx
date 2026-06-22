@@ -7,8 +7,8 @@ import { guardianStudents, students, users } from "@/db/schema";
 import { requireOperator } from "@/lib/access";
 import { listGradingHistory, listSubmissions } from "@/lib/queries";
 import { HistoryList } from "@/components/history-list";
+import { StudentCredentialForm } from "@/components/credential-forms";
 import { SubmissionTable } from "@/components/submission-table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function StudentDetailPage({
   params,
@@ -21,9 +21,7 @@ export default async function StudentDetailPage({
   const [student] = await db
     .select()
     .from(students)
-    .where(
-      and(eq(students.id, id), eq(students.organizationId, p.organizationId)),
-    )
+    .where(and(eq(students.id, id), eq(students.organizationId, p.organizationId)))
     .limit(1);
   if (!student) notFound();
 
@@ -41,8 +39,7 @@ export default async function StudentDetailPage({
   const doneCount = subs.filter((s) => s.status === "done").length;
   const passCount = history.filter((h) => h.result === "ok").length;
   const gradedCount = history.filter((h) => h.result !== null).length;
-  const passRate =
-    gradedCount > 0 ? Math.round((passCount / gradedCount) * 100) : null;
+  const passRate = gradedCount > 0 ? Math.round((passCount / gradedCount) * 100) : null;
 
   const stats = [
     { label: "提出物", value: subs.length },
@@ -52,67 +49,56 @@ export default async function StudentDetailPage({
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Link href="/students" className="text-sm text-blue-600 hover:underline">
-          ← 生徒一覧へ
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h1 className="text-2xl font-bold">{student.name}</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {student.grade || "学年未設定"}
-              {student.loginId ? ` ・ ログインID: ${student.loginId}` : ""}
-              {!student.active ? " ・ 停止中" : ""}
-            </p>
-            <p className="mt-1 text-sm text-slate-500">
-              保護者:{" "}
-              {guardians.length > 0
-                ? guardians.map((g) => g.name).join("、")
-                : "（未登録）"}
-            </p>
-          </div>
-          <Link
-            href={`/students/${student.id}/edit`}
-            className="text-sm text-blue-600 hover:underline"
-          >
-            編集
-          </Link>
+    <div>
+      <div className="page-head-row">
+        <div className="page-head">
+          <Link href="/students" className="db-badge">← 生徒一覧へ</Link>
+          <h1 style={{ marginTop: 8 }}>
+            {student.name}
+            {!student.active && (
+              <span className="badge" style={{ marginLeft: 8, background: "#f1f5f9", color: "#64748b" }}>停止中</span>
+            )}
+          </h1>
+          <p>
+            {student.grade || "学年未設定"}
+            {student.loginId ? ` ・ ログインID: ${student.loginId}` : " ・ ログイン未発行"}
+            ／ 保護者: {guardians.length > 0 ? guardians.map((g) => g.name).join("、") : "（未登録）"}
+          </p>
         </div>
+        <Link href={`/students/${student.id}/edit`} className="db-badge">基本情報を編集</Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="dashboard">
         {stats.map((s) => (
-          <Card key={s.label}>
-            <CardContent className="py-4">
-              <div className="text-2xl font-bold">{s.value}</div>
-              <div className="mt-1 text-xs text-slate-500">{s.label}</div>
-            </CardContent>
-          </Card>
+          <div key={s.label} className="tile" style={{ cursor: "default" }}>
+            <div className="tile-num">{s.value}</div>
+            <div className="tile-label">{s.label}</div>
+          </div>
         ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">提出履歴</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SubmissionTable
-            rows={subs}
-            hrefBase="/grading"
-            emptyText="提出物はありません。"
-          />
-        </CardContent>
-      </Card>
+      <div className="card">
+        <h2>ログイン情報の発行</h2>
+        <p className="hint" style={{ marginTop: -6, marginBottom: 12 }}>
+          メールを持たないお子さま向けの「ログインID」と「PIN（あいことば）」を発行します。
+          発行した内容はこの場で控えて、本人・保護者にお渡しください。
+        </p>
+        <StudentCredentialForm
+          studentId={student.id}
+          currentLoginId={student.loginId ?? ""}
+          hasPin={student.pinHash != null}
+        />
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">採点・成績履歴</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <HistoryList rows={history} />
-        </CardContent>
-      </Card>
+      <div className="card">
+        <h2>提出履歴</h2>
+        <SubmissionTable rows={subs} hrefBase="/grading" emptyText="提出物はありません。" />
+      </div>
+
+      <div className="card">
+        <h2>採点・成績履歴</h2>
+        <HistoryList rows={history} />
+      </div>
     </div>
   );
 }

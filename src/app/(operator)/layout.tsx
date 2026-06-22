@@ -5,7 +5,7 @@ import { DemoBanner } from "@/components/demo-banner";
 import { LogoutButton } from "@/components/logout-button";
 import { SheetTabs, type SheetTabItem } from "@/components/sheet-tabs";
 
-const TABS: SheetTabItem[] = [
+const BASE_TABS: SheetTabItem[] = [
   { href: "/dashboard", label: "ダッシュボード" },
   { href: "/grading", label: "採点", exact: true },
   { href: "/grading/batch", label: "一括採点" },
@@ -21,6 +21,10 @@ export default async function OperatorLayout({
   children: React.ReactNode;
 }) {
   const p = await requireOperator();
+  const tabs: SheetTabItem[] =
+    p.role === "admin"
+      ? [...BASE_TABS, { href: "/staff", label: "スタッフ" }]
+      : BASE_TABS;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -32,7 +36,7 @@ export default async function OperatorLayout({
           <span className="brand-mark">ま</span>
           <strong>まなび教室</strong>
         </Link>
-        <SheetTabs items={TABS} />
+        <SheetTabs items={tabs} />
         <div className="sheet-status">
           <span className="db-badge" title={p.role === "admin" ? "管理者" : "運営・採点者"}>
             {p.name}

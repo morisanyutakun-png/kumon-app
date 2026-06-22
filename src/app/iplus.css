@@ -671,6 +671,21 @@ body {
 .login-demo-btns { display: grid; gap: 8px; }
 .login-demo-btns .btn-secondary { width: 100%; }
 
+/* ===== ログイン情報の発行UI ===== */
+.cred-form { display: grid; gap: 12px; max-width: 460px; }
+.cred-inline { display: flex; align-items: center; gap: 8px; }
+.cred-inline input { flex: 1 1 auto; }
+.cred-result {
+  border: 1px solid var(--primary-line);
+  background: linear-gradient(180deg, #f5f9ff, #ffffff);
+  border-radius: 14px; padding: 12px 14px; margin-top: 4px;
+}
+.cred-result-title { font-weight: 800; font-size: 13px; margin-bottom: 8px; }
+.cred-kv { display: flex; gap: 10px; align-items: baseline; padding: 2px 0; }
+.cred-kv span { width: 90px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.cred-kv b { font-size: 18px; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.cred-issued { font-size: 13px; color: #047857; font-weight: 700; }
+
 /* ===== ユニバーサル(生徒・保護者向け): 大きめ・読みやすく ===== */
 .iplus-main.narrow { font-size: 15px; }
 .iplus-main.narrow .page-head h1 { font-size: 22px; }

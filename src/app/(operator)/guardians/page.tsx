@@ -3,8 +3,13 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { guardianStudents, students, users } from "@/db/schema";
 import { requireOperator } from "@/lib/access";
-import { createGuardian, linkGuardianStudent } from "@/lib/actions/admin-actions";
+import {
+  createGuardian,
+  linkGuardianStudent,
+  resetGuardianPassword,
+} from "@/lib/actions/admin-actions";
 import { ActionForm } from "@/components/action-form";
+import { PasswordResetForm } from "@/components/credential-forms";
 
 export default async function GuardiansPage() {
   const p = await requireOperator();
@@ -96,17 +101,20 @@ export default async function GuardiansPage() {
         <div className="grid-scroll" style={{ border: "none" }}>
           <table className="record-table">
             <thead>
-              <tr><th>氏名</th><th>メール</th><th>担当生徒</th></tr>
+              <tr><th>氏名</th><th>メール</th><th>担当生徒</th><th>パスワード再発行</th></tr>
             </thead>
             <tbody>
               {parents.length === 0 ? (
-                <tr><td colSpan={3} className="empty">保護者がいません</td></tr>
+                <tr><td colSpan={4} className="empty">保護者がいません</td></tr>
               ) : (
                 parents.map((g) => (
                   <tr key={g.id}>
                     <td style={{ fontWeight: 600 }}>{g.name}</td>
                     <td className="muted">{g.email}</td>
                     <td>{childrenByGuardian.get(g.id)?.join("、") || <span className="muted">（未紐づけ）</span>}</td>
+                    <td>
+                      <PasswordResetForm action={resetGuardianPassword.bind(null, g.id)} />
+                    </td>
                   </tr>
                 ))
               )}

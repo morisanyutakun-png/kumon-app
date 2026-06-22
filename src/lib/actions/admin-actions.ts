@@ -18,7 +18,7 @@ import {
   units,
   users,
 } from "@/db/schema";
-import { requireOperator } from "@/lib/access";
+import { requireAdmin, requireOperator } from "@/lib/access";
 import { saveBlob } from "@/lib/blob";
 import { initialSessionRange } from "@/lib/progress-db";
 
@@ -483,4 +483,112 @@ export async function deleteAssignment(assignmentId: string) {
     );
   revalidatePath("/assignments");
   revalidatePath("/dashboard");
+}
+
+// =============================================================================
+// ログイン情報の発行 (生徒ID/PIN・保護者パスワード・採点者アカウント)
+// =============================================================================
+
+/** 生徒のログインID + PIN を発行/更新する。 */
+export async function issueStudentCredentials(studentId: string, fd: FormData) {
+  const p = await requireOperator();
+  const loginId = str(fd, "loginId");
+  const pin = str(fd, "pin");
+  if (!loginId) throw new Error("ログインIDを入力してください。");
+
+  const [target] = await db
+    .select()
+    .from(students)
+    .where(and(eq(students.id, studentId), eq(students.organizationId, p.organizationId)))
+    .limit(1);
+  if (!target) throw new Error("生徒が見つかりません。");
+
+  const [dup] = await db
+    .select({ id: students.id })
+    .from(students)
+    .where(eq(students.loginId, loginId))
+    .limit(1);
+  if (dup && dup.id !== studentId) {
+    throw new Error("そのログインIDは既に使われています。");
+  }
+
+  const patch: Partial<typeof students.$inferInsert> = { loginId, active: true };
+  if (pin) patch.pinHash = await bcrypt.hash(pin, 10);
+  await db.update(students).set(patch).where(eq(students.id, studentId));
+
+  revalidatePath(`/students/${studentId}`);
+  revalidatePath("/students");
+}
+
+/** 保護者(parent)のパスワードを再発行する。 */
+export async function resetGuardianPassword(userId: string, fd: FormData) {
+  const p = await requireOperator();
+  const password = str(fd, "password");
+  if (!password) throw new Error("新しいパスワードを入力してください。");
+
+  const [u] = await db
+    .select()
+    .from(users)
+    .where(
+      and(
+        eq(users.id, userId),
+        eq(users.organizationId, p.organizationId),
+        eq(users.role, "parent"),
+      ),
+    )
+    .limit(1);
+  if (!u) throw new Error("保護者が見つかりません。");
+
+  await db
+    .update(users)
+    .set({ passwordHash: await bcrypt.hash(password, 10) })
+    .where(eq(users.id, userId));
+  revalidatePath("/guardians");
+}
+
+/** 採点者(operator)アカウントを発行する。管理者のみ。 */
+export async function createOperator(
+  _prev: FormState,
+  fd: FormData,
+): Promise<FormState> {
+  const p = await requireAdmin();
+  const name = str(fd, "name");
+  const email = str(fd, "email").toLowerCase();
+  const password = str(fd, "password");
+  if (!name || !email || !password) {
+    return { error: "氏名・メール・パスワードをすべて入力してください。" };
+  }
+  const [dup] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (dup) return { error: "そのメールアドレスは既に登録されています。" };
+
+  await db.insert(users).values({
+    organizationId: p.organizationId,
+    name,
+    email,
+    role: "operator",
+    passwordHash: await bcrypt.hash(password, 10),
+  });
+  revalidatePath("/staff");
+  redirect("/staff");
+}
+
+/** 採点者・管理者のパスワードを再発行する。管理者のみ。 */
+export async function resetStaffPassword(userId: string, fd: FormData) {
+  const p = await requireAdmin();
+  const password = str(fd, "password");
+  if (!password) throw new Error("新しいパスワードを入力してください。");
+
+  const [u] = await db
+    .select()
+    .from(users)
+    .where(and(eq(users.id, userId), eq(users.organizationId, p.organizationId)))
+    .limit(1);
+  if (!u || (u.role !== "operator" && u.role !== "admin")) {
+    throw new Error("対象のスタッフが見つかりません。");
+  }
+  await db
+    .update(users)
+    .set({ passwordHash: await bcrypt.hash(password, 10) })
+    .where(eq(users.id, userId));
+  revalidatePath("/staff");
 }
