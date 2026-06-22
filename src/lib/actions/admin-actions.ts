@@ -115,6 +115,60 @@ export async function updateStudent(
   redirect("/students");
 }
 
+function randomPin(): string {
+  let s = "";
+  for (let i = 0; i < 4; i++) s += Math.floor(Math.random() * 10);
+  return s;
+}
+function randomLoginId(): string {
+  return "st" + Math.floor(1000 + Math.random() * 9000);
+}
+
+/** loginId を一意にする (空/重複なら自動生成)。 */
+async function ensureUniqueLoginId(candidate: string): Promise<string> {
+  let id = candidate.trim();
+  for (let i = 0; i < 30; i++) {
+    if (!id) id = randomLoginId();
+    const [dup] = await db
+      .select({ id: students.id })
+      .from(students)
+      .where(eq(students.loginId, id))
+      .limit(1);
+    if (!dup) return id;
+    id = randomLoginId();
+  }
+  return randomLoginId() + Math.floor(Math.random() * 100);
+}
+
+/**
+ * スプレッドシート風の行から生徒を1人追加。ログインID/PINは未入力なら自動割当。
+ * 実際に設定された loginId / pin を返す(発行内容の控え用)。
+ */
+export async function quickAddStudent(
+  fd: FormData,
+): Promise<{ name: string; loginId: string; pin: string }> {
+  const p = await requireOperator();
+  const name = str(fd, "name");
+  const grade = str(fd, "grade");
+  if (!name) throw new Error("氏名を入力してください。");
+
+  const loginId = await ensureUniqueLoginId(str(fd, "loginId"));
+  const pin = str(fd, "pin") || randomPin();
+
+  await db.insert(students).values({
+    organizationId: p.organizationId,
+    name,
+    grade,
+    loginId,
+    pinHash: await bcrypt.hash(pin, 10),
+    active: true,
+  });
+
+  revalidatePath("/students");
+  revalidatePath("/assignments");
+  return { name, loginId, pin };
+}
+
 export async function deleteStudent(studentId: string) {
   const p = await requireOperator();
   await db

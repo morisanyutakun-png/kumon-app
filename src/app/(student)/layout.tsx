@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { getPrincipal, isOperator } from "@/lib/access";
 import { DemoBanner } from "@/components/demo-banner";
+import { Logo } from "@/components/logo";
 import { LogoutButton } from "@/components/logout-button";
 import { NavTabs, type NavTabItem } from "@/components/nav-tabs";
 
@@ -26,8 +27,7 @@ export default async function StudentLayout({
       <header className="appbar">
         <div className="appbar-inner">
           <Link href="/home" className="brand" aria-label="ノビットスタディ">
-            <span className="brand-tile">ノ</span>
-            <span className="brand-name">ノビットスタディ</span>
+            <Logo className="brand-logo" />
           </Link>
           <NavTabs items={TABS} />
           <div className="appbar-right">

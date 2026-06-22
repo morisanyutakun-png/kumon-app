@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { requireOperator } from "@/lib/access";
 import { DemoBanner } from "@/components/demo-banner";
+import { Logo } from "@/components/logo";
 import { LogoutButton } from "@/components/logout-button";
 import { NavTabs, type NavTabItem } from "@/components/nav-tabs";
 
@@ -32,8 +33,7 @@ export default async function OperatorLayout({
       <header className="appbar">
         <div className="appbar-inner">
           <Link href="/dashboard" className="brand" aria-label="ノビットスタディ">
-            <span className="brand-tile">ノ</span>
-            <span className="brand-name">ノビットスタディ</span>
+            <Logo className="brand-logo" />
           </Link>
           <NavTabs items={tabs} />
           <div className="appbar-right">

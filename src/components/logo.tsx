@@ -10,8 +10,8 @@ export function Logo({ className }: { className?: string }) {
     <Image
       src="/brand/logo.png"
       alt="ノビットスタディ"
-      width={800}
-      height={533}
+      width={760}
+      height={300}
       priority
       sizes="(max-width: 480px) 80vw, 264px"
       className={className}

@@ -739,6 +739,7 @@ body {
   text-decoration: none;
 }
 .brand:hover { text-decoration: none; }
+.brand-logo { height: 34px; width: auto; display: block; }
 .brand-tile {
   width: 32px; height: 32px;
   display: inline-flex; align-items: center; justify-content: center;
@@ -804,3 +805,33 @@ body {
 .action-menu-body { box-shadow: 0 6px 16px -8px rgba(15,23,42,0.35); border: 1px solid #d4dae0; }
 /* タイル番号などをブランド色に */
 .dashboard .tile-num { color: var(--ink, #14365a); }
+
+/* ===== ダッシュボード (見やすい統計タイル) ===== */
+.section-title {
+  display: flex; align-items: center; gap: 10px;
+  margin: 22px 0 10px;
+  font-size: 13px; font-weight: 800; color: #5b6b7c; letter-spacing: 0.06em;
+}
+.section-title::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.section-title:first-of-type { margin-top: 6px; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+.stat {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid #dde2e7;
+  border-left: 4px solid var(--accent, #94a3b8);
+  text-decoration: none;
+  transition: background 0.08s;
+}
+.stat:hover { background: #f6f8fa; text-decoration: none; }
+.stat-top { display: flex; align-items: baseline; justify-content: space-between; }
+.stat-num { font-size: 30px; font-weight: 800; line-height: 1; color: var(--ink, #14365a); font-variant-numeric: tabular-nums; }
+.stat-num.is-zero { color: #b6c0cb; }
+.stat-go { font-size: 12px; font-weight: 700; color: var(--accent, #94a3b8); }
+.stat-label { font-size: 12.5px; font-weight: 700; color: #5b6b7c; }
