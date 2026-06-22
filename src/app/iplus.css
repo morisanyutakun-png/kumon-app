@@ -911,15 +911,31 @@ body {
 .learn-hero {
   position: relative; overflow: hidden;
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  background: linear-gradient(118deg, #143e9e 0%, #1aa3e6 52%, #18c39a 100%);
-  color: #fff; padding: 22px 26px; margin-bottom: 20px;
+  background:
+    radial-gradient(150px 150px at 80% 58%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 70%),
+    linear-gradient(118deg, #1b3fa0 0%, #1aa3e6 50%, #15c39a 100%);
+  color: #fff; padding: 24px 26px; margin-bottom: 20px;
+}
+/* きらめき(背景演出)でキャラが場面に馴染むように */
+.learn-hero::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(3px 3px at 18% 26%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(2px 2px at 30% 72%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(2px 2px at 52% 20%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(2.5px 2.5px at 64% 80%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(220px 120px at -5% 110%, rgba(255, 255, 255, 0.12), transparent);
 }
 .learn-hero-body { position: relative; z-index: 1; min-width: 0; }
 .learn-hero-mascot {
-  flex: 0 0 auto; align-self: center; line-height: 0;
-  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.2));
+  position: relative; z-index: 1;
+  flex: 0 0 auto; align-self: flex-end; line-height: 0;
+  display: inline-flex; align-items: flex-end; justify-content: center;
+  /* 足元のスポットライトで“浮き”をなくす */
+  background: radial-gradient(closest-side at 50% 92%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 76%);
+  padding: 0 14px;
 }
-.learn-mascot { height: 112px; width: auto; display: block; }
+.learn-mascot { height: 122px; width: auto; display: block; }
 @media (max-width: 520px) {
   .learn-mascot { height: 84px; }
   .learn-hero { padding: 18px 18px; }
@@ -1011,10 +1027,18 @@ body {
 .meter-bar { height: 14px; background: #eef2f6; overflow: hidden; }
 .meter-fill { height: 100%; background: linear-gradient(90deg, #1aa3e6, #18c39a); transition: width 0.4s ease; }
 .meter-foot { margin-top: 8px; font-size: 13px; font-weight: 700; color: #5b6b7c; }
-.meter-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; text-align: center; }
-.meter-stats > div { background: #f6f9fb; border: 1px solid #e6ebf0; padding: 12px 6px; }
-.meter-stats b { display: block; font-size: 23px; font-weight: 900; color: var(--ink, #14365a); font-variant-numeric: tabular-nums; }
-.meter-stats span { font-size: 11px; font-weight: 700; color: #5b6b7c; }
+.meter-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; text-align: center; }
+.ms { padding: 12px 6px; border: 1px solid #e6ebf0; }
+.ms .ms-ico { display: block; font-size: 18px; line-height: 1; margin-bottom: 4px; }
+.ms b { display: block; font-size: 24px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+.ms span:last-child { font-size: 11px; font-weight: 800; color: #5b6b7c; }
+.ms-star { background: #fff7e6; border-color: #ffe2ad; }
+.ms-star b { color: #e2741a; }
+.ms-done { background: #e9f8f1; border-color: #bfe9d6; }
+.ms-done b { color: #0f9e74; }
+.ms-week { background: #e8f5fd; border-color: #bce4f4; }
+.ms-week b { color: #1583c4; }
+.meter-fill { background: linear-gradient(90deg, #1aa3e6, #18c39a, #46c35f); }
 
 @media (max-width: 520px) {
   .mission { flex-wrap: wrap; }

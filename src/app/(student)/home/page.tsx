@@ -160,9 +160,9 @@ export default async function StudentHome() {
           {lv.isMax ? "さいこう称号に とうたつ！すごい！" : `つぎの称号まで あと ⭐${lv.remaining} こ`}
         </div>
         <div className="meter-stats">
-          <div><b>{pass}</b><span>はなまる</span></div>
-          <div><b>{doneCount}</b><span>かんりょう</span></div>
-          <div><b>{weekCount}</b><span>今週の提出</span></div>
+          <div className="ms ms-star"><span className="ms-ico">⭐</span><b>{pass}</b><span>はなまる</span></div>
+          <div className="ms ms-done"><span className="ms-ico">✅</span><b>{doneCount}</b><span>かんりょう</span></div>
+          <div className="ms ms-week"><span className="ms-ico">📅</span><b>{weekCount}</b><span>今週の提出</span></div>
         </div>
       </div>
 
