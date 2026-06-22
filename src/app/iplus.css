@@ -907,59 +907,60 @@ body {
   .dash-hero-r { width: 100%; justify-content: space-between; }
 }
 
-/* ===== 生徒の学習ホーム (toC / 親しみ・使いやすさ) ===== */
+/* ===== 生徒の学習ホーム (toC / 鮮やか・創造的) ===== */
 .learn-hero {
-  display: flex; align-items: center; gap: 16px;
-  background: var(--primary); color: #fff;
-  padding: 20px 22px; margin-bottom: 18px;
+  position: relative; overflow: hidden;
+  background: linear-gradient(118deg, #143e9e 0%, #1aa3e6 52%, #18c39a 100%);
+  color: #fff; padding: 28px 26px; margin-bottom: 20px;
 }
-.learn-hero-ico {
-  flex: 0 0 auto; width: 56px; height: 56px;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.28);
-  color: #fff;
+.learn-hero-deco { position: absolute; right: -14px; top: -10px; opacity: 0.28; pointer-events: none; }
+.learn-hero-body { position: relative; z-index: 1; }
+.learn-hero-tag {
+  display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: 0.22em;
+  padding: 4px 10px; background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.3);
+  margin-bottom: 12px;
 }
-.learn-hero-title { font-size: 22px; font-weight: 900; letter-spacing: 0.01em; }
-.learn-hero-sub { margin-top: 5px; font-size: 13.5px; line-height: 1.6; color: rgba(255, 255, 255, 0.9); }
+.learn-hero-title { font-size: 27px; font-weight: 900; line-height: 1.28; letter-spacing: 0.01em; }
+.learn-hero-sub { margin-top: 8px; font-size: 14px; line-height: 1.7; color: rgba(255, 255, 255, 0.94); max-width: 560px; }
 
-.learn-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 22px; }
-.lstat { background: #fff; border: 1px solid #dde2e7; border-top: 4px solid var(--primary); padding: 18px 12px; text-align: center; }
-.lstat-num { font-size: 32px; font-weight: 900; color: var(--ink, #14365a); font-variant-numeric: tabular-nums; line-height: 1; }
-.lstat-label { font-size: 13px; font-weight: 700; color: #5b6b7c; margin-top: 8px; }
+.learn-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+.lstat { border: 1px solid rgba(15, 23, 42, 0.06); padding: 20px 12px; text-align: center; }
+.lstat-num { font-size: 34px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+.lstat-label { font-size: 13px; font-weight: 800; color: #5b6b7c; margin-top: 8px; }
 
 .lsection {
   display: flex; align-items: center; gap: 8px;
-  margin: 0 0 12px; font-size: 16px; font-weight: 900; color: var(--ink, #14365a);
+  margin: 0 0 12px; font-size: 17px; font-weight: 900; color: var(--ink, #14365a);
 }
 .lsection-n {
   display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0 7px;
-  background: var(--primary-soft); color: var(--primary-d); font-size: 12px; font-weight: 800;
+  background: var(--primary); color: #fff; font-size: 12px; font-weight: 800;
 }
 .lcard-empty {
   background: #fff; border: 1px dashed #cdd9e4; color: #5b6b7c;
-  padding: 22px 16px; text-align: center; font-size: 14px;
+  padding: 24px 16px; text-align: center; font-size: 14px;
 }
 
 .task {
   display: flex; align-items: center; gap: 14px;
-  background: #fff; border: 1px solid #dde2e7; border-left: 5px solid var(--accent, var(--primary));
+  background: #fff; border: 1px solid #dde2e7;
   padding: 16px 18px; text-decoration: none; color: var(--text);
-  transition: background 0.08s, box-shadow 0.08s;
+  transition: background 0.08s, border-color 0.08s;
 }
-.task:hover { background: #f7fbfe; text-decoration: none; }
+.task:hover { background: #f9fcfe; border-color: #c7d3de; text-decoration: none; }
 .task-ico {
-  flex: 0 0 auto; width: 44px; height: 44px;
+  flex: 0 0 auto; width: 48px; height: 48px;
   display: inline-flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 18px; font-weight: 900;
+  color: #fff; font-size: 20px; font-weight: 900;
 }
 .task-main { min-width: 0; flex: 1; }
 .task-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 16px; font-weight: 800; color: var(--ink, #14365a); }
 .task-meta { margin-top: 4px; font-size: 13px; color: #5b6b7c; }
 .task-cta {
-  flex: 0 0 auto; background: var(--primary); color: #fff;
-  font-size: 15px; font-weight: 800; padding: 13px 20px; white-space: nowrap;
+  flex: 0 0 auto; color: #fff;
+  font-size: 15px; font-weight: 800; padding: 13px 22px; white-space: nowrap;
 }
-.task-cta:hover { background: var(--primary-d); }
+.task-cta:hover { filter: brightness(0.95); }
 
 @media (max-width: 520px) {
   .task { flex-wrap: wrap; }

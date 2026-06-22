@@ -12,13 +12,15 @@ const CTA: Partial<Record<SubmissionStatus, string>> = {
   returned: "けっかを見る",
 };
 
+// toC向けの鮮やかな教科カラー
 function subjectColor(subject: string): string {
   switch (subject) {
-    case "算数": return "#2aa8e0";
-    case "国語": return "#ef5a5a";
-    case "理科": return "#22b07d";
-    case "社会": return "#f59e0b";
-    case "英語": return "#8b5cf6";
+    case "算数": return "#1aa3e6";
+    case "国語": return "#ff5d8f";
+    case "理科": return "#18c39a";
+    case "社会": return "#ff8a3d";
+    case "英語": return "#7c5cfc";
+    case "プログラミング": return "#13b6c9";
     default: return "#1c9dd8";
   }
 }
@@ -32,7 +34,7 @@ function TaskCard({ r }: { r: SubmissionRow }) {
   const cta = CTA[r.status];
   const color = subjectColor(r.subject);
   return (
-    <Link href={`/submissions/${r.submissionId}`} className="task" style={{ ["--accent" as string]: color }}>
+    <Link href={`/submissions/${r.submissionId}`} className="task">
       <span className="task-ico" style={{ background: color }}>{(r.subject || "課")[0]}</span>
       <div className="task-main">
         <div className="task-title">
@@ -45,7 +47,7 @@ function TaskCard({ r }: { r: SubmissionRow }) {
           {r.dueDate ? ` ・ きげん ${fmtDue(r.dueDate)}` : ""}
         </div>
       </div>
-      {cta && <span className="task-cta">{cta}</span>}
+      {cta && <span className="task-cta" style={{ background: color }}>{cta}</span>}
     </Link>
   );
 }
@@ -53,7 +55,7 @@ function TaskCard({ r }: { r: SubmissionRow }) {
 function Section({ title, rows, empty }: { title: string; rows: SubmissionRow[]; empty?: string }) {
   if (rows.length === 0 && !empty) return null;
   return (
-    <section style={{ marginBottom: 20 }}>
+    <section style={{ marginBottom: 22 }}>
       <div className="lsection">{title}<span className="lsection-n">{rows.length}</span></div>
       {rows.length === 0 ? (
         <div className="lcard-empty">{empty}</div>
@@ -86,18 +88,28 @@ export default async function StudentHome() {
 
   const greet = p.role === "student" ? `こんにちは、${p.name} さん！` : "こんにちは！";
 
+  const stats: { label: string; value: string | number; fg: string; bg: string }[] = [
+    { label: "やること", value: todo.length, fg: "#1583c4", bg: "#e8f5fd" },
+    { label: "かんりょう", value: doneCount, fg: "#0f9e74", bg: "#e7f7f1" },
+    { label: "合格りつ", value: passRate === null ? "—" : `${passRate}%`, fg: "#e2741a", bg: "#fff2e6" },
+  ];
+
   return (
     <div>
-      {/* あいさつバンド */}
+      {/* ヒーロー: 加速する未来の学び */}
       <div className="learn-hero">
-        <span className="learn-hero-ico" aria-hidden>
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 4 3 8l9 4 9-4-9-4z" /><path d="M21 8v6" /><path d="M7 11v4c0 1.5 2.7 3 5 3s5-1.5 5-3v-4" />
+        <div className="learn-hero-deco" aria-hidden>
+          <svg width="190" height="150" viewBox="0 0 190 150" fill="none">
+            <path d="M20 120 L70 80 L110 100 L175 30" stroke="#fff" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M150 30 H178 V58" stroke="#fff" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M44 26l3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8z" fill="#fff" />
+            <circle cx="120" cy="70" r="5" fill="#fff" />
           </svg>
-        </span>
-        <div>
+        </div>
+        <div className="learn-hero-body">
+          <div className="learn-hero-tag">加速する未来の学び</div>
           <div className="learn-hero-title">{greet}</div>
-          <div className="learn-hero-sub">きょうの課題にとりくもう。教材を見て、答案を出すと先生がまるつけして返します。</div>
+          <div className="learn-hero-sub">きょうも一歩ずつ。課題にとりくんで、できることをふやそう！</div>
         </div>
       </div>
 
@@ -116,9 +128,12 @@ export default async function StudentHome() {
       )}
 
       <div className="learn-stats">
-        <div className="lstat"><div className="lstat-num">{todo.length}</div><div className="lstat-label">やること</div></div>
-        <div className="lstat"><div className="lstat-num">{doneCount}</div><div className="lstat-label">かんりょう</div></div>
-        <div className="lstat"><div className="lstat-num">{passRate === null ? "—" : `${passRate}%`}</div><div className="lstat-label">合格りつ</div></div>
+        {stats.map((s) => (
+          <div key={s.label} className="lstat" style={{ background: s.bg }}>
+            <div className="lstat-num" style={{ color: s.fg }}>{s.value}</div>
+            <div className="lstat-label">{s.label}</div>
+          </div>
+        ))}
       </div>
 
       <Section title="やること" rows={todo} empty="いまやることはありません。よくできました！" />
