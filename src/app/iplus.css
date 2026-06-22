@@ -11,10 +11,10 @@
   --line-2: #f1f5f9;
   --text: #0f172a;
   --muted: #64748b;
-  --primary: #2563eb;
-  --primary-d: #1d4ed8;
-  --primary-soft: #eff6ff;
-  --primary-line: #bfdbfe;
+  --primary: #1f3b66;
+  --primary-d: #16294a;
+  --primary-soft: #eef2f7;
+  --primary-line: #cdd8e8;
   --danger-bg: #fee2e2;
   --danger-fg: #991b1b;
   --ok: #059669;
@@ -25,7 +25,7 @@
   --info-fg: #1e40af;
   --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  --focus-ring: 0 0 0 3px rgba(31, 59, 102, 0.16);
 }
 
 body {
@@ -607,81 +607,44 @@ body {
 .page-head h1 { letter-spacing: 0.01em; }
 .card { border-radius: 18px; }
 .card h2 { letter-spacing: 0.01em; }
-.btn-primary { box-shadow: 0 2px 8px rgba(37, 99, 235, 0.22); }
+.btn-primary { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08); }
 .brand-mark { letter-spacing: 0; font-weight: 900; }
 
-/* ===== ログイン (2カラム: 左ブランド / 右フォーム) ===== */
-.login-split {
+/* ===== ログイン (余白ミニマル / 白基調 / 単色ネイビー) ===== */
+.auth {
   flex: 1;
-  display: grid;
-  grid-template-columns: 1.05fr 1fr;
-  min-height: 100vh;
-  background: #fff;
-}
-.login-aside {
-  position: relative;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 40px;
-  padding: 56px 60px;
-  color: #fff;
-  overflow: hidden;
-  background:
-    radial-gradient(680px 380px at 85% -10%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 60%),
-    linear-gradient(150deg, #1e3a8a 0%, #2563eb 48%, #4f46e5 100%);
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  background: #f6f7f9;
 }
-.login-aside-deco {
-  position: absolute; inset: 0; pointer-events: none;
-  background:
-    radial-gradient(420px 320px at 110% 0%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%),
-    radial-gradient(360px 300px at -10% 110%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 60%);
+.auth-box {
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  border: 1px solid #e7eaee;
+  border-radius: 16px;
+  padding: 40px 36px 32px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
-.login-aside > * { position: relative; z-index: 1; }
-.login-aside-brand { display: flex; align-items: center; gap: 12px; }
-.login-aside-mark { width: 48px; height: 48px; display: block; filter: drop-shadow(0 8px 16px rgba(15, 23, 42, 0.25)); }
-.login-aside-name { font-size: 19px; font-weight: 900; letter-spacing: 0.02em; line-height: 1.2; }
-.login-aside-tag { font-size: 11px; font-weight: 800; letter-spacing: 0.22em; color: rgba(255, 255, 255, 0.7); }
+.auth-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 34px; }
+.auth-logo { width: 36px; height: 36px; display: block; }
+.auth-word { font-size: 17px; font-weight: 800; letter-spacing: 0.01em; color: #0f172a; }
+.auth-h1 { margin: 0 0 6px; font-size: 23px; font-weight: 800; letter-spacing: 0.01em; color: #0f172a; }
+.auth-sub { margin: 0 0 28px; color: var(--muted); font-size: 13.5px; line-height: 1.7; }
 
-.login-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 22px; }
-.login-art {
-  width: 100%; max-width: 380px; height: auto; align-self: center;
-  filter: drop-shadow(0 24px 40px rgba(15, 23, 42, 0.28));
-}
-.login-hero-title { margin: 0; font-size: 30px; line-height: 1.4; font-weight: 900; letter-spacing: 0.02em; }
-.login-chips { display: flex; flex-wrap: wrap; gap: 10px; }
-.login-chip {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 9px 14px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  color: #fff; font-size: 13px; font-weight: 800;
-  backdrop-filter: blur(4px);
-}
-.login-chip svg { opacity: 0.95; }
-.login-aside-foot { font-size: 12px; color: rgba(255, 255, 255, 0.65); }
-
-.login-main { display: flex; align-items: center; justify-content: center; padding: 48px 28px; }
-.login-box { width: 100%; max-width: 380px; }
-.login-mobile-brand { display: none; align-items: center; gap: 10px; margin-bottom: 24px; }
-.login-mark-sm {
-  width: 42px; height: 42px; display: block;
-  filter: drop-shadow(0 8px 18px rgba(37, 99, 235, 0.3));
-}
-.login-mobile-name { font-size: 18px; font-weight: 900; }
-
-.login-title { margin: 0 0 6px; font-size: 28px; font-weight: 900; letter-spacing: 0.01em; }
-.login-lead { margin: 0 0 26px; color: var(--muted); font-size: 14px; line-height: 1.7; }
 .login-form { display: grid; gap: 18px; }
 .login-field { display: grid; gap: 7px; }
-.login-field label { font-size: 13px; font-weight: 800; color: #334155; }
+.login-field label { font-size: 13px; font-weight: 700; color: #334155; }
 .login-field input {
-  height: 50px;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
+  height: 48px;
+  border: 1px solid #d6dbe2;
+  border-radius: 10px;
   padding: 0 14px;
   font-size: 16px; /* 16px以上でモバイルの自動ズームを防ぐ */
   background: #fff;
+  color: #0f172a;
   transition: border-color 0.12s, box-shadow 0.12s;
 }
 .login-field input::placeholder { color: #9aa7b8; }
@@ -691,19 +654,16 @@ body {
   margin: 0; padding: 10px 12px; border-radius: 10px;
   background: var(--danger-bg); color: var(--danger-fg); font-size: 13px; font-weight: 700;
 }
-.login-submit { height: 50px; width: 100%; font-size: 16px; font-weight: 800; border-radius: 12px; margin-top: 4px; }
-.login-foot { margin: 22px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
-.login-demo { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
-.login-demo-label { font-size: 12px; color: var(--muted); font-weight: 800; margin-bottom: 8px; }
+.login-submit { height: 48px; width: 100%; font-size: 15px; font-weight: 700; border-radius: 10px; margin-top: 6px; }
+.login-foot { margin: 22px 0 0; padding-top: 18px; border-top: 1px solid #eef1f4; color: var(--muted); font-size: 12.5px; line-height: 1.7; }
+.login-demo { margin-top: 16px; }
+.login-demo-label { font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
 .login-demo-btns { display: grid; gap: 8px; }
 .login-demo-btns .btn-secondary { width: 100%; }
 
-@media (max-width: 860px) {
-  .login-aside { display: none; }
-  .login-split { grid-template-columns: 1fr; }
-  .login-mobile-brand { display: flex; }
-  .login-main { padding: 32px 22px; align-items: flex-start; }
-  .login-box { padding-top: 8vh; }
+@media (max-width: 480px) {
+  .auth { padding: 0; background: #fff; align-items: flex-start; }
+  .auth-box { border: none; box-shadow: none; border-radius: 0; padding: 40px 22px; max-width: none; }
 }
 
 /* ===== ログイン情報の発行UI ===== */
