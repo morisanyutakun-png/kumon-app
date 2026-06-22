@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { students } from "@/db/schema";
 import { accessibleStudentIds, requirePrincipal } from "@/lib/access";
-import { encourageMessage } from "@/lib/encourage";
+import { encourageMessage, levelInfo, studyStreak } from "@/lib/encourage";
 import { listGradingHistory, listNotifications, listSubmissions } from "@/lib/queries";
 import { Mascot } from "@/components/mascot";
 import { StatusBadge } from "@/components/status-badge";
@@ -17,7 +17,6 @@ const CTA: Partial<Record<SubmissionStatus, string>> = {
   returned: "けっかを見る",
 };
 
-// toC向けの鮮やかな教科カラー
 function subjectColor(subject: string): string {
   switch (subject) {
     case "算数": return "#1aa3e6";
@@ -29,7 +28,6 @@ function subjectColor(subject: string): string {
     default: return "#1c9dd8";
   }
 }
-
 function fmtDue(d: Date | null): string {
   if (!d) return "";
   return new Date(d).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
@@ -42,33 +40,22 @@ function TaskCard({ r }: { r: SubmissionRow }) {
     <Link href={`/submissions/${r.submissionId}`} className="task">
       <span className="task-ico" style={{ background: color }}>{(r.subject || "課")[0]}</span>
       <div className="task-main">
-        <div className="task-title">
-          {r.assignmentTitle || r.materialName}
-          <StatusBadge status={r.status} />
-        </div>
-        <div className="task-meta">
-          {r.subject}
-          {r.rangeText ? ` ・ ${r.rangeText}` : ""}
-          {r.dueDate ? ` ・ きげん ${fmtDue(r.dueDate)}` : ""}
-        </div>
+        <div className="task-title">{r.assignmentTitle || r.materialName}<StatusBadge status={r.status} /></div>
+        <div className="task-meta">{r.subject}{r.rangeText ? ` ・ ${r.rangeText}` : ""}{r.dueDate ? ` ・ きげん ${fmtDue(r.dueDate)}` : ""}</div>
       </div>
       {cta && <span className="task-cta" style={{ background: color }}>{cta}</span>}
     </Link>
   );
 }
 
-function Section({ title, rows, empty }: { title: string; rows: SubmissionRow[]; empty?: string }) {
-  if (rows.length === 0 && !empty) return null;
+function Section({ title, rows }: { title: string; rows: SubmissionRow[] }) {
+  if (rows.length === 0) return null;
   return (
     <section style={{ marginBottom: 22 }}>
       <div className="lsection">{title}<span className="lsection-n">{rows.length}</span></div>
-      {rows.length === 0 ? (
-        <div className="lcard-empty">{empty}</div>
-      ) : (
-        <div style={{ display: "grid", gap: 12 }}>
-          {rows.map((r) => <TaskCard key={r.submissionId} r={r} />)}
-        </div>
-      )}
+      <div style={{ display: "grid", gap: 12 }}>
+        {rows.map((r) => <TaskCard key={r.submissionId} r={r} />)}
+      </div>
     </section>
   );
 }
@@ -87,39 +74,36 @@ export default async function StudentHome() {
   const waiting = rows.filter((r) => r.status === "submitted" || r.status === "grading");
   const returned = rows.filter((r) => r.status === "returned");
   const doneCount = rows.filter((r) => r.status === "done").length;
-  const passCount = history.filter((h) => h.result === "ok").length;
-  const graded = history.filter((h) => h.result !== null).length;
-  const passRate = graded > 0 ? Math.round((passCount / graded) * 100) : null;
+  const pass = history.filter((h) => h.result === "ok").length;
+  const lv = levelInfo(pass);
+  const streak = studyStreak(rows.map((r) => r.submittedAt).filter((d): d is Date => !!d));
+  const weekAgo = Date.now() - 7 * 86400000;
+  const weekCount = rows.filter((r) => r.submittedAt && new Date(r.submittedAt).getTime() >= weekAgo).length;
 
-  // 学年に応じたメッセージ(生徒のみ)。保護者は概況メッセージ。
   let message = "お子さまの今日の課題と結果を確認できます。";
   if (p.role === "student" && p.studentId) {
-    const [s] = await db
-      .select({ grade: students.grade })
-      .from(students)
-      .where(eq(students.id, p.studentId))
-      .limit(1);
+    const [s] = await db.select({ grade: students.grade }).from(students).where(eq(students.id, p.studentId)).limit(1);
     message = encourageMessage(s?.grade ?? "");
   }
   const greet = p.role === "student" ? `こんにちは、${p.name} さん！` : "こんにちは！";
 
-  const stats: { label: string; value: string | number; fg: string; bg: string }[] = [
-    { label: "やること", value: todo.length, fg: "#1583c4", bg: "#e8f5fd" },
-    { label: "かんりょう", value: doneCount, fg: "#0f9e74", bg: "#e7f7f1" },
-    { label: "合格りつ", value: passRate === null ? "—" : `${passRate}%`, fg: "#e2741a", bg: "#fff2e6" },
-  ];
+  const mission = todo[0];
+  const missionColor = mission ? subjectColor(mission.subject) : "#1c9dd8";
 
   return (
     <div>
-      {/* ヒーロー: キャラ + 学年別メッセージ */}
+      {/* ヒーロー: キャラ + メッセージ + がんばり状況 */}
       <div className="learn-hero">
         <div className="learn-hero-body">
           <div className="learn-hero-title">{greet}</div>
           <div className="learn-hero-sub">{message}</div>
+          <div className="hero-chips">
+            <span className="hero-chip">🔥 {streak}日れんぞく</span>
+            <span className="hero-chip">⭐ はなまる {pass}こ</span>
+            <span className="hero-chip">🏅 {lv.name}</span>
+          </div>
         </div>
-        <span className="learn-hero-mascot" aria-hidden>
-          <Mascot className="learn-mascot" />
-        </span>
+        <span className="learn-hero-mascot" aria-hidden><Mascot className="learn-mascot" /></span>
       </div>
 
       {notices.length > 0 && (
@@ -136,16 +120,45 @@ export default async function StudentHome() {
         </div>
       )}
 
-      <div className="learn-stats">
-        {stats.map((s) => (
-          <div key={s.label} className="lstat" style={{ background: s.bg }}>
-            <div className="lstat-num" style={{ color: s.fg }}>{s.value}</div>
-            <div className="lstat-label">{s.label}</div>
+      {/* 今日のミッション */}
+      {mission ? (
+        <Link href={`/submissions/${mission.submissionId}`} className="mission" style={{ ["--accent" as string]: missionColor }}>
+          <span className="mission-ico" style={{ background: missionColor }}>{(mission.subject || "課")[0]}</span>
+          <div className="mission-body">
+            <div className="mission-label">きょうのミッション</div>
+            <div className="mission-title">{mission.assignmentTitle || mission.materialName}</div>
+            <div className="mission-meta">{mission.subject}{mission.rangeText ? ` ・ ${mission.rangeText}` : ""}</div>
           </div>
-        ))}
+          <span className="mission-cta" style={{ background: missionColor }}>はじめる →</span>
+        </Link>
+      ) : (
+        <div className="mission mission-done">
+          <span className="mission-done-emoji">🎉</span>
+          <div>
+            <div className="mission-title">きょうのミッション かんりょう！</div>
+            <div className="mission-meta">よくがんばったね。あたらしい課題をまっててね。</div>
+          </div>
+        </div>
+      )}
+
+      {/* がんばりメーター */}
+      <div className="meter">
+        <div className="meter-head">
+          <span className="meter-title">がんばりメーター</span>
+          <span className="meter-level">🏅 {lv.name}</span>
+        </div>
+        <div className="meter-bar"><div className="meter-fill" style={{ width: `${lv.progress}%` }} /></div>
+        <div className="meter-foot">
+          {lv.isMax ? "さいこう称号に とうたつ！すごい！" : `つぎの称号まで あと ⭐${lv.remaining} こ`}
+        </div>
+        <div className="meter-stats">
+          <div><b>{pass}</b><span>はなまる</span></div>
+          <div><b>{doneCount}</b><span>かんりょう</span></div>
+          <div><b>{weekCount}</b><span>今週の提出</span></div>
+        </div>
       </div>
 
-      <Section title="やること" rows={todo} empty="いまやることはありません。よくできました！" />
+      <Section title="やること" rows={todo} />
       <Section title="けっかまち" rows={waiting} />
       <Section title="へんきゃく・かくにん" rows={returned} />
 
