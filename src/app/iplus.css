@@ -910,11 +910,20 @@ body {
 /* ===== 生徒の学習ホーム (toC / 鮮やか・創造的) ===== */
 .learn-hero {
   position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
   background: linear-gradient(118deg, #143e9e 0%, #1aa3e6 52%, #18c39a 100%);
-  color: #fff; padding: 28px 26px; margin-bottom: 20px;
+  color: #fff; padding: 22px 26px; margin-bottom: 20px;
 }
-.learn-hero-deco { position: absolute; right: -14px; top: -10px; opacity: 0.28; pointer-events: none; }
-.learn-hero-body { position: relative; z-index: 1; }
+.learn-hero-body { position: relative; z-index: 1; min-width: 0; }
+.learn-hero-mascot {
+  flex: 0 0 auto; align-self: center; line-height: 0;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.2));
+}
+.learn-mascot { height: 96px; width: auto; display: block; }
+@media (max-width: 520px) {
+  .learn-mascot { height: 72px; }
+  .learn-hero { padding: 18px 18px; }
+}
 .learn-hero-tag {
   display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: 0.22em;
   padding: 4px 10px; background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.3);

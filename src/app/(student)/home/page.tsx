@@ -1,7 +1,12 @@
 import Link from "next/link";
+import { eq } from "drizzle-orm";
 
+import { db } from "@/db";
+import { students } from "@/db/schema";
 import { accessibleStudentIds, requirePrincipal } from "@/lib/access";
+import { encourageMessage } from "@/lib/encourage";
 import { listGradingHistory, listNotifications, listSubmissions } from "@/lib/queries";
+import { Mascot } from "@/components/mascot";
 import { StatusBadge } from "@/components/status-badge";
 import type { SubmissionRow } from "@/lib/queries";
 import type { SubmissionStatus } from "@/db/schema";
@@ -86,6 +91,16 @@ export default async function StudentHome() {
   const graded = history.filter((h) => h.result !== null).length;
   const passRate = graded > 0 ? Math.round((passCount / graded) * 100) : null;
 
+  // 学年に応じたメッセージ(生徒のみ)。保護者は概況メッセージ。
+  let message = "お子さまの今日の課題と結果を確認できます。";
+  if (p.role === "student" && p.studentId) {
+    const [s] = await db
+      .select({ grade: students.grade })
+      .from(students)
+      .where(eq(students.id, p.studentId))
+      .limit(1);
+    message = encourageMessage(s?.grade ?? "");
+  }
   const greet = p.role === "student" ? `こんにちは、${p.name} さん！` : "こんにちは！";
 
   const stats: { label: string; value: string | number; fg: string; bg: string }[] = [
@@ -96,20 +111,15 @@ export default async function StudentHome() {
 
   return (
     <div>
-      {/* ヒーロー: 加速する未来の学び */}
+      {/* ヒーロー: キャラ + 学年別メッセージ */}
       <div className="learn-hero">
-        <div className="learn-hero-deco" aria-hidden>
-          <svg width="190" height="150" viewBox="0 0 190 150" fill="none">
-            <path d="M20 120 L70 80 L110 100 L175 30" stroke="#fff" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M150 30 H178 V58" stroke="#fff" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M44 26l3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8z" fill="#fff" />
-            <circle cx="120" cy="70" r="5" fill="#fff" />
-          </svg>
-        </div>
         <div className="learn-hero-body">
           <div className="learn-hero-title">{greet}</div>
-          <div className="learn-hero-sub">きょうも一歩ずつ。課題にとりくんで、できることをふやそう！</div>
+          <div className="learn-hero-sub">{message}</div>
         </div>
+        <span className="learn-hero-mascot" aria-hidden>
+          <Mascot className="learn-mascot" />
+        </span>
       </div>
 
       {notices.length > 0 && (
