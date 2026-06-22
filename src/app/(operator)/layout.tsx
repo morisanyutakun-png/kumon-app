@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { requireOperator } from "@/lib/access";
 import { DemoBanner } from "@/components/demo-banner";
+import { Logo } from "@/components/logo";
 import { LogoutButton } from "@/components/logout-button";
 import { SheetTabs, type SheetTabItem } from "@/components/sheet-tabs";
 
@@ -32,9 +33,8 @@ export default async function OperatorLayout({
       <main className="iplus-main wide flex-1">{children}</main>
 
       <div className="sheet-tabbar" role="navigation" aria-label="メニュー">
-        <Link href="/dashboard" className="sheet-brand" aria-label="まなび教室">
-          <span className="brand-mark">ま</span>
-          <strong>まなび教室</strong>
+        <Link href="/dashboard" className="sheet-brand" aria-label="ノビットスタディ">
+          <Logo className="sheet-logo" />
         </Link>
         <SheetTabs items={tabs} />
         <div className="sheet-status">

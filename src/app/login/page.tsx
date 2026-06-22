@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getPrincipal } from "@/lib/access";
 import { isDemoMode } from "@/lib/demo";
 import { enterAsGuest } from "@/lib/actions/auth-actions";
-import { BrandMark } from "./brand";
+import { Logo } from "@/components/logo";
 import { LoginForm } from "./login-form";
 
 const GUESTS: { role: "operator" | "student" | "parent"; label: string }[] = [
@@ -20,24 +20,20 @@ export default async function LoginPage() {
   return (
     <div className="auth">
       <div className="auth-box">
-        <div className="auth-brand">
-          <BrandMark className="auth-logo" />
-          <span className="auth-word">まなび教室</span>
+        <div className="auth-logo-wrap">
+          <Logo className="auth-logo" />
         </div>
-
-        <h1 className="auth-h1">ログイン</h1>
-        <p className="auth-sub">先生・保護者・お子さま、共通のログイン画面です。</p>
 
         <LoginForm />
 
-        <p className="login-foot">
+        <p className="auth-help">
           ログイン情報がわからないときは、教室の先生におたずねください。
         </p>
 
         {demo && (
-          <div className="login-demo">
-            <div className="login-demo-label">デモ体験（ゲスト）</div>
-            <div className="login-demo-btns">
+          <div className="auth-demo">
+            <div className="auth-demo-label">デモ体験（ゲスト）</div>
+            <div className="auth-demo-btns">
               {GUESTS.map((g) => (
                 <form key={g.role} action={enterAsGuest.bind(null, g.role)}>
                   <button type="submit" className="btn-secondary">{g.label}</button>
@@ -46,6 +42,10 @@ export default async function LoginPage() {
             </div>
           </div>
         )}
+
+        <div className="auth-foot">
+          ノビットスタディについて<span className="auth-foot-sep">｜</span>© {new Date().getFullYear()} Nobit Study
+        </div>
       </div>
     </div>
   );

@@ -70,6 +70,7 @@ body {
   text-decoration: none;
 }
 .sheet-brand:hover { text-decoration: none; }
+.sheet-logo { height: 26px; width: auto; display: block; }
 .brand-mark {
   display: inline-flex;
   align-items: center;
@@ -610,61 +611,57 @@ body {
 .btn-primary { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08); }
 .brand-mark { letter-spacing: 0; font-weight: 900; }
 
-/* ===== ログイン (余白ミニマル / 白基調 / 単色ネイビー) ===== */
+/* ===== ログイン (ロゴ大 + 入力2つ + 大ボタンのミニマル構成) ===== */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
 .auth {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px 20px;
-  background: #f6f7f9;
+  padding: 40px 20px;
+  background: #eceef0;
 }
-.auth-box {
-  width: 100%;
-  max-width: 400px;
-  background: #fff;
-  border: 1px solid #e7eaee;
-  border-radius: 16px;
-  padding: 40px 36px 32px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-}
-.auth-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 34px; }
-.auth-logo { width: 36px; height: 36px; display: block; }
-.auth-word { font-size: 17px; font-weight: 800; letter-spacing: 0.01em; color: #0f172a; }
-.auth-h1 { margin: 0 0 6px; font-size: 23px; font-weight: 800; letter-spacing: 0.01em; color: #0f172a; }
-.auth-sub { margin: 0 0 28px; color: var(--muted); font-size: 13.5px; line-height: 1.7; }
+.auth-box { width: 100%; max-width: 360px; text-align: center; }
+.auth-logo-wrap { margin-bottom: 28px; }
+.auth-logo { width: 220px; max-width: 78%; height: auto; display: inline-block; }
 
-.login-form { display: grid; gap: 18px; }
-.login-field { display: grid; gap: 7px; }
-.login-field label { font-size: 13px; font-weight: 700; color: #334155; }
-.login-field input {
-  height: 48px;
-  border: 1px solid #d6dbe2;
-  border-radius: 10px;
-  padding: 0 14px;
+.auth-form { display: grid; gap: 10px; text-align: left; }
+.auth-form input {
+  height: 52px;
+  width: 100%;
+  border: 1px solid #d3d7dd;
+  border-radius: 8px;
+  padding: 0 16px;
   font-size: 16px; /* 16px以上でモバイルの自動ズームを防ぐ */
   background: #fff;
   color: #0f172a;
   transition: border-color 0.12s, box-shadow 0.12s;
 }
-.login-field input::placeholder { color: #9aa7b8; }
-.login-field input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
-.login-hint { font-size: 12px; color: var(--muted); }
-.login-error {
-  margin: 0; padding: 10px 12px; border-radius: 10px;
+.auth-form input::placeholder { color: #9aa7b8; }
+.auth-form input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
+.auth-error {
+  margin: 2px 0 0; padding: 9px 12px; border-radius: 8px;
   background: var(--danger-bg); color: var(--danger-fg); font-size: 13px; font-weight: 700;
 }
-.login-submit { height: 48px; width: 100%; font-size: 15px; font-weight: 700; border-radius: 10px; margin-top: 6px; }
-.login-foot { margin: 22px 0 0; padding-top: 18px; border-top: 1px solid #eef1f4; color: var(--muted); font-size: 12.5px; line-height: 1.7; }
-.login-demo { margin-top: 16px; }
-.login-demo-label { font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
-.login-demo-btns { display: grid; gap: 8px; }
-.login-demo-btns .btn-secondary { width: 100%; }
-
-@media (max-width: 480px) {
-  .auth { padding: 0; background: #fff; align-items: flex-start; }
-  .auth-box { border: none; box-shadow: none; border-radius: 0; padding: 40px 22px; max-width: none; }
+.auth-submit {
+  height: 52px; width: 100%; margin-top: 6px;
+  border: 0; border-radius: 8px; cursor: pointer;
+  background: var(--primary); color: #fff; font: inherit; font-size: 16px; font-weight: 800;
+  transition: background 0.12s;
 }
+.auth-submit:hover:not(:disabled) { background: var(--primary-d); }
+.auth-submit:disabled { opacity: 0.6; cursor: default; }
+
+.auth-help { margin: 18px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.7; }
+.auth-demo { margin-top: 18px; padding-top: 16px; border-top: 1px solid #dfe2e6; }
+.auth-demo-label { font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
+.auth-demo-btns { display: grid; gap: 8px; }
+.auth-demo-btns .btn-secondary { width: 100%; }
+.auth-foot { margin-top: 26px; color: #9aa3ad; font-size: 12px; }
+.auth-foot-sep { margin: 0 8px; color: #c2c8cf; }
 
 /* ===== ログイン情報の発行UI ===== */
 .cred-form { display: grid; gap: 12px; max-width: 460px; }

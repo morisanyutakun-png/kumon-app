@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "まなび教室 — 塾管理システム",
+  title: "ノビットスタディ — 学習管理システム",
   description: "反復学習型 学習教室のための課題配布・提出・採点・返却システム",
 };
 
