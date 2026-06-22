@@ -1,11 +1,13 @@
+import Link from "next/link";
+
 import { requireOperator } from "@/lib/access";
 import { DemoBanner } from "@/components/demo-banner";
 import { LogoutButton } from "@/components/logout-button";
-import { NavLink } from "@/components/nav-link";
+import { SheetTabs, type SheetTabItem } from "@/components/sheet-tabs";
 
-const LINKS = [
+const TABS: SheetTabItem[] = [
   { href: "/dashboard", label: "ダッシュボード" },
-  { href: "/grading", label: "採点" },
+  { href: "/grading", label: "採点", exact: true },
   { href: "/grading/batch", label: "一括採点" },
   { href: "/students", label: "生徒" },
   { href: "/guardians", label: "保護者" },
@@ -23,28 +25,21 @@ export default async function OperatorLayout({
   return (
     <div className="flex flex-1 flex-col">
       <DemoBanner />
-      <header className="border-b bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-bold">まなび教室 運営</span>
-            <div className="flex items-center gap-3 text-sm text-slate-500">
-              <span>
-                {p.name}
-                <span className="ml-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs">
-                  {p.role === "admin" ? "管理者" : "運営・採点者"}
-                </span>
-              </span>
-              <LogoutButton />
-            </div>
-          </div>
-          <nav className="flex flex-wrap gap-1">
-            {LINKS.map((l) => (
-              <NavLink key={l.href} href={l.href} label={l.label} />
-            ))}
-          </nav>
+      <main className="iplus-main flex-1">{children}</main>
+
+      <div className="sheet-tabbar" role="navigation" aria-label="メニュー">
+        <Link href="/dashboard" className="sheet-brand" aria-label="まなび教室">
+          <span className="brand-mark">ま</span>
+          <strong>まなび教室</strong>
+        </Link>
+        <SheetTabs items={TABS} />
+        <div className="sheet-status">
+          <span className="db-badge" title={p.role === "admin" ? "管理者" : "運営・採点者"}>
+            {p.name}
+          </span>
+          <LogoutButton />
         </div>
-      </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
+      </div>
     </div>
   );
 }

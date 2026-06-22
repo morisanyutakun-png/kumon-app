@@ -5,7 +5,6 @@ import { db } from "@/db";
 import { submissionImages } from "@/db/schema";
 import { requireOperator } from "@/lib/access";
 import { listSubmissions } from "@/lib/queries";
-import { Card, CardContent } from "@/components/ui/card";
 import { BatchGradeTable, type BatchRow } from "./batch-table";
 
 export default async function BatchGradingPage() {
@@ -46,24 +45,21 @@ export default async function BatchGradingPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">一括採点 (Excel風)</h1>
-        <Link href="/grading" className="text-sm text-blue-600 hover:underline">
+    <div>
+      <div className="page-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+        <div>
+          <h1>一括採点（添削シート）</h1>
+          <p>
+            提出済みの答案を列ごとに採点します。得点・合否・コメントを入力し、操作を選んで
+            「まとめて返却」。合格で返却した列は学習進度が自動で1つ進みます。
+          </p>
+        </div>
+        <Link href="/grading" className="db-badge">
           通常の採点一覧へ →
         </Link>
       </div>
-      <p className="text-sm text-slate-500">
-        提出済みの答案を表形式でまとめて採点します。各行に得点・合否・コメントを入力し、
-        操作を選んで「入力した行をまとめて保存」を押すと、返却または再提出依頼を一括で行います。
-        合格で返却した行は学習進度が自動で1つ進みます。
-      </p>
 
-      <Card>
-        <CardContent className="pt-6">
-          <BatchGradeTable rows={rows} />
-        </CardContent>
-      </Card>
+      <BatchGradeTable rows={rows} />
     </div>
   );
 }

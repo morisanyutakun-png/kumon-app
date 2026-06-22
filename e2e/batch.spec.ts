@@ -57,15 +57,15 @@ test("一括採点で合格返却 → 生徒が結果確認", async ({ browser }
   await st.getByRole("button", { name: "提出する" }).click();
   await expect(st.getByText("提出を受け付けました。採点結果をお待ちください。")).toBeVisible();
 
-  // 一括採点画面で採点
+  // 一括採点画面で採点 (列=提出物のスプレッドシート。この生徒の列が唯一の提出済み)
   await op.goto("/grading/batch");
-  const row = op.locator("tr", { hasText: studentName });
-  await expect(row).toBeVisible();
-  await row.locator('input[type="number"]').first().fill("90");
-  await row.locator('input[type="number"]').nth(1).fill("100");
-  await row.locator("select").first().selectOption("ok"); // 合否=合格
-  await row.locator("select").nth(1).selectOption("return"); // 操作=返却
-  await op.getByRole("button", { name: "入力した行をまとめて保存" }).click();
+  const grid = op.locator(".entry-grid");
+  await expect(grid.getByText(studentName)).toBeVisible();
+  await grid.locator('input[type="number"]').first().fill("90"); // 得点
+  await grid.locator('input[type="number"]').nth(1).fill("100"); // 満点
+  await grid.locator(".radio.ok").first().click(); // 合否=合格
+  await grid.locator("select").first().selectOption("return"); // 操作=返却
+  await op.getByRole("button", { name: "入力した列をまとめて返却" }).click();
   await expect(op.getByText("件を処理しました。", { exact: false })).toBeVisible();
 
   // 生徒が結果確認

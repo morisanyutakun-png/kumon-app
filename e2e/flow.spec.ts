@@ -79,7 +79,7 @@ test("課題登録→提出→採点→返却→確認の一連フロー", async
   await op.getByRole("button", { name: "採点を開始" }).click();
   await op.locator("#score").fill("80");
   await op.locator("#maxScore").fill("100");
-  await op.getByRole("button", { name: "合格", exact: true }).click();
+  await op.locator(".radio.ok").first().click(); // 合否=合格 (セグメンテッド)
   await op.getByRole("button", { name: "採点結果を返却" }).click();
   // 返却済みバッジ
   await expect(op.getByText("返却済み").first()).toBeVisible();

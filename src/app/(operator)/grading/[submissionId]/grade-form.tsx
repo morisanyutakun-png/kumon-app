@@ -4,10 +4,6 @@ import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { gradeSubmission } from "@/lib/actions/submission-actions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import type { MistakeTag } from "@/db/schema";
 
 export function GradeForm({
@@ -38,60 +34,44 @@ export function GradeForm({
   }
 
   return (
-    <form ref={formRef} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label htmlFor="score">得点</Label>
-          <Input id="score" name="score" type="number" step="0.5" inputMode="decimal" placeholder="例: 80" />
+    <form ref={formRef} className="form-grid">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div className="form-row">
+          <label htmlFor="score">得点</label>
+          <input id="score" name="score" type="number" step="0.5" inputMode="decimal" placeholder="例: 80" />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="maxScore">満点</Label>
-          <Input id="maxScore" name="maxScore" type="number" step="0.5" inputMode="decimal" placeholder="例: 100" />
+        <div className="form-row">
+          <label htmlFor="maxScore">満点</label>
+          <input id="maxScore" name="maxScore" type="number" step="0.5" inputMode="decimal" placeholder="例: 100" />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>合否</Label>
-        <div className="flex gap-2">
-          {([
-            ["ok", "合格"],
-            ["ng", "不合格"],
-          ] as const).map(([val, label]) => (
-            <button
-              key={val}
-              type="button"
-              onClick={() => setResult(result === val ? "" : val)}
-              className={
-                "rounded-md border px-4 py-1.5 text-sm font-medium transition-colors " +
-                (result === val
-                  ? val === "ok"
-                    ? "border-emerald-500 bg-emerald-500 text-white"
-                    : "border-rose-500 bg-rose-500 text-white"
-                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")
-              }
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      <div className="form-row">
+        <label>合否</label>
+        <span className="radio-group" style={{ alignSelf: "start" }}>
+          <span
+            className={`radio ok${result === "ok" ? " is-on" : ""}`}
+            onClick={() => setResult(result === "ok" ? "" : "ok")}
+          >
+            合格
+          </span>
+          <span
+            className={`radio ng${result === "ng" ? " is-on" : ""}`}
+            onClick={() => setResult(result === "ng" ? "" : "ng")}
+          >
+            不合格
+          </span>
+        </span>
       </div>
 
       {mistakeTags.length > 0 && (
-        <div className="space-y-2">
-          <Label>ミス分類</Label>
-          <div className="flex flex-wrap gap-3">
+        <div className="form-row">
+          <label>ミス分類</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
             {mistakeTags.map((tag) => (
-              <label key={tag.id} className="flex items-center gap-1.5 text-sm">
-                <input
-                  type="checkbox"
-                  name="mistakeTagIds"
-                  value={tag.id}
-                  className="h-4 w-4 rounded border-slate-300"
-                />
-                <span
-                  className="inline-block h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: tag.color }}
-                />
+              <label key={tag.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", fontWeight: 400 }}>
+                <input type="checkbox" name="mistakeTagIds" value={tag.id} />
+                <span style={{ display: "inline-block", height: 10, width: 10, borderRadius: 999, background: tag.color }} />
                 {tag.name}
               </label>
             ))}
@@ -99,28 +79,18 @@ export function GradeForm({
         </div>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="comment">コメント</Label>
-        <Textarea
-          id="comment"
-          name="comment"
-          rows={4}
-          placeholder="生徒・保護者へのコメントを入力してください。"
-        />
+      <div className="form-row">
+        <label htmlFor="comment">コメント</label>
+        <textarea id="comment" name="comment" rows={4} placeholder="生徒・保護者へのコメントを入力してください。" />
       </div>
 
-      <div className="flex flex-wrap gap-2 pt-2">
-        <Button type="button" disabled={pending} onClick={() => submit("return")}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <button type="button" className="btn-primary" disabled={pending} onClick={() => submit("return")}>
           採点結果を返却
-        </Button>
-        <Button
-          type="button"
-          variant="destructive"
-          disabled={pending}
-          onClick={() => submit("resubmit")}
-        >
+        </button>
+        <button type="button" className="btn-danger" disabled={pending} onClick={() => submit("resubmit")}>
           再提出を依頼
-        </Button>
+        </button>
       </div>
     </form>
   );

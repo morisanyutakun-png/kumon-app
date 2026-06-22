@@ -3,12 +3,18 @@
 import { useTransition } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-
 type Variant = "default" | "secondary" | "destructive" | "outline" | "ghost";
 
+const CLASS: Record<Variant, string> = {
+  default: "btn-primary",
+  secondary: "btn-secondary",
+  outline: "btn-secondary",
+  ghost: "btn-secondary",
+  destructive: "btn-danger",
+};
+
 /**
- * バウンド済みサーバーアクションを呼び出すボタン。
+ * バウンド済みサーバーアクションを呼び出すボタン (PHP風スタイル)。
  * 成功/失敗を toast で通知し、revalidatePath による再描画に任せる。
  */
 export function ActionButton({
@@ -41,14 +47,13 @@ export function ActionButton({
   }
 
   return (
-    <Button
+    <button
       type="button"
-      variant={variant}
       disabled={pending}
       onClick={onClick}
-      className={className}
+      className={`${CLASS[variant]}${className ? " " + className : ""}`}
     >
       {children}
-    </Button>
+    </button>
   );
 }
