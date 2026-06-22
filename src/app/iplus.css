@@ -529,10 +529,96 @@ body {
   z-index: 50;
 }
 
+/* ===== 採点ワークスペース (タブレット/デスクトップ) ===== */
+.grade-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 430px;
+  gap: 16px;
+  align-items: start;
+}
+.grade-canvas {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #0f172a;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+.grade-canvas-head {
+  padding: 11px 16px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0b1220;
+}
+.grade-canvas-body { padding: 16px; max-height: calc(100vh - 230px); overflow: auto; }
+.answer-large { display: block; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25); }
+.answer-large img { width: 100%; height: auto; display: block; }
+.answer-thumb { display: block; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+.answer-thumb img { width: 100%; height: 120px; object-fit: cover; display: block; }
+.grade-side { position: sticky; top: 12px; }
+
+.grade-panel { display: grid; gap: 16px; }
+.grade-score-row { display: flex; align-items: flex-end; gap: 10px; }
+.grade-field { display: grid; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 700; }
+.grade-field input {
+  width: 112px; height: 50px; font-size: 22px; text-align: center;
+  border: 1px solid var(--line); border-radius: 12px; font-variant-numeric: tabular-nums; background: #fff;
+}
+.grade-field input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
+.grade-slash { font-size: 22px; color: #cbd5e1; padding-bottom: 10px; }
+.grade-block { display: grid; gap: 7px; }
+.grade-label { font-size: 12px; color: var(--muted); font-weight: 800; letter-spacing: 0.02em; display: flex; gap: 8px; align-items: center; }
+.grade-panel textarea, .grade-panel input[type="text"] {
+  width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; font: inherit; font-size: 14px; background: #fff;
+}
+.grade-panel textarea:focus, .grade-panel input[type="text"]:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
+.radio-group--lg { width: 100%; }
+.radio-group--lg .radio { flex: 1; padding: 14px 18px; font-size: 16px; }
+.tag-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag-chip {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: #fff;
+  border-radius: 999px; padding: 7px 13px; font: inherit; font-size: 13px; cursor: pointer; transition: all 0.1s;
+}
+.tag-chip.is-on { border-color: var(--primary); background: var(--primary-soft); color: var(--primary-d); font-weight: 700; }
+.tag-dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; }
+.grade-actions { display: grid; gap: 8px; margin-top: 2px; }
+.grade-actions .btn-primary, .grade-actions .btn-secondary, .grade-actions .btn-danger { width: 100%; }
+
+/* ===== お知らせ (生徒ダッシュボード) ===== */
+.notice-list { display: grid; gap: 10px; margin-bottom: 16px; }
+.notice {
+  display: flex; gap: 12px; align-items: flex-start;
+  border: 1px solid var(--primary-line);
+  background: linear-gradient(180deg, #f5f9ff, #ffffff);
+  border-radius: 16px; padding: 13px 15px; box-shadow: var(--shadow);
+  text-decoration: none; color: var(--text);
+}
+.notice:hover { text-decoration: none; box-shadow: var(--shadow-lg); transform: translateY(-1px); }
+.notice .notice-ico {
+  flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--primary); color: #fff; font-size: 18px;
+}
+.notice .notice-title { font-weight: 700; }
+.notice .notice-body { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+/* ===== 高級感の仕上げ ===== */
+.page-head h1 { letter-spacing: 0.01em; }
+.card { border-radius: 18px; }
+.card h2 { letter-spacing: 0.01em; }
+.btn-primary { box-shadow: 0 2px 8px rgba(37, 99, 235, 0.22); }
+.brand-mark { letter-spacing: 0; font-weight: 900; }
+
+@media (max-width: 1024px) {
+  .grade-workspace { grid-template-columns: 1fr; }
+  .grade-side { position: static; }
+  .grade-canvas-body { max-height: 60vh; }
+}
 @media (max-width: 900px) {
   .grading-cols { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 640px) {
-  .iplus-main { padding: 16px 12px 84px; }
+  .iplus-main { padding: 16px 12px 88px; }
   .sheet-brand strong { display: none; }
 }

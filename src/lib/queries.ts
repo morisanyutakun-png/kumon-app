@@ -12,6 +12,7 @@ import {
   materialFiles,
   materials,
   mistakeTags,
+  notifications,
   students,
   submissionEvents,
   submissionImages,
@@ -365,6 +366,47 @@ export async function assignmentMatrix(
     .orderBy(asc(materials.name));
 
   return { students: studentsOut, maxCols, materials: materialRows };
+}
+
+export interface NotificationRow {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  submissionId: string | null;
+  studentName: string;
+  readAt: Date | null;
+  createdAt: Date;
+}
+
+/** 生徒のダッシュボード用お知らせ (新しい順)。既定は未読のみ。 */
+export async function listNotifications(
+  organizationId: string,
+  studentIds: string[],
+  opts: { unreadOnly?: boolean; limit?: number } = {},
+): Promise<NotificationRow[]> {
+  if (studentIds.length === 0) return [];
+  const conds = [
+    eq(notifications.organizationId, organizationId),
+    inArray(notifications.studentId, studentIds),
+  ];
+  const rows = await db
+    .select({
+      id: notifications.id,
+      type: notifications.type,
+      title: notifications.title,
+      body: notifications.body,
+      submissionId: notifications.submissionId,
+      studentName: students.name,
+      readAt: notifications.readAt,
+      createdAt: notifications.createdAt,
+    })
+    .from(notifications)
+    .innerJoin(students, eq(notifications.studentId, students.id))
+    .where(and(...conds))
+    .orderBy(desc(notifications.createdAt))
+    .limit(opts.limit ?? 20);
+  return opts.unreadOnly ? rows.filter((r) => r.readAt === null) : rows;
 }
 
 /** org のミス分類マスタ。 */

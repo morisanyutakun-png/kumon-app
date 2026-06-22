@@ -7,6 +7,7 @@ import { confirmReturned } from "@/lib/actions/submission-actions";
 import { ActionButton } from "@/components/action-button";
 import { AnswerImages } from "@/components/answer-images";
 import { GradingHistory } from "@/components/grading-history";
+import { MarkRead } from "@/components/mark-read";
 import { StatusBadge } from "@/components/status-badge";
 import { SubmitForm } from "./submit-form";
 
@@ -29,6 +30,7 @@ export default async function StudentSubmissionPage({
 
   return (
     <div>
+      <MarkRead submissionId={submission.id} />
       <div className="page-head" style={{ marginBottom: 14 }}>
         <Link href="/home" className="db-badge">← 課題一覧へ</Link>
         <h1 style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>

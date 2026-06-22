@@ -273,10 +273,43 @@ export const submissions = pgTable(
     attemptCount: integer("attempt_count").notNull().default(0),
     submittedAt: timestamp("submitted_at", { withTimezone: true }),
     returnedAt: timestamp("returned_at", { withTimezone: true }),
+    // 採点中の下書き (タブレット/デスクトップで採点 → 一旦保存)。返却で確定し消える。
+    draftScore: numeric("draft_score", { precision: 10, scale: 2 }),
+    draftMaxScore: numeric("draft_max_score", { precision: 10, scale: 2 }),
+    draftResult: varchar("draft_result", { length: 8 }),
+    draftComment: text("draft_comment").notNull().default(""),
+    draftNextRange: varchar("draft_next_range", { length: 255 }).notNull().default(""),
+    draftGraderId: uuid("draft_grader_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    draftUpdatedAt: timestamp("draft_updated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index("submissions_assignment_idx").on(t.assignmentId)],
+);
+
+/** 生徒・保護者のダッシュボードに届くお知らせ (返却通知など)。 */
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    submissionId: uuid("submission_id").references(() => submissions.id, {
+      onDelete: "cascade",
+    }),
+    type: varchar("type", { length: 32 }).notNull().default("returned"),
+    title: varchar("title", { length: 255 }).notNull().default(""),
+    body: text("body").notNull().default(""),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("notifications_student_idx").on(t.studentId, t.readAt)],
 );
 
 /** 答案画像。実体は Vercel Blob、DB には URL とメタのみ。閲覧は権限確認必須。 */
@@ -505,6 +538,7 @@ export type Submission = typeof submissions.$inferSelect;
 export type SubmissionImage = typeof submissionImages.$inferSelect;
 export type Grading = typeof gradings.$inferSelect;
 export type MistakeTag = typeof mistakeTags.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
 export type SubmissionStatus = (typeof submissionStatusEnum.enumValues)[number];
 export type UserRole = (typeof userRoleEnum.enumValues)[number];
 

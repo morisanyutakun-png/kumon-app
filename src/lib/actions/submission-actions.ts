@@ -11,6 +11,7 @@ import {
   gradingMistakes,
   gradings,
   materials,
+  notifications,
   submissionEvents,
   submissionImages,
   submissions,
@@ -384,4 +385,203 @@ async function advanceProgressAfterPass(sub: Submission) {
       });
     }
   });
+}
+
+// =============================================================================
+// タブレット/デスクトップ採点ビュー: 下書き保存 / 返却 / 再提出依頼 / 既読
+// =============================================================================
+
+const DRAFT_CLEARED = {
+  draftScore: null,
+  draftMaxScore: null,
+  draftResult: null,
+  draftComment: "",
+  draftNextRange: "",
+  draftGraderId: null,
+  draftUpdatedAt: null,
+} as const;
+
+/** 提出済みなら採点中へ遷移させて現在の submission を返す。 */
+async function ensureGrading(p: Principal, sub: Submission): Promise<Submission> {
+  if (sub.status === "submitted") {
+    await applyTransition(p, sub, "grading", "採点を開始");
+    return { ...sub, status: "grading" };
+  }
+  return sub;
+}
+
+/** 採点の下書きを保存 (返却せず一旦保存)。タブレットでの「完了」に相当。 */
+export async function saveGradingDraft(submissionId: string, formData: FormData) {
+  const p = await getPrincipal();
+  if (!p || !isOperator(p)) throw new ActionError("権限がありません。");
+  const sub = await loadSubmission(p, submissionId);
+  if (sub.status !== "submitted" && sub.status !== "grading") {
+    throw new ActionError("採点できる状態ではありません。");
+  }
+  const cur = await ensureGrading(p, sub);
+
+  const score = String(formData.get("score") ?? "").trim();
+  const maxScore = String(formData.get("maxScore") ?? "").trim();
+  const result = String(formData.get("result") ?? "").trim();
+  const comment = String(formData.get("comment") ?? "").trim();
+  const nextRange = String(formData.get("nextRange") ?? "").trim();
+
+  await db
+    .update(submissions)
+    .set({
+      draftScore: score === "" ? null : score,
+      draftMaxScore: maxScore === "" ? null : maxScore,
+      draftResult: result === "ok" || result === "ng" ? result : null,
+      draftComment: comment,
+      draftNextRange: nextRange,
+      draftGraderId: p.id,
+      draftUpdatedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(submissions.id, cur.id));
+
+  revalidateAll(submissionId);
+}
+
+/**
+ * 採点を確定して返却。採点結果(得点/合否/コメント) + 次回範囲を入力して実行する。
+ * 返却時に生徒のダッシュボードへ「お知らせ(添付つきメッセージ)」を作成する。
+ */
+export async function returnGrading(submissionId: string, formData: FormData) {
+  const p = await getPrincipal();
+  if (!p || !isOperator(p)) throw new ActionError("権限がありません。");
+  const sub = await loadSubmission(p, submissionId);
+  if (sub.status !== "submitted" && sub.status !== "grading") {
+    throw new ActionError("採点できる状態ではありません。");
+  }
+  const cur = await ensureGrading(p, sub);
+
+  const score = String(formData.get("score") ?? "").trim();
+  const maxScore = String(formData.get("maxScore") ?? "").trim();
+  const result = String(formData.get("result") ?? "").trim();
+  const comment = String(formData.get("comment") ?? "").trim();
+  const nextRange = String(formData.get("nextRange") ?? "").trim();
+  const mistakeTagIds = formData
+    .getAll("mistakeTagIds")
+    .map((v) => String(v))
+    .filter(Boolean);
+
+  await db.transaction(async (tx) => {
+    const [grading] = await tx
+      .insert(gradings)
+      .values({
+        organizationId: cur.organizationId,
+        submissionId: cur.id,
+        attemptNo: cur.attemptCount,
+        graderId: p.id,
+        score: score === "" ? null : score,
+        maxScore: maxScore === "" ? null : maxScore,
+        result: result === "ok" || result === "ng" ? result : null,
+        comment,
+        requiresResubmit: false,
+      })
+      .returning();
+    if (mistakeTagIds.length > 0) {
+      await tx.insert(gradingMistakes).values(
+        mistakeTagIds.map((tagId) => ({ gradingId: grading.id, mistakeTagId: tagId })),
+      );
+    }
+    await tx.update(submissions).set(DRAFT_CLEARED).where(eq(submissions.id, cur.id));
+  });
+
+  await applyTransition(p, cur, "returned", "採点結果を返却", {
+    returnedAt: new Date(),
+  });
+
+  // 生徒ダッシュボードへの通知
+  await db.insert(notifications).values({
+    organizationId: cur.organizationId,
+    studentId: cur.studentId,
+    submissionId: cur.id,
+    type: "returned",
+    title: "採点結果が返却されました",
+    body: comment,
+  });
+
+  // 次回セッションの作成
+  const [assignment] = await db
+    .select()
+    .from(assignments)
+    .where(eq(assignments.id, cur.assignmentId))
+    .limit(1);
+  const [material] = assignment
+    ? await db.select().from(materials).where(eq(materials.id, assignment.materialId)).limit(1)
+    : [undefined];
+
+  if (assignment && material && isAutoAdvance(material) && result === "ok") {
+    // 章/番号: エンジンで自動前進 (次セッション自動生成)
+    await advanceProgressAfterPass(cur);
+  } else if (assignment && nextRange) {
+    // 手入力など: 入力された次回範囲で次セッションを作成
+    await db.insert(submissions).values({
+      organizationId: cur.organizationId,
+      assignmentId: cur.assignmentId,
+      studentId: cur.studentId,
+      status: "not_submitted",
+      sessionNo: cur.sessionNo + 1,
+      rangeText: nextRange,
+    });
+  }
+
+  revalidateAll(submissionId);
+}
+
+/** 再提出を依頼。コメントを添えて生徒へ通知する。 */
+export async function requestResubmit(submissionId: string, formData: FormData) {
+  const p = await getPrincipal();
+  if (!p || !isOperator(p)) throw new ActionError("権限がありません。");
+  const sub = await loadSubmission(p, submissionId);
+  if (sub.status !== "submitted" && sub.status !== "grading") {
+    throw new ActionError("採点できる状態ではありません。");
+  }
+  const cur = await ensureGrading(p, sub);
+  const comment = String(formData.get("comment") ?? "").trim();
+
+  await db.transaction(async (tx) => {
+    await tx.insert(gradings).values({
+      organizationId: cur.organizationId,
+      submissionId: cur.id,
+      attemptNo: cur.attemptCount,
+      graderId: p.id,
+      comment,
+      requiresResubmit: true,
+    });
+    await tx.update(submissions).set(DRAFT_CLEARED).where(eq(submissions.id, cur.id));
+  });
+
+  await applyTransition(p, cur, "resubmit_required", "再提出を依頼");
+
+  await db.insert(notifications).values({
+    organizationId: cur.organizationId,
+    studentId: cur.studentId,
+    submissionId: cur.id,
+    type: "resubmit",
+    title: "再提出のお願いがあります",
+    body: comment,
+  });
+
+  revalidateAll(submissionId);
+}
+
+/** 生徒・保護者がその提出物のお知らせを既読にする。 */
+export async function markSubmissionRead(submissionId: string) {
+  const p = await getPrincipal();
+  if (!p) return;
+  const sub = await loadSubmission(p, submissionId);
+  const { canAccessStudent } = await import("@/lib/access");
+  if (!isOperator(p) && !(await canAccessStudent(p, sub.studentId))) return;
+  await db
+    .update(notifications)
+    .set({ readAt: new Date() })
+    .where(
+      and(
+        eq(notifications.submissionId, submissionId),
+        eq(notifications.organizationId, p.organizationId),
+      ),
+    );
 }

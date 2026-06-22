@@ -71,11 +71,11 @@ test("課題登録→提出→採点→返却→確認の一連フロー", async
   await op.locator("tr", { hasText: studentName }).getByRole("link", { name: "開く" }).click();
   await expect(op).toHaveURL(/\/grading\//);
 
-  await op.getByRole("button", { name: "採点を開始" }).click();
-  await op.locator("#score").fill("80");
-  await op.locator("#maxScore").fill("100");
-  await op.locator(".radio.ok").first().click(); // 合否=合格
-  await op.getByRole("button", { name: "採点結果を返却" }).click();
+  // タブレット/デスクトップ採点パネル
+  await op.locator(".grade-score-row input").first().fill("80");
+  await op.locator(".grade-score-row input").nth(1).fill("100");
+  await op.locator(".grade-panel .radio.ok").click(); // 合否=合格
+  await op.getByRole("button", { name: "返却する" }).click();
   await expect(op.getByText("返却済み").first()).toBeVisible();
 
   // ---- 生徒が結果確認 → 完了 ----

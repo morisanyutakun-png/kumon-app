@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { accessibleStudentIds, requirePrincipal } from "@/lib/access";
-import { listSubmissions } from "@/lib/queries";
+import { listNotifications, listSubmissions } from "@/lib/queries";
 import { StatusBadge } from "@/components/status-badge";
 import type { SubmissionStatus } from "@/db/schema";
 
@@ -19,7 +19,11 @@ function fmtDue(d: Date | null): string {
 export default async function StudentHome() {
   const p = await requirePrincipal();
   const ids = await accessibleStudentIds(p);
-  const rows = ids === "*" ? [] : await listSubmissions(p.organizationId, { studentIds: ids });
+  const idList = ids === "*" ? [] : ids;
+  const [rows, notices] = await Promise.all([
+    listSubmissions(p.organizationId, { studentIds: idList }),
+    listNotifications(p.organizationId, idList, { unreadOnly: true }),
+  ]);
 
   const order: Record<SubmissionStatus, number> = {
     resubmit_required: 0,
@@ -37,6 +41,27 @@ export default async function StudentHome() {
         <h1>課題一覧</h1>
         <p>提出する課題と、返却された結果を確認できます。</p>
       </div>
+
+      {notices.length > 0 && (
+        <div className="notice-list">
+          {notices.map((n) => (
+            <Link
+              key={n.id}
+              href={n.submissionId ? `/submissions/${n.submissionId}` : "/home"}
+              className="notice"
+            >
+              <span className="notice-ico">{n.type === "resubmit" ? "↻" : "✓"}</span>
+              <span style={{ minWidth: 0 }}>
+                <span className="notice-title">{n.title}</span>
+                <span className="notice-body">
+                  {n.studentName}
+                  {n.body ? ` ・ ${n.body}` : ""}
+                </span>
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
 
       {rows.length === 0 ? (
         <div className="card">
