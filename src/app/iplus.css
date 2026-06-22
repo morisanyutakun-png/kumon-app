@@ -152,7 +152,7 @@ body {
 .db-badge:hover { text-decoration: none; background: #f8fafc; }
 
 .iplus-main {
-  padding: 20px 24px 84px;
+  padding: 22px 24px 40px;
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -160,12 +160,12 @@ body {
 .iplus-main.wide {
   max-width: none;
   margin: 0;
-  padding: 18px 22px 84px;
+  padding: 22px 24px 48px;
 }
 /* 生徒・保護者画面はモバイル最適。 */
 .iplus-main.narrow {
-  max-width: 620px;
-  padding: 16px 14px 88px;
+  max-width: 640px;
+  padding: 20px 16px 48px;
 }
 
 /* ===== ローディング・スケルトン (体感速度向上) ===== */
@@ -711,6 +711,96 @@ body {
   .grading-cols { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 640px) {
-  .iplus-main { padding: 16px 12px 88px; }
+  .iplus-main { padding: 16px 12px 40px; }
   .sheet-brand strong { display: none; }
 }
+
+/* ============================================================
+   上部ヘッダーバー (白・直角・ブランド下線タブ) — きっちり信頼感
+   ============================================================ */
+.appbar {
+  background: #fff;
+  border-bottom: 2px solid var(--primary);
+}
+.appbar-inner {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  height: 58px;
+  padding: 0 20px;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 16px;
+  margin-right: 6px;
+  border-right: 1px solid var(--line);
+  text-decoration: none;
+}
+.brand:hover { text-decoration: none; }
+.brand-tile {
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--primary); color: #fff; font-size: 17px; font-weight: 900;
+}
+.brand-name { font-size: 15px; font-weight: 900; color: var(--ink, #14365a); letter-spacing: 0.01em; white-space: nowrap; }
+
+.topnav { display: flex; align-items: stretch; gap: 0; overflow-x: auto; scrollbar-width: thin; }
+.topnav a {
+  display: inline-flex; align-items: center;
+  padding: 0 14px;
+  font-size: 13.5px; font-weight: 700; color: #5b6b7c;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap; text-decoration: none;
+}
+.topnav a:hover { background: #f5f7f9; color: var(--ink, #14365a); text-decoration: none; }
+.topnav a.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+.appbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; padding-left: 12px; }
+.appbar-user { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--ink, #14365a); white-space: nowrap; }
+.appbar-role { font-size: 11px; font-weight: 800; color: #5b6b7c; background: #eef2f6; border: 1px solid var(--line); padding: 2px 7px; }
+.appbar .db-badge, .appbar-right .db-badge { border-radius: 0; }
+
+@media (max-width: 720px) {
+  .appbar-inner { height: auto; flex-wrap: wrap; padding: 8px 14px; gap: 8px; }
+  .brand { border-right: 0; padding-right: 0; }
+  .appbar-right { width: 100%; order: 3; }
+  .topnav { order: 4; width: 100%; }
+  .topnav a { height: 42px; }
+}
+
+/* ============================================================
+   直角・フラットに統一 (丸角/強い影/グラス = AI感を排除)
+   ============================================================ */
+.card,
+.btn-primary, .btn-secondary, .btn-danger,
+.badge, .metric-chip,
+.dashboard .tile,
+.grid-scroll, .assign-wrap, .grade-canvas, .grade-canvas-head,
+.action-menu-body,
+.notice, .notice .notice-ico,
+.cred-result, .login-demo .btn-secondary,
+.radio-group, .radio-group .radio, .tag-chip,
+.form-row input, .form-row select, .form-row textarea,
+.toolbar-field input, .toolbar-field select,
+.entry-grid input[type="text"], .entry-grid input[type="number"],
+.grade-field input, .grade-panel textarea, .grade-panel input[type="text"],
+.cred-form input, .cred-inline input,
+.assign-grid .ag-add-form select, .assign-grid .ag-add-form input, .assign-grid .ag-add-btn {
+  border-radius: 0 !important;
+}
+/* 影は使わず、境界線できっちり見せる */
+.card { box-shadow: none; border: 1px solid #dde2e7; }
+.dashboard .tile { box-shadow: none; border: 1px solid #dde2e7; transition: background 0.08s; }
+.dashboard .tile:hover { box-shadow: none; transform: none; background: #f6f8fa; }
+.btn-primary { box-shadow: none; }
+.btn-primary:hover { transform: none; box-shadow: none; }
+.grid-scroll, .assign-wrap { box-shadow: none; }
+.grade-canvas { box-shadow: none; }
+.notice { box-shadow: none; background: #fff; border: 1px solid var(--primary-line); }
+.notice:hover { box-shadow: none; transform: none; background: #f7fbfe; }
+.mastery-toolbar { border-radius: 0; box-shadow: none; }
+.action-menu-body { box-shadow: 0 6px 16px -8px rgba(15,23,42,0.35); border: 1px solid #d4dae0; }
+/* タイル番号などをブランド色に */
+.dashboard .tile-num { color: var(--ink, #14365a); }

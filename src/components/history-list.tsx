@@ -34,7 +34,7 @@ export function HistoryList({
               {r.result && (
                 <span
                   className={
-                    "rounded-full px-2 py-0.5 text-xs font-medium " +
+                    "rounded-none px-2 py-0.5 text-xs font-medium " +
                     (r.result === "ok"
                       ? "bg-emerald-100 text-emerald-700"
                       : "bg-rose-100 text-rose-700")

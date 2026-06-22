@@ -9,7 +9,7 @@ export function StatusBadge({ status }: { status: SubmissionStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex items-center rounded-none border px-2.5 py-0.5 text-xs font-medium",
         SUBMISSION_STATUS_BADGE[status],
       )}
     >

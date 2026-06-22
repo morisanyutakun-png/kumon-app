@@ -27,7 +27,7 @@ export function GradingHistory({
               {g.result && (
                 <span
                   className={
-                    "rounded-full px-2 py-0.5 text-xs font-medium " +
+                    "rounded-none px-2 py-0.5 text-xs font-medium " +
                     (g.result === "ok"
                       ? "bg-emerald-100 text-emerald-700"
                       : "bg-rose-100 text-rose-700")
@@ -56,10 +56,10 @@ export function GradingHistory({
               {g.mistakes.map((m) => (
                 <span
                   key={m.id}
-                  className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
+                  className="inline-flex items-center gap-1 rounded-none border px-2 py-0.5 text-xs"
                 >
                   <span
-                    className="inline-block h-2 w-2 rounded-full"
+                    className="inline-block h-2 w-2 rounded-none"
                     style={{ backgroundColor: m.color }}
                   />
                   {m.name}
