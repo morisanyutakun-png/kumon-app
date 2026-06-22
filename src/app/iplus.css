@@ -806,6 +806,41 @@ body {
 /* タイル番号などをブランド色に */
 .dashboard .tile-num { color: var(--ink, #14365a); }
 
+/* ============================================================
+   ノビット ブランド統一 (表ヘッダー/ホバー/見出し/バッジ)
+   ============================================================ */
+:root { --brand-head: #eaf6fc; --brand-head-ink: #15486b; }
+
+/* 見出し */
+.page-head h1 { color: var(--ink, #14365a); }
+.card h2 { color: var(--ink, #14365a); }
+.section-title { color: var(--brand-head-ink); }
+
+/* 一覧テーブル */
+.record-table thead th {
+  background: var(--brand-head);
+  color: var(--brand-head-ink);
+  border-bottom: 1px solid var(--primary-line);
+}
+.record-table tbody tr:hover { background: #f4fafd; }
+
+/* 添削スプレッドシート */
+.entry-grid thead th { background: var(--brand-head); border-bottom: 2px solid var(--primary-line); color: var(--brand-head-ink); }
+.entry-grid .row-label { background: var(--brand-head); color: var(--brand-head-ink); }
+.entry-grid thead .row-label { background: #ddeef8; }
+
+/* 課題割り当てマトリクス */
+.assign-grid th { background: var(--brand-head); color: var(--brand-head-ink); border-bottom: 1px solid var(--primary-line); }
+.assign-grid td.ag-name { background: #f4fafd; }
+.assign-grid th.ag-name { background: #ddeef8; }
+
+/* バッジ(教科など)はブランドの淡色 */
+.badge { background: var(--primary-soft); color: var(--primary-d); }
+
+/* スプレッドシート追加行をブランド淡色で強調 */
+.record-table tbody tr.add-row,
+.add-row { background: #eef8fd; }
+
 /* ===== ダッシュボード (見やすい統計タイル) ===== */
 .section-title {
   display: flex; align-items: center; gap: 10px;
