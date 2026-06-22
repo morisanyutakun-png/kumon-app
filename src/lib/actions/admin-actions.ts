@@ -120,6 +120,12 @@ function randomPin(): string {
   for (let i = 0; i < 4; i++) s += Math.floor(Math.random() * 10);
   return s;
 }
+function randomPassword(n = 8): string {
+  const chars = "abcdefghijkmnpqrstuvwxyz23456789";
+  let s = "";
+  for (let i = 0; i < n; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
 function randomLoginId(): string {
   return "st" + Math.floor(1000 + Math.random() * 9000);
 }
@@ -167,6 +173,52 @@ export async function quickAddStudent(
   revalidatePath("/students");
   revalidatePath("/assignments");
   return { name, loginId, pin };
+}
+
+/** 行から保護者を追加。パスワードは未入力なら自動割当。設定値を返す。 */
+export async function quickAddGuardian(
+  fd: FormData,
+): Promise<{ name: string; email: string; password: string }> {
+  const p = await requireOperator();
+  const name = str(fd, "name");
+  const email = str(fd, "email").toLowerCase();
+  if (!name) throw new Error("氏名を入力してください。");
+  if (!email) throw new Error("メールアドレスを入力してください。");
+  const password = str(fd, "password") || randomPassword();
+
+  const [dup] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+  if (dup) throw new Error("そのメールアドレスは既に登録されています。");
+
+  await db.insert(users).values({
+    organizationId: p.organizationId,
+    name,
+    email,
+    role: "parent",
+    passwordHash: await bcrypt.hash(password, 10),
+  });
+  revalidatePath("/guardians");
+  return { name, email, password };
+}
+
+/** 行から教材を追加 (教科/教材名/進め方)。番号範囲や単元は編集で設定。 */
+export async function quickAddMaterial(fd: FormData): Promise<{ name: string }> {
+  const p = await requireOperator();
+  const name = str(fd, "name");
+  const subject = str(fd, "subject");
+  const ptRaw = str(fd, "progressType");
+  const progressType =
+    ptRaw === "chapter" || ptRaw === "number" ? ptRaw : "manual";
+  if (!name) throw new Error("教材名を入力してください。");
+
+  await db.insert(materials).values({
+    organizationId: p.organizationId,
+    name,
+    subject,
+    progressType,
+  });
+  revalidatePath("/materials");
+  revalidatePath("/assignments");
+  return { name };
 }
 
 export async function deleteStudent(studentId: string) {
