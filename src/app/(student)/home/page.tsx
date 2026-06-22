@@ -107,7 +107,6 @@ export default async function StudentHome() {
           </svg>
         </div>
         <div className="learn-hero-body">
-          <div className="learn-hero-tag">加速する未来の学び</div>
           <div className="learn-hero-title">{greet}</div>
           <div className="learn-hero-sub">きょうも一歩ずつ。課題にとりくんで、できることをふやそう！</div>
         </div>
