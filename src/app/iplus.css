@@ -870,6 +870,42 @@ body {
 .stat-num.is-zero { color: #b6c0cb; }
 .stat-go { font-size: 12px; font-weight: 700; color: var(--accent, #94a3b8); }
 .stat-label { font-size: 12.5px; font-weight: 700; color: #5b6b7c; }
+.stat-icon { display: inline-flex; align-items: center; justify-content: center; }
+
+/* ===== ダッシュボードのウェルカムバンド (ブランド) ===== */
+.dash-hero {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  background: var(--primary);
+  color: #fff;
+  padding: 18px 22px;
+  margin-bottom: 18px;
+}
+.dash-hero-greet { font-size: 20px; font-weight: 900; letter-spacing: 0.01em; }
+.dash-hero-sub { margin-top: 4px; font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, 0.85); }
+.dash-hero-r { display: flex; align-items: center; gap: 10px; }
+.dash-hero-metric { display: inline-flex; align-items: baseline; gap: 2px; }
+.dash-hero-num { font-size: 38px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+.dash-hero-unit { font-size: 15px; font-weight: 800; }
+.dash-hero-mlabel { font-size: 12px; font-weight: 800; color: rgba(255, 255, 255, 0.85); margin-right: 6px; }
+.dash-hero-cta {
+  background: #fff; color: var(--primary-d);
+  font-size: 14px; font-weight: 800; padding: 11px 18px; text-decoration: none; white-space: nowrap;
+}
+.dash-hero-cta:hover { background: #eaf6fc; text-decoration: none; }
+
+/* ===== 親しみのある空状態 ===== */
+.dash-empty { display: flex; align-items: center; gap: 14px; padding: 18px 6px; }
+.dash-empty-ico {
+  flex: 0 0 auto; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  background: #e7f7f0; color: #22b07d; font-size: 22px; font-weight: 900;
+}
+.dash-empty-title { font-weight: 800; color: var(--ink, #14365a); }
+.dash-empty-sub { font-size: 13px; color: #5b6b7c; margin-top: 2px; }
+
+@media (max-width: 560px) {
+  .dash-hero { flex-direction: column; align-items: flex-start; }
+  .dash-hero-r { width: 100%; justify-content: space-between; }
+}
 
 /* ===== 生徒の学習ホーム ===== */
 .learn-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
