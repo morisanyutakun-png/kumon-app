@@ -7,10 +7,21 @@ import type { SubmissionRow } from "@/lib/queries";
 import type { SubmissionStatus } from "@/db/schema";
 
 const CTA: Partial<Record<SubmissionStatus, string>> = {
-  not_submitted: "提出する",
-  resubmit_required: "再提出する",
-  returned: "結果を見る",
+  not_submitted: "ていしゅつする",
+  resubmit_required: "もう一度ていしゅつ",
+  returned: "けっかを見る",
 };
+
+function subjectColor(subject: string): string {
+  switch (subject) {
+    case "算数": return "#2aa8e0";
+    case "国語": return "#ef5a5a";
+    case "理科": return "#22b07d";
+    case "社会": return "#f59e0b";
+    case "英語": return "#8b5cf6";
+    default: return "#1c9dd8";
+  }
+}
 
 function fmtDue(d: Date | null): string {
   if (!d) return "";
@@ -19,17 +30,19 @@ function fmtDue(d: Date | null): string {
 
 function TaskCard({ r }: { r: SubmissionRow }) {
   const cta = CTA[r.status];
+  const color = subjectColor(r.subject);
   return (
-    <Link href={`/submissions/${r.submissionId}`} className="task">
+    <Link href={`/submissions/${r.submissionId}`} className="task" style={{ ["--accent" as string]: color }}>
+      <span className="task-ico" style={{ background: color }}>{(r.subject || "課")[0]}</span>
       <div className="task-main">
         <div className="task-title">
           {r.assignmentTitle || r.materialName}
           <StatusBadge status={r.status} />
         </div>
         <div className="task-meta">
-          {r.studentName} ・ {r.subject}
+          {r.subject}
           {r.rangeText ? ` ・ ${r.rangeText}` : ""}
-          {r.dueDate ? ` ・ 期限 ${fmtDue(r.dueDate)}` : ""}
+          {r.dueDate ? ` ・ きげん ${fmtDue(r.dueDate)}` : ""}
         </div>
       </div>
       {cta && <span className="task-cta">{cta}</span>}
@@ -40,12 +53,12 @@ function TaskCard({ r }: { r: SubmissionRow }) {
 function Section({ title, rows, empty }: { title: string; rows: SubmissionRow[]; empty?: string }) {
   if (rows.length === 0 && !empty) return null;
   return (
-    <section style={{ marginBottom: 18 }}>
-      <div className="section-title">{title}（{rows.length}）</div>
+    <section style={{ marginBottom: 20 }}>
+      <div className="lsection">{title}<span className="lsection-n">{rows.length}</span></div>
       {rows.length === 0 ? (
-        <p className="hint" style={{ padding: "4px 2px" }}>{empty}</p>
+        <div className="lcard-empty">{empty}</div>
       ) : (
-        <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ display: "grid", gap: 12 }}>
           {rows.map((r) => <TaskCard key={r.submissionId} r={r} />)}
         </div>
       )}
@@ -71,13 +84,21 @@ export default async function StudentHome() {
   const graded = history.filter((h) => h.result !== null).length;
   const passRate = graded > 0 ? Math.round((passCount / graded) * 100) : null;
 
-  const greetName = p.role === "student" ? p.name.replace(/^ゲスト生徒.*/, "") || "" : "";
+  const greet = p.role === "student" ? `こんにちは、${p.name} さん！` : "こんにちは！";
 
   return (
     <div>
-      <div className="page-head" style={{ marginBottom: 12 }}>
-        <h1>学習ホーム{greetName ? ` — ${greetName} さん` : ""}</h1>
-        <p>今日の課題に取り組みましょう。教材を見て、答案を提出すると先生が採点して返します。</p>
+      {/* あいさつバンド */}
+      <div className="learn-hero">
+        <span className="learn-hero-ico" aria-hidden>
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 4 3 8l9 4 9-4-9-4z" /><path d="M21 8v6" /><path d="M7 11v4c0 1.5 2.7 3 5 3s5-1.5 5-3v-4" />
+          </svg>
+        </span>
+        <div>
+          <div className="learn-hero-title">{greet}</div>
+          <div className="learn-hero-sub">きょうの課題にとりくもう。教材を見て、答案を出すと先生がまるつけして返します。</div>
+        </div>
       </div>
 
       {notices.length > 0 && (
@@ -96,21 +117,17 @@ export default async function StudentHome() {
 
       <div className="learn-stats">
         <div className="lstat"><div className="lstat-num">{todo.length}</div><div className="lstat-label">やること</div></div>
-        <div className="lstat"><div className="lstat-num">{doneCount}</div><div className="lstat-label">完了</div></div>
-        <div className="lstat"><div className="lstat-num">{passRate === null ? "—" : `${passRate}%`}</div><div className="lstat-label">合格率</div></div>
+        <div className="lstat"><div className="lstat-num">{doneCount}</div><div className="lstat-label">かんりょう</div></div>
+        <div className="lstat"><div className="lstat-num">{passRate === null ? "—" : `${passRate}%`}</div><div className="lstat-label">合格りつ</div></div>
       </div>
 
       <Section title="やること" rows={todo} empty="いまやることはありません。よくできました！" />
-      <Section title="結果まち" rows={waiting} />
-      <Section title="返却・確認" rows={returned} />
+      <Section title="けっかまち" rows={waiting} />
+      <Section title="へんきゃく・かくにん" rows={returned} />
 
       {rows.length === 0 && (
-        <p className="empty">まだ課題が割り当てられていません。</p>
+        <div className="lcard-empty">まだ課題がとどいていません。先生からの課題をまってね。</div>
       )}
-
-      <p className="hint" style={{ marginTop: 8 }}>
-        過去の成績は上部の「成績・履歴」から確認できます。
-      </p>
     </div>
   );
 }
