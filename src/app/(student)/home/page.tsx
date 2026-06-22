@@ -123,7 +123,7 @@ export default async function StudentHome() {
       {/* 今日のミッション */}
       {mission ? (
         <Link href={`/submissions/${mission.submissionId}`} className="mission" style={{ ["--accent" as string]: missionColor }}>
-          <span className="mission-ico" style={{ background: missionColor }}>{(mission.subject || "課")[0]}</span>
+          <span className="mission-mascot"><Mascot pose="point" sizes="90px" /></span>
           <div className="mission-body">
             <div className="mission-label">きょうのミッション</div>
             <div className="mission-title">{mission.assignmentTitle || mission.materialName}</div>
@@ -131,11 +131,19 @@ export default async function StudentHome() {
           </div>
           <span className="mission-cta" style={{ background: missionColor }}>はじめる →</span>
         </Link>
+      ) : rows.length === 0 ? (
+        <div className="mission mission-done">
+          <span className="mission-mascot"><Mascot pose="point" sizes="90px" /></span>
+          <div className="mission-body">
+            <div className="mission-title">じゅんび オッケー！</div>
+            <div className="mission-meta">先生からの課題がとどくと、ここに出るよ。たのしみにまっててね。</div>
+          </div>
+        </div>
       ) : (
         <div className="mission mission-done">
-          <span className="mission-done-emoji">🎉</span>
-          <div>
-            <div className="mission-title">きょうのミッション かんりょう！</div>
+          <span className="mission-mascot"><Mascot pose="wave" sizes="90px" /></span>
+          <div className="mission-body">
+            <div className="mission-title">きょうのミッション かんりょう！🎉</div>
             <div className="mission-meta">よくがんばったね。あたらしい課題をまっててね。</div>
           </div>
         </div>
@@ -161,10 +169,6 @@ export default async function StudentHome() {
       <Section title="やること" rows={todo} />
       <Section title="けっかまち" rows={waiting} />
       <Section title="へんきゃく・かくにん" rows={returned} />
-
-      {rows.length === 0 && (
-        <div className="lcard-empty">まだ課題がとどいていません。先生からの課題をまってね。</div>
-      )}
     </div>
   );
 }

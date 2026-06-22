@@ -919,9 +919,9 @@ body {
   flex: 0 0 auto; align-self: center; line-height: 0;
   filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.2));
 }
-.learn-mascot { height: 96px; width: auto; display: block; }
+.learn-mascot { height: 112px; width: auto; display: block; }
 @media (max-width: 520px) {
-  .learn-mascot { height: 72px; }
+  .learn-mascot { height: 84px; }
   .learn-hero { padding: 18px 18px; }
 }
 .learn-hero-tag {
@@ -992,6 +992,8 @@ body {
 }
 .mission:hover { background: #f9fcfe; border-color: #c7d3de; text-decoration: none; }
 .mission-ico { flex: 0 0 auto; width: 54px; height: 54px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; font-weight: 900; }
+.mission-mascot { flex: 0 0 auto; line-height: 0; }
+.mission-mascot img { height: 70px; width: auto; display: block; }
 .mission-body { flex: 1; min-width: 0; }
 .mission-label { font-size: 12px; font-weight: 900; letter-spacing: 0.1em; color: var(--accent, var(--primary)); }
 .mission-title { font-size: 19px; font-weight: 900; color: var(--ink, #14365a); margin-top: 3px; }

@@ -1,15 +1,29 @@
 import Image from "next/image";
 
-/** ノビットのキャラクター(ロゴから切り出し)。 */
-export function Mascot({ className }: { className?: string }) {
+/** ノビットくんのポーズ。 */
+const POSES = {
+  wave: { src: "/brand/nobit-wave.png", w: 600, h: 724 },
+  point: { src: "/brand/nobit-point.png", w: 600, h: 660 },
+} as const;
+
+export function Mascot({
+  pose = "wave",
+  className,
+  sizes = "140px",
+}: {
+  pose?: keyof typeof POSES;
+  className?: string;
+  sizes?: string;
+}) {
+  const m = POSES[pose];
   return (
     <Image
-      src="/brand/mascot.png"
-      alt="ノビット"
-      width={162}
-      height={271}
+      src={m.src}
+      alt="ノビットくん"
+      width={m.w}
+      height={m.h}
       priority
-      sizes="96px"
+      sizes={sizes}
       className={className}
     />
   );
