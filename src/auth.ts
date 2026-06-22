@@ -33,25 +33,39 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
       credentials: {
-        kind: { label: "種別" },
-        identifier: { label: "メール / ログインID" },
-        password: { label: "パスワード / PIN", type: "password" },
+        identifier: { label: "ID（メール または ログインID）" },
+        password: { label: "パスワード", type: "password" },
       },
+      // 全アカウント共通の1フォーム。まず職員/保護者(メール)、次に生徒(ログインID)で照合し、
+      // ログイン後はロールで画面分岐する。
       authorize: async (raw) => {
-        const kind = String(raw?.kind ?? "staff");
         const identifier = String(raw?.identifier ?? "").trim();
         const password = String(raw?.password ?? "");
         if (!identifier || !password) return null;
 
-        if (kind === "student") {
-          const [student] = await db
-            .select()
-            .from(students)
-            .where(and(eq(students.loginId, identifier), eq(students.active, true)))
-            .limit(1);
-          if (!student?.pinHash) return null;
-          const ok = await bcrypt.compare(password, student.pinHash);
-          if (!ok) return null;
+        // 1) 職員・保護者 (メール + パスワード)
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, identifier.toLowerCase()))
+          .limit(1);
+        if (user && (await bcrypt.compare(password, user.passwordHash))) {
+          const principal: Principal = {
+            id: user.id,
+            name: user.name,
+            role: user.role,
+            organizationId: user.organizationId,
+          };
+          return principal;
+        }
+
+        // 2) 生徒 (ログインID + あいことば/PIN)
+        const [student] = await db
+          .select()
+          .from(students)
+          .where(and(eq(students.loginId, identifier), eq(students.active, true)))
+          .limit(1);
+        if (student?.pinHash && (await bcrypt.compare(password, student.pinHash))) {
           const principal: Principal = {
             id: student.id,
             name: student.name,
@@ -62,22 +76,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return principal;
         }
 
-        // staff / parent
-        const [user] = await db
-          .select()
-          .from(users)
-          .where(eq(users.email, identifier.toLowerCase()))
-          .limit(1);
-        if (!user) return null;
-        const ok = await bcrypt.compare(password, user.passwordHash);
-        if (!ok) return null;
-        const principal: Principal = {
-          id: user.id,
-          name: user.name,
-          role: user.role,
-          organizationId: user.organizationId,
-        };
-        return principal;
+        return null;
       },
     }),
   ],

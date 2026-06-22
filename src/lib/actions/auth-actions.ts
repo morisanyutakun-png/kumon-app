@@ -16,13 +16,11 @@ export async function loginAction(
   _prev: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
-  const kind = String(formData.get("kind") ?? "staff");
   const identifier = String(formData.get("identifier") ?? "");
   const password = String(formData.get("password") ?? "");
 
   try {
     await signIn("credentials", {
-      kind,
       identifier,
       password,
       redirectTo: "/",

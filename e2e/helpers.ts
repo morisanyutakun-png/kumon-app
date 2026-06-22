@@ -1,21 +1,21 @@
 import { type Page, expect } from "@playwright/test";
 
-/** 運営・保護者 (email + password) でログイン。 */
-export async function loginStaff(page: Page, email: string, password: string) {
+/** 全アカウント共通ログイン (ID + パスワード)。 */
+export async function login(page: Page, identifier: string, password: string) {
   await page.goto("/login");
-  // 既定タブが「運営・保護者」
-  await page.locator("#staff-email").fill(email);
-  await page.locator("#staff-password").fill(password);
+  await page.locator("#identifier").fill(identifier);
+  await page.locator("#password").fill(password);
   await page.getByRole("button", { name: "ログイン" }).click();
 }
 
-/** 生徒 (loginId + PIN) でログイン。 */
+/** 運営・保護者 (email + password)。共通フォームを使う。 */
+export async function loginStaff(page: Page, email: string, password: string) {
+  await login(page, email, password);
+}
+
+/** 生徒 (loginId + PIN)。共通フォームを使う。 */
 export async function loginStudent(page: Page, loginId: string, pin: string) {
-  await page.goto("/login");
-  await page.getByRole("tab", { name: "生徒" }).click();
-  await page.locator("#student-id").fill(loginId);
-  await page.locator("#student-pin").fill(pin);
-  await page.getByRole("button", { name: "ログイン" }).click();
+  await login(page, loginId, pin);
 }
 
 /** 1x1 透明 PNG のバイト列 (テスト用答案画像)。 */

@@ -610,6 +610,74 @@ body {
 .btn-primary { box-shadow: 0 2px 8px rgba(37, 99, 235, 0.22); }
 .brand-mark { letter-spacing: 0; font-weight: 900; }
 
+/* ===== ログイン (EdTech / 信頼感 / ユニバーサル) ===== */
+.login-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background:
+    radial-gradient(1100px 520px at 12% -10%, #dbeafe 0%, rgba(219, 234, 254, 0) 55%),
+    radial-gradient(900px 480px at 110% 10%, #ede9fe 0%, rgba(237, 233, 254, 0) 55%),
+    linear-gradient(180deg, #f8fafc, #eef2f9);
+}
+.login-card {
+  width: 100%;
+  max-width: 430px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 32px 30px 26px;
+  box-shadow: 0 24px 60px -24px rgba(15, 23, 42, 0.35), 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+.login-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+.login-mark {
+  width: 52px; height: 52px; border-radius: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: #fff; font-size: 26px; font-weight: 900;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
+}
+.login-name { font-size: 20px; font-weight: 900; letter-spacing: 0.01em; }
+.login-tag { font-size: 12px; color: var(--muted); font-weight: 700; letter-spacing: 0.08em; }
+.login-title { margin: 0 0 4px; font-size: 26px; font-weight: 900; letter-spacing: 0.01em; }
+.login-lead { margin: 0 0 20px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.login-form { display: grid; gap: 16px; }
+.login-field { display: grid; gap: 6px; }
+.login-field label { font-size: 13px; font-weight: 800; color: #334155; }
+.login-field input {
+  height: 52px;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  padding: 0 16px;
+  font-size: 16px; /* 16px以上でモバイルの自動ズームを防ぐ */
+  background: #fff;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.login-field input::placeholder { color: #94a3b8; }
+.login-field input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
+.login-hint { font-size: 12px; color: var(--muted); }
+.login-error {
+  margin: 0; padding: 10px 12px; border-radius: 12px;
+  background: var(--danger-bg); color: var(--danger-fg); font-size: 13px; font-weight: 700;
+}
+.login-submit {
+  height: 54px; width: 100%; font-size: 17px; font-weight: 800; border-radius: 14px; margin-top: 2px;
+}
+.login-foot { margin: 18px 0 0; text-align: center; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
+.login-demo { margin-top: 20px; padding-top: 18px; border-top: 1px dashed var(--line); }
+.login-demo-label { font-size: 12px; color: var(--muted); font-weight: 800; margin-bottom: 8px; text-align: center; }
+.login-demo-btns { display: grid; gap: 8px; }
+.login-demo-btns .btn-secondary { width: 100%; }
+
+/* ===== ユニバーサル(生徒・保護者向け): 大きめ・読みやすく ===== */
+.iplus-main.narrow { font-size: 15px; }
+.iplus-main.narrow .page-head h1 { font-size: 22px; }
+.iplus-main.narrow .btn-primary { padding: 12px 18px; font-size: 15px; border-radius: 12px; }
+.iplus-main.narrow .card { border-radius: 18px; }
+.iplus-main.narrow .notice { padding: 15px 16px; }
+
 @media (max-width: 1024px) {
   .grade-workspace { grid-template-columns: 1fr; }
   .grade-side { position: static; }
