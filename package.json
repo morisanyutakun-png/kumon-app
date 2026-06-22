@@ -12,6 +12,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
+    "db:seed:prod": "tsx src/db/seed-prod.ts",
     "demo:ddl": "node scripts/gen-demo-ddl.mjs",
     "test:unit": "tsx scripts/progress-test.ts",
     "e2e": "playwright test",

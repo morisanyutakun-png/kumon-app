@@ -23,8 +23,12 @@ export const DEMO = {
 
 export const DEMO_COOKIE = "demo_role";
 
+/**
+ * デモ(ゲスト)モードは DEMO_MODE=1 を明示したときのみ有効。
+ * 本番(DATABASE_URL設定)では常に通常の認証 (ゲスト禁止)。
+ */
 export function isDemoMode(): boolean {
-  return process.env.DEMO_MODE === "1" || !process.env.DATABASE_URL;
+  return process.env.DEMO_MODE === "1";
 }
 
 /** cookie のロール文字列から デモ principal を作る。未対応値は operator。 */
