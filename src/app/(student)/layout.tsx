@@ -23,9 +23,7 @@ export default async function StudentLayout({
   return (
     <div className="flex flex-1 flex-col">
       <DemoBanner />
-      <main className="iplus-main flex-1" style={{ maxWidth: 760 }}>
-        {children}
-      </main>
+      <main className="iplus-main narrow flex-1">{children}</main>
 
       <div className="sheet-tabbar" role="navigation" aria-label="メニュー">
         <Link href="/home" className="sheet-brand" aria-label="まなび教室">

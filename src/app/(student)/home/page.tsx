@@ -12,7 +12,7 @@ const ACTION_HINT: Partial<Record<SubmissionStatus, string>> = {
 };
 
 function fmtDue(d: Date | null): string {
-  if (!d) return "—";
+  if (!d) return "";
   return new Date(d).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
 }
 
@@ -38,47 +38,46 @@ export default async function StudentHome() {
         <p>提出する課題と、返却された結果を確認できます。</p>
       </div>
 
-      <div className="card">
-        <div className="grid-scroll" style={{ border: "none" }}>
-          <table className="record-table">
-            <thead>
-              <tr>
-                <th>課題</th>
-                <th>教科 / 範囲</th>
-                <th>状態</th>
-                <th>期限</th>
-                <th className="right">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr><td colSpan={5} className="empty">現在、割り当てられた課題はありません。</td></tr>
-              ) : (
-                rows.map((r) => (
-                  <tr key={r.submissionId}>
-                    <td>
-                      <Link href={`/submissions/${r.submissionId}`} style={{ fontWeight: 600 }}>
-                        {r.assignmentTitle || r.materialName}
-                      </Link>
-                      <div className="muted">{r.studentName}</div>
-                    </td>
-                    <td className="muted">
-                      {r.subject}{r.rangeText ? ` / ${r.rangeText}` : ""}
-                    </td>
-                    <td><StatusBadge status={r.status} /></td>
-                    <td className="muted">{fmtDue(r.dueDate)}</td>
-                    <td className="right">
-                      <Link href={`/submissions/${r.submissionId}`} className={ACTION_HINT[r.status] ? "btn-primary" : "db-badge"} style={{ padding: "5px 12px", fontSize: 12 }}>
-                        {ACTION_HINT[r.status] ?? "開く"}
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      {rows.length === 0 ? (
+        <div className="card">
+          <p className="empty">現在、割り当てられた課題はありません。</p>
         </div>
-      </div>
+      ) : (
+        <div style={{ display: "grid", gap: 10 }}>
+          {rows.map((r) => {
+            const hint = ACTION_HINT[r.status];
+            return (
+              <Link
+                key={r.submissionId}
+                href={`/submissions/${r.submissionId}`}
+                className="card"
+                style={{ display: "block", margin: 0, padding: "14px 16px", textDecoration: "none" }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontWeight: 700, color: "var(--text)" }}>
+                        {r.assignmentTitle || r.materialName}
+                      </span>
+                      <StatusBadge status={r.status} />
+                    </div>
+                    <div className="muted" style={{ marginTop: 2 }}>
+                      {r.studentName} ・ {r.subject}
+                      {r.rangeText ? ` ・ ${r.rangeText}` : ""}
+                      {r.dueDate ? ` ・ 期限 ${fmtDue(r.dueDate)}` : ""}
+                    </div>
+                  </div>
+                  {hint && (
+                    <span className="btn-primary" style={{ flex: "0 0 auto", padding: "8px 14px", fontSize: 13 }}>
+                      {hint}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

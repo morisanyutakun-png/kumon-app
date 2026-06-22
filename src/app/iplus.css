@@ -149,6 +149,29 @@ body {
   max-width: 1200px;
   margin: 0 auto;
 }
+/* 業務(管理/運営)画面はデスクトップ全幅でスプレッドシートのように使う。 */
+.iplus-main.wide {
+  max-width: none;
+  margin: 0;
+  padding: 18px 22px 84px;
+}
+/* 生徒・保護者画面はモバイル最適。 */
+.iplus-main.narrow {
+  max-width: 620px;
+  padding: 16px 14px 88px;
+}
+
+/* ===== ローディング・スケルトン (体感速度向上) ===== */
+.skel {
+  background: linear-gradient(90deg, #eef2f7 25%, #f6f8fb 37%, #eef2f7 63%);
+  background-size: 400% 100%;
+  animation: skel 1.2s ease-in-out infinite;
+  border-radius: 8px;
+}
+@keyframes skel {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
 
 /* ===== カード ===== */
 .card {

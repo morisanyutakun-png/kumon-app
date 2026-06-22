@@ -25,7 +25,7 @@ export default async function OperatorLayout({
   return (
     <div className="flex flex-1 flex-col">
       <DemoBanner />
-      <main className="iplus-main flex-1">{children}</main>
+      <main className="iplus-main wide flex-1">{children}</main>
 
       <div className="sheet-tabbar" role="navigation" aria-label="メニュー">
         <Link href="/dashboard" className="sheet-brand" aria-label="まなび教室">
