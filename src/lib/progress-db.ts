@@ -5,8 +5,11 @@
 import type { Material, Unit } from "@/db/schema";
 import {
   advanceOnPass,
+  COMPLETED_LABEL,
   currentRangeLabel,
+  nextRangeLabel,
   sessionPlan,
+  totalItems,
   type AdvanceResult,
   type AssignmentProgress,
   type MaterialInfo,
@@ -84,4 +87,97 @@ export function planAdvance(
       : plan.current;
 
   return { advance, nextRange };
+}
+
+/**
+ * 採点画面で「次回の割り当て範囲」を提示・調整するためのデータ。
+ * 合格で自動進行した既定の範囲(startIdx/count)と、±調整に必要なラベル群を返す。
+ */
+export interface NextWindow {
+  track: "number" | "chapter" | "manual";
+  labels: string[]; // chapter: 単元タイトル / それ以外は []
+  numberStart: number; // number: 開始番号
+  maxIdx: number; // 選べる最後のインデックス(0始まり)。-1=なし
+  startIdx: number; // 既定の次回開始(絶対インデックス)
+  count: number; // 既定のペース(項目数)
+  label: string; // 既定の次回範囲ラベル
+  fixed: boolean; // 完了/総復習 → ±不可
+  completed: boolean; // 次回が無い(完了)
+}
+
+export function nextWindow(
+  assignment: { progressIndex: number; unitsPerSession: number; pointer: number },
+  m: Material,
+  unitRows: Unit[],
+): NextWindow {
+  const mat = toMaterialInfo(m);
+  const us = toUnitInfos(unitRows);
+  const per = Math.max(1, assignment.unitsPerSession);
+  const total = totalItems(mat, us);
+  const startIdx = assignment.progressIndex + per;
+
+  if (m.progressType === "manual") {
+    return { track: "manual", labels: [], numberStart: 0, maxIdx: -1, startIdx: 0, count: 1, label: "", fixed: false, completed: false };
+  }
+
+  // 完了 / 総復習 (これ以上の通常進行なし)
+  if (total > 0 && startIdx >= total) {
+    const a0: AssignmentProgress = {
+      progressIndex: assignment.progressIndex,
+      unitsPerSession: per,
+      unitsPerSessionPending: null,
+      pointer: assignment.pointer,
+      reviewEnabled: true,
+    };
+    const lbl = nextRangeLabel(a0, mat, us);
+    return {
+      track: m.progressType === "number" ? "number" : "chapter",
+      labels: m.progressType === "number" ? [] : us.map((u) => u.title),
+      numberStart: m.numberStart ?? 0,
+      maxIdx: total - 1,
+      startIdx,
+      count: per,
+      label: lbl,
+      fixed: true,
+      completed: lbl === COMPLETED_LABEL,
+    };
+  }
+
+  const a2: AssignmentProgress = {
+    progressIndex: startIdx,
+    unitsPerSession: per,
+    unitsPerSessionPending: null,
+    pointer: assignment.pointer + 1,
+    reviewEnabled: true,
+  };
+  const label = currentRangeLabel(a2, mat, us) ?? COMPLETED_LABEL;
+
+  return {
+    track: m.progressType === "number" ? "number" : "chapter",
+    labels: m.progressType === "number" ? [] : us.map((u) => u.title),
+    numberStart: m.numberStart ?? 0,
+    maxIdx: total - 1,
+    startIdx,
+    count: per,
+    label,
+    fixed: false,
+    completed: false,
+  };
+}
+
+/** startIdx/count(±調整後) から、その教材の範囲ラベルを求める。 */
+export function rangeLabelAt(
+  m: Material,
+  unitRows: Unit[],
+  startIdx: number,
+  count: number,
+): string {
+  const a: AssignmentProgress = {
+    progressIndex: startIdx,
+    unitsPerSession: Math.max(1, count),
+    unitsPerSessionPending: null,
+    pointer: 1,
+    reviewEnabled: true,
+  };
+  return currentRangeLabel(a, toMaterialInfo(m), toUnitInfos(unitRows)) ?? COMPLETED_LABEL;
 }

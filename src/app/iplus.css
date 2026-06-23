@@ -1308,3 +1308,22 @@ body {
 }
 
 .gstudent-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+
+/* 次回の割り当て(採点画面・合格時) */
+.next-assign { margin-top: 12px; padding: 12px 14px; background: #f1f9f4; border: 1px solid #c7e7d3; border-radius: 10px; }
+.next-assign-title { font-size: 12px; font-weight: 800; color: #0e7a55; margin-bottom: 8px; }
+.next-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 5px 0; }
+.next-row + .next-row { border-top: 1px dashed #cfe6d8; }
+.next-mat { font-weight: 700; color: var(--ink); min-width: 120px; }
+.next-arrow { font-size: 12px; color: #64748b; }
+.next-fixed { color: #6d28d9; }
+.next-val { min-width: 90px; padding: 4px 10px; background: #fff; border: 1px solid #cdd6df; font-weight: 800; color: var(--ink); }
+.next-manual { width: 220px; height: 34px; padding: 0 10px; border: 1px solid #cdd6df; border-radius: 0; font: inherit; background: #fff; }
+.next-stepper { display: inline-flex; align-items: center; gap: 10px; }
+.next-steps { display: inline-flex; gap: 10px; }
+.next-grp { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 800; color: #475569; }
+.next-grp button {
+  width: 30px; height: 30px; border: 1.5px solid #b9d8c6; background: #fff; color: #0e7a55;
+  font-size: 16px; font-weight: 900; cursor: pointer; border-radius: 0; line-height: 1;
+}
+.next-grp button:hover { background: #e6f7ef; }

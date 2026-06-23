@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { batchGrade, type BatchGradeItem } from "@/lib/actions/submission-actions";
+import type { NextWindow } from "@/lib/progress-db";
 
 export interface AnswerRow {
   submissionId: string;
@@ -13,6 +14,7 @@ export interface AnswerRow {
   rangeText: string;
   sessionNo: number;
   attemptCount: number;
+  next: NextWindow | null;
 }
 export interface StudentGroup {
   studentId: string;
@@ -25,10 +27,39 @@ type Judge = "" | "ok" | "ng";
 interface RowState { score: string; maxScore: string; judge: Judge; comment: string }
 const empty: RowState = { score: "", maxScore: "", judge: "", comment: "" };
 
+// 次回範囲の編集状態(自動進行: startIdx/count、手入力: manual)
+interface NextState { startIdx: number; count: number; manual: string }
+
+function labelAt(w: NextWindow, idx: number): string {
+  return w.track === "number" ? String(w.numberStart + idx) : (w.labels[idx] ?? "");
+}
+function joinLabel(a: string, b: string): string {
+  if (b === "" || a === b) return a;
+  if (a === "") return b;
+  if (/^\d+$/.test(a) && /^\d+$/.test(b)) return `${a}-${b}`;
+  return `${a}~${b}`;
+}
+function renderRange(w: NextWindow, startIdx: number, count: number): string {
+  const a = labelAt(w, startIdx);
+  const b = labelAt(w, startIdx + count - 1);
+  return count <= 1 ? a : joinLabel(a, b);
+}
+
 export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
   const [state, setState] = useState<Record<string, RowState>>(() =>
     Object.fromEntries(groups.map((g) => [g.studentId, { ...empty }])),
   );
+  // 次回範囲: submissionId キー
+  const [nextState, setNextState] = useState<Record<string, NextState>>(() => {
+    const init: Record<string, NextState> = {};
+    for (const g of groups) for (const a of g.answers) {
+      const w = a.next;
+      init[a.submissionId] = w
+        ? { startIdx: w.startIdx, count: w.count, manual: "" }
+        : { startIdx: 0, count: 1, manual: "" };
+    }
+    return init;
+  });
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
@@ -43,22 +74,46 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
 
   const set = (id: string, patch: Partial<RowState>) =>
     setState((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
+  const setNext = (subId: string, patch: Partial<NextState>) =>
+    setNextState((s) => ({ ...s, [subId]: { ...s[subId], ...patch } }));
+
+  function stepRange(subId: string, w: NextWindow, target: "start" | "end", delta: number) {
+    setNextState((s) => {
+      const cur = s[subId];
+      let { startIdx, count } = cur;
+      if (target === "start") {
+        const endIdx = startIdx + count - 1;
+        startIdx = Math.max(0, Math.min(endIdx, startIdx + delta));
+        count = endIdx - startIdx + 1;
+      } else {
+        const endIdx = Math.max(startIdx, Math.min(w.maxIdx, startIdx + count - 1 + delta));
+        count = endIdx - startIdx + 1;
+      }
+      return { ...s, [subId]: { ...cur, startIdx, count } };
+    });
+  }
 
   function itemsFor(gs: StudentGroup[]): BatchGradeItem[] {
     const items: BatchGradeItem[] = [];
     for (const g of gs) {
       const st = state[g.studentId];
       if (!st?.judge) continue;
-      // 1人ぶんの判定を、その生徒の全答案へまとめて適用。
       for (const a of g.answers) {
-        items.push({
+        const item: BatchGradeItem = {
           submissionId: a.submissionId,
           score: st.score,
           maxScore: st.maxScore,
           result: st.judge as "ok" | "ng",
           comment: st.comment,
           mode: st.judge === "ng" ? "resubmit" : "return",
-        });
+        };
+        // 合格時のみ「次回割り当て」を上書き(±調整 / 手入力)。完了・総復習は既定に任せる。
+        if (st.judge === "ok" && a.next && !a.next.fixed) {
+          const ns = nextState[a.submissionId];
+          if (a.next.track === "manual") item.next = { label: ns.manual };
+          else item.next = { startIdx: ns.startIdx, count: ns.count };
+        }
+        items.push(item);
       }
     }
     return items;
@@ -75,7 +130,7 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
     startTransition(async () => {
       try {
         const res = await batchGrade(items);
-        toast.success(`${res.processed}件を確定しました（合格は進度が1つ進みます）。`);
+        toast.success(`${res.processed}件を確定しました（合格は次回へ進みます）。`);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "保存に失敗しました。");
       } finally {
@@ -159,6 +214,48 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
               </div>
             </div>
 
+            {/* 次回の割り当て(合格時に表示。自動進行+±調整 / 手入力) */}
+            {st.judge === "ok" && (
+              <div className="next-assign">
+                <div className="next-assign-title">次回の割り当て（合格して進みます。±で調整できます）</div>
+                {g.answers.map((a) => {
+                  const w = a.next;
+                  if (!w) return null;
+                  const ns = nextState[a.submissionId];
+                  return (
+                    <div key={a.submissionId} className="next-row">
+                      <span className="next-mat">{a.materialName}</span>
+                      <span className="next-arrow">→ 次回</span>
+                      {w.fixed ? (
+                        <b className="next-fixed">{w.label}</b>
+                      ) : w.track === "manual" ? (
+                        <input
+                          className="next-manual"
+                          value={ns.manual}
+                          placeholder="次回の範囲を入力"
+                          onChange={(e) => setNext(a.submissionId, { manual: e.target.value })}
+                        />
+                      ) : (
+                        <span className="next-stepper">
+                          <b className="next-val">{renderRange(w, ns.startIdx, ns.count)}</b>
+                          <span className="next-steps">
+                            <span className="next-grp">始
+                              <button type="button" onClick={() => stepRange(a.submissionId, w, "start", -1)}>−</button>
+                              <button type="button" onClick={() => stepRange(a.submissionId, w, "start", 1)}>＋</button>
+                            </span>
+                            <span className="next-grp">終
+                              <button type="button" onClick={() => stepRange(a.submissionId, w, "end", -1)}>−</button>
+                              <button type="button" onClick={() => stepRange(a.submissionId, w, "end", 1)}>＋</button>
+                            </span>
+                          </span>
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             <div className="gstudent-foot">
               <span className="hint">この判定は {g.answers.length} 件すべての答案にまとめて反映されます。</span>
               <button type="button" className="btn-primary" onClick={() => confirm("student", g)} disabled={pendingId !== null || !st.judge}>
@@ -170,7 +267,7 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
       })}
 
       <p className="hint" style={{ marginTop: 4 }}>
-        <b>○合格</b>＝返却して進度+1 / <b>×やり直し</b>＝再提出依頼。返却後に生徒が結果を確認すると自動で「完了」になります。
+        <b>○合格</b>＝返却して次回へ進む（次回範囲は自動。±で調整可）/ <b>×やり直し</b>＝再提出依頼。返却後に生徒が結果を確認すると自動で「完了」。
       </p>
     </div>
   );

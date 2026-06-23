@@ -21,7 +21,7 @@ import type { Submission, SubmissionStatus } from "@/db/schema";
 import { getPrincipal, isOperator } from "@/lib/access";
 import type { Principal } from "@/auth";
 import { saveFile } from "@/lib/blob";
-import { isAutoAdvance, planAdvance } from "@/lib/progress-db";
+import { isAutoAdvance, planAdvance, rangeLabelAt } from "@/lib/progress-db";
 import {
   actorForRole,
   assertTransition,
@@ -266,6 +266,11 @@ export interface BatchGradeItem {
   comment?: string;
   /** "return" 返却 / "resubmit" 再提出依頼。 */
   mode: "return" | "resubmit";
+  /**
+   * 合格返却時の「次回割り当て」を上書き指定(採点画面で±調整した場合)。
+   * 自動進行教材: startIdx/count を指定 / 手入力教材: label を指定。
+   */
+  next?: { startIdx?: number; count?: number; label?: string };
 }
 
 /**
@@ -325,7 +330,8 @@ export async function batchGrade(
     );
 
     if (!requiresResubmit && result === "ok") {
-      await advanceProgressAfterPass(current);
+      if (it.next) await advanceWithNext(current, it.next);
+      else await advanceProgressAfterPass(current);
     }
     processed++;
   }
@@ -383,6 +389,91 @@ async function advanceProgressAfterPass(sub: Submission) {
         status: "not_submitted",
         sessionNo: advance.pointer,
         rangeText: nextRange,
+      });
+    }
+  });
+}
+
+/**
+ * 採点画面で±調整した「次回割り当て」で進度を更新し、次セッション(未提出)を作る。
+ * 自動進行教材: next.startIdx/count を採用(progressIndex=startIdx, pace=count)。
+ * 手入力教材: next.label を次回範囲として割り当てる。
+ */
+async function advanceWithNext(
+  sub: Submission,
+  next: { startIdx?: number; count?: number; label?: string },
+) {
+  const [assignment] = await db
+    .select()
+    .from(assignments)
+    .where(eq(assignments.id, sub.assignmentId))
+    .limit(1);
+  if (!assignment) return;
+
+  const [material] = await db
+    .select()
+    .from(materials)
+    .where(eq(materials.id, assignment.materialId))
+    .limit(1);
+  if (!material) return;
+
+  const nextPointer = assignment.pointer + 1;
+
+  // 手入力教材: ラベルをそのまま次回範囲に。
+  if (!isAutoAdvance(material)) {
+    const label = (next.label ?? "").trim();
+    await db.transaction(async (tx) => {
+      await tx.update(assignments).set({ pointer: nextPointer }).where(eq(assignments.id, assignment.id));
+      if (label) {
+        await tx.insert(submissions).values({
+          organizationId: sub.organizationId,
+          assignmentId: assignment.id,
+          studentId: sub.studentId,
+          status: "not_submitted",
+          sessionNo: nextPointer,
+          rangeText: label,
+        });
+      }
+    });
+    return;
+  }
+
+  // 自動進行教材: startIdx/count が無ければ既定の自動進行に委譲。
+  if (typeof next.startIdx !== "number" || typeof next.count !== "number") {
+    await advanceProgressAfterPass(sub);
+    return;
+  }
+
+  const unitRows = await db
+    .select()
+    .from(units)
+    .where(eq(units.materialId, assignment.materialId))
+    .orderBy(asc(units.sortOrder));
+
+  const startIdx = Math.max(0, next.startIdx);
+  const count = Math.max(1, next.count);
+  const label = rangeLabelAt(material, unitRows, startIdx, count);
+  const completed = label === "完了";
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(assignments)
+      .set({
+        progressIndex: startIdx,
+        unitsPerSession: count,
+        pointer: nextPointer,
+        status: completed ? "completed" : "active",
+      })
+      .where(eq(assignments.id, assignment.id));
+
+    if (!completed) {
+      await tx.insert(submissions).values({
+        organizationId: sub.organizationId,
+        assignmentId: assignment.id,
+        studentId: sub.studentId,
+        status: "not_submitted",
+        sessionNo: nextPointer,
+        rangeText: label,
       });
     }
   });

@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { assignments, students } from "@/db/schema";
+import { assignments, materials, students, units } from "@/db/schema";
 import { requireOperator } from "@/lib/access";
 import { listSubmissions, type SubmissionRow } from "@/lib/queries";
+import { nextWindow, type NextWindow } from "@/lib/progress-db";
 import { GradeByStudent, type StudentGroup } from "./grade-by-student";
 
 function fmt(d: Date | null): string {
@@ -108,6 +109,34 @@ export default async function GradingPage({
   const readyAgg = [...agg.values()].filter((g) => g.gradable.length > 0 && g.pend === 0).sort(byName);
   const inProgress = [...agg.values()].filter((g) => g.gradable.length > 0 && g.pend > 0).sort(byName);
 
+  // 次回割り当て(自動進行+±調整)用に、対象割当の進度・教材・単元を取得
+  const gradableAids = [...new Set(readyAgg.flatMap((g) => g.gradable.map((s) => s.assignmentId)))];
+  const nextBySubmission = new Map<string, NextWindow>();
+  if (gradableAids.length > 0) {
+    const aRows = await db.select().from(assignments).where(inArray(assignments.id, gradableAids));
+    const matIds = [...new Set(aRows.map((a) => a.materialId))];
+    const [mRows, uRows] = await Promise.all([
+      db.select().from(materials).where(inArray(materials.id, matIds)),
+      db.select().from(units).where(inArray(units.materialId, matIds)).orderBy(asc(units.sortOrder)),
+    ]);
+    const matById = new Map(mRows.map((m) => [m.id, m]));
+    const unitsByMat = new Map<string, typeof uRows>();
+    for (const u of uRows) {
+      const arr = unitsByMat.get(u.materialId) ?? [];
+      arr.push(u);
+      unitsByMat.set(u.materialId, arr);
+    }
+    const winByAssign = new Map<string, NextWindow>();
+    for (const a of aRows) {
+      const m = matById.get(a.materialId);
+      if (m) winByAssign.set(a.id, nextWindow(a, m, unitsByMat.get(a.materialId) ?? []));
+    }
+    for (const g of readyAgg) for (const s of g.gradable) {
+      const w = winByAssign.get(s.assignmentId);
+      if (w) nextBySubmission.set(s.submissionId, w);
+    }
+  }
+
   const groups: StudentGroup[] = readyAgg.map((g) => ({
     studentId: g.studentId,
     studentName: g.name,
@@ -119,6 +148,7 @@ export default async function GradingPage({
       rangeText: s.rangeText,
       sessionNo: s.sessionNo,
       attemptCount: s.attemptCount,
+      next: nextBySubmission.get(s.submissionId) ?? null,
     })),
   }));
 
