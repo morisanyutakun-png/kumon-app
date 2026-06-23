@@ -995,9 +995,11 @@ body {
 /* ヒーロー内のがんばりチップ */
 .hero-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .hero-chip {
+  display: inline-flex; align-items: center; gap: 6px;
   background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.32);
   color: #fff; font-size: 13px; font-weight: 800; padding: 6px 12px;
 }
+.hero-chip svg { flex: 0 0 auto; }
 
 /* 今日のミッション */
 .mission {
@@ -1023,13 +1025,16 @@ body {
 .meter { background: #fff; border: 1px solid #dde2e7; padding: 16px 18px; margin-bottom: 24px; }
 .meter-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .meter-title { font-size: 15px; font-weight: 900; color: var(--ink, #14365a); }
-.meter-level { font-size: 13px; font-weight: 800; color: var(--primary-d); }
+.meter-level { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: #d39a2a; }
 .meter-bar { height: 14px; background: #eef2f6; overflow: hidden; }
 .meter-fill { height: 100%; background: linear-gradient(90deg, #1aa3e6, #18c39a); transition: width 0.4s ease; }
 .meter-foot { margin-top: 8px; font-size: 13px; font-weight: 700; color: #5b6b7c; }
 .meter-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; text-align: center; }
 .ms { padding: 12px 6px; border: 1px solid #e6ebf0; }
-.ms .ms-ico { display: block; font-size: 18px; line-height: 1; margin-bottom: 4px; }
+.ms .ms-ico { display: flex; align-items: center; justify-content: center; line-height: 1; margin-bottom: 6px; }
+.ms-star .ms-ico { color: #e2741a; }
+.ms-done .ms-ico { color: #0f9e74; }
+.ms-week .ms-ico { color: #1583c4; }
 .ms b { display: block; font-size: 24px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
 .ms span:last-child { font-size: 11px; font-weight: 800; color: #5b6b7c; }
 .ms-star { background: #fff7e6; border-color: #ffe2ad; }

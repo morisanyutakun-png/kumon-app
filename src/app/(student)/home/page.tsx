@@ -7,6 +7,7 @@ import { accessibleStudentIds, requirePrincipal } from "@/lib/access";
 import { encourageMessage, levelInfo, studyStreak } from "@/lib/encourage";
 import { listGradingHistory, listNotifications, listSubmissions } from "@/lib/queries";
 import { Mascot } from "@/components/mascot";
+import { IconCalendar, IconCheck, IconFlame, IconMedal, IconRedo, IconStar } from "@/components/icons";
 import { StatusBadge } from "@/components/status-badge";
 import type { SubmissionRow } from "@/lib/queries";
 import type { SubmissionStatus } from "@/db/schema";
@@ -98,9 +99,9 @@ export default async function StudentHome() {
           <div className="learn-hero-title">{greet}</div>
           <div className="learn-hero-sub">{message}</div>
           <div className="hero-chips">
-            <span className="hero-chip">🔥 {streak}日れんぞく</span>
-            <span className="hero-chip">⭐ はなまる {pass}こ</span>
-            <span className="hero-chip">🏅 {lv.name}</span>
+            <span className="hero-chip"><IconFlame size={15} /> {streak}日れんぞく</span>
+            <span className="hero-chip"><IconStar size={15} /> はなまる {pass}こ</span>
+            <span className="hero-chip"><IconMedal size={15} /> {lv.name}</span>
           </div>
         </div>
         <span className="learn-hero-mascot" aria-hidden><Mascot className="learn-mascot" /></span>
@@ -110,7 +111,7 @@ export default async function StudentHome() {
         <div className="notice-list">
           {notices.map((n) => (
             <Link key={n.id} href={n.submissionId ? `/submissions/${n.submissionId}` : "/home"} className="notice">
-              <span className="notice-ico">{n.type === "resubmit" ? "↻" : "✓"}</span>
+              <span className="notice-ico">{n.type === "resubmit" ? <IconRedo size={18} /> : <IconCheck size={18} />}</span>
               <span style={{ minWidth: 0 }}>
                 <span className="notice-title">{n.title}</span>
                 <span className="notice-body">{n.studentName}{n.body ? ` ・ ${n.body}` : ""}</span>
@@ -143,7 +144,7 @@ export default async function StudentHome() {
         <div className="mission mission-done">
           <span className="mission-mascot"><Mascot pose="wave" sizes="90px" /></span>
           <div className="mission-body">
-            <div className="mission-title">きょうのミッション かんりょう！🎉</div>
+            <div className="mission-title">きょうのミッション かんりょう！</div>
             <div className="mission-meta">よくがんばったね。あたらしい課題をまっててね。</div>
           </div>
         </div>
@@ -153,16 +154,16 @@ export default async function StudentHome() {
       <div className="meter">
         <div className="meter-head">
           <span className="meter-title">がんばりメーター</span>
-          <span className="meter-level">🏅 {lv.name}</span>
+          <span className="meter-level"><IconMedal size={15} /> {lv.name}</span>
         </div>
         <div className="meter-bar"><div className="meter-fill" style={{ width: `${lv.progress}%` }} /></div>
         <div className="meter-foot">
-          {lv.isMax ? "さいこう称号に とうたつ！すごい！" : `つぎの称号まで あと ⭐${lv.remaining} こ`}
+          {lv.isMax ? "さいこう称号に とうたつ！すごい！" : `つぎの称号まで あと ${lv.remaining} こ`}
         </div>
         <div className="meter-stats">
-          <div className="ms ms-star"><span className="ms-ico">⭐</span><b>{pass}</b><span>はなまる</span></div>
-          <div className="ms ms-done"><span className="ms-ico">✅</span><b>{doneCount}</b><span>かんりょう</span></div>
-          <div className="ms ms-week"><span className="ms-ico">📅</span><b>{weekCount}</b><span>今週の提出</span></div>
+          <div className="ms ms-star"><span className="ms-ico"><IconStar size={20} /></span><b>{pass}</b><span>はなまる</span></div>
+          <div className="ms ms-done"><span className="ms-ico"><IconCheck size={20} /></span><b>{doneCount}</b><span>かんりょう</span></div>
+          <div className="ms ms-week"><span className="ms-ico"><IconCalendar size={20} /></span><b>{weekCount}</b><span>今週の提出</span></div>
         </div>
       </div>
 
