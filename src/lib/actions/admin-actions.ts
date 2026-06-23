@@ -330,7 +330,8 @@ export async function linkGuardianStudent(
   }
 
   revalidatePath("/guardians");
-  return {};
+  // 紐づけ直後に最新の担当生徒が反映されるよう再読み込みする。
+  redirect("/guardians");
 }
 
 // =============================================================================
