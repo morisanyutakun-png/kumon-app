@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { submissionImages } from "@/db/schema";
 import { requireOperator } from "@/lib/access";
 import { listSubmissions } from "@/lib/queries";
-import { BatchGradeTable, type BatchRow } from "./batch/batch-table";
+import { GradeByStudent, type StudentGroup } from "./grade-by-student";
 
 function fmt(d: Date | null): string {
   if (!d) return "—";
@@ -46,24 +46,30 @@ export default async function GradingPage({
           .orderBy(asc(submissionImages.attemptNo), asc(submissionImages.sortOrder))
       : [];
 
-  const todoRows: BatchRow[] = todoSubs.map((s) => {
+  // 生徒ごとにまとめる(添削結果入力を生徒単位で行う)
+  const groupMap = new Map<string, StudentGroup>();
+  for (const s of todoSubs) {
     const all = imgs.filter((i) => i.submissionId === s.submissionId);
     const latestAttempt = all.reduce((m, i) => Math.max(m, i.attemptNo), 0);
     const images = all
       .filter((i) => i.attemptNo === latestAttempt)
       .map((i) => ({ id: i.id, fileName: i.fileName }));
-    return {
+    let g = groupMap.get(s.studentId);
+    if (!g) {
+      g = { studentId: s.studentId, studentName: s.studentName, studentGrade: s.studentGrade, answers: [] };
+      groupMap.set(s.studentId, g);
+    }
+    g.answers.push({
       submissionId: s.submissionId,
-      studentName: s.studentName,
-      studentGrade: s.studentGrade,
       materialName: s.materialName,
       subject: s.subject,
       rangeText: s.rangeText,
       sessionNo: s.sessionNo,
       attemptCount: s.attemptCount,
       images,
-    };
-  });
+    });
+  }
+  const groups = [...groupMap.values()].sort((a, b) => a.studentName.localeCompare(b.studentName, "ja"));
 
   const tabCls = (on: boolean) => (on ? "btn-primary" : "btn-secondary");
 
@@ -84,7 +90,7 @@ export default async function GradingPage({
       </div>
 
       {view === "todo" ? (
-        <BatchGradeTable rows={todoRows} />
+        <GradeByStudent groups={groups} />
       ) : (
         <div className="grid-scroll" style={{ border: "1px solid #dde2e7" }}>
           <table className="record-table" style={{ minWidth: 720 }}>
