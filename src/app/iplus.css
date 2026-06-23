@@ -1144,11 +1144,20 @@ body {
 .annot-swatch { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1.5px #cdd6df; cursor: pointer; }
 .annot-swatch.on { box-shadow: 0 0 0 3px var(--primary); }
 
-.annot-stage { position: relative; display: flex; justify-content: center; background: #eef2f6; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; overflow: auto; }
-.annot-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #64748b; font-weight: 700; }
-.annot-canvas-wrap { position: relative; display: inline-block; line-height: 0; box-shadow: 0 2px 12px rgba(15,40,70,0.12); }
+/* ステージ=固定ビューポート(ズーム/パンしてもここだけ表示) */
+.annot-stage {
+  position: relative; background: #eef2f6; border: 1px solid #e2e8f0; border-radius: 12px;
+  overflow: hidden; height: 68vh; touch-action: none; overscroll-behavior: contain;
+}
+.annot-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #64748b; font-weight: 700; z-index: 2; }
+/* 変形する層(ズーム/パン)。原点は左上。 */
+.annot-surface { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; touch-action: none; }
+.annot-canvas-wrap { position: relative; display: inline-block; line-height: 0; box-shadow: 0 2px 12px rgba(15,40,70,0.12); background: #fff; }
 .annot-page { display: block; background: #fff; }
-.annot-ink { position: absolute; top: 0; left: 0; cursor: crosshair; }
+.annot-ink { position: absolute; top: 0; left: 0; touch-action: none; cursor: crosshair; }
+/* ズーム操作 */
+.annot-zoom { display: inline-flex; gap: 6px; align-items: center; }
+.annot-zoom-val { min-width: 46px; text-align: center; font-weight: 800; font-size: 12px; color: #334155; }
 
 .annot-pager { display: flex; gap: 12px; align-items: center; justify-content: center; font-weight: 700; color: #475569; }
 .annot-submit { display: flex; align-items: center; }
@@ -1190,7 +1199,7 @@ body {
 .write-title { font-weight: 900; color: var(--ink); text-align: center; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; justify-content: center; }
 .write-range { font-size: 12px; font-weight: 700; color: #64748b; }
 .write-body { flex: 1; overflow: auto; padding: 12px; }
-.write-body .annot-stage { background: #e6ecf2; }
+.write-body .annot-stage { background: #e6ecf2; height: calc(100vh - 230px); min-height: 360px; }
 /* 全画面では操作バーを上部に貼り付けて使いやすく */
 .write-body .annot-toolbar { position: sticky; top: 0; z-index: 5; }
 .write-body .annot-submit .btn-primary { width: 100%; }
