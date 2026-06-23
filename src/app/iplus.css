@@ -1281,8 +1281,19 @@ body {
 .gstudent-grade { margin-left: 8px; font-size: 13px; font-weight: 700; color: #64748b; }
 .gstudent-count { margin-left: 12px; font-size: 12px; font-weight: 800; color: #fff; background: var(--primary); padding: 2px 9px; border-radius: 999px; }
 
-.gstudent.is-ok { border-color: #9ad9bd; }
-.gstudent.is-ng { border-color: #f0a6b6; }
+/* 採点可能カードは左に緑のアクセント */
+.gstudent { border-left: 5px solid #16a34a; }
+.gstudent.is-ok { border-color: #9ad9bd; border-left-color: #16a34a; }
+.gstudent.is-ng { border-color: #f0a6b6; border-left-color: #16a34a; }
+
+/* 状態チップ(名前の横): 採点可能=緑 / 実施中=黄 */
+.status-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-left: 10px; padding: 3px 11px; border-radius: 999px;
+  font-size: 12px; font-weight: 900; line-height: 1; vertical-align: middle;
+}
+.status-chip.ok { background: #e6f7ef; color: #0e7a55; border: 1px solid #9ad9bd; }
+.status-chip.wait { background: #fef3c7; color: #92400e; border: 1px solid #f3d98b; }
 
 /* 全答案を結合した連続プレビュー(1まとまりの答案として見る) */
 .gstudent-combined {

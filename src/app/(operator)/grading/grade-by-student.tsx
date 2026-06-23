@@ -108,6 +108,7 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
               <div>
                 <span className="gstudent-name">{g.studentName}</span>
                 <span className="gstudent-grade">{g.studentGrade}</span>
+                <span className="status-chip ok">● 採点可能</span>
                 <span className="gstudent-count">答案 {g.answers.length} 件</span>
               </div>
               <div style={{ display: "inline-flex", gap: 8 }}>

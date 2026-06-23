@@ -159,7 +159,7 @@ export default async function GradingPage({
                   const total = g.gradable.length + g.pend;
                   return (
                     <tr key={g.studentId}>
-                      <td style={{ fontWeight: 600 }}>{g.name}<span className="muted" style={{ fontWeight: 400 }}> ・ {g.grade}</span></td>
+                      <td style={{ fontWeight: 600 }}>{g.name}<span className="muted" style={{ fontWeight: 400 }}> ・ {g.grade}</span><span className="status-chip wait">● 実施中</span></td>
                       <td className="muted">提出 {g.gradable.length} / {total} ・ のこり {g.pend} 件</td>
                     </tr>
                   );
