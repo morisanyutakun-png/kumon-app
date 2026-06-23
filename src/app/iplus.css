@@ -230,8 +230,19 @@ body {
 .btn-danger:hover { background: #fecaca; text-decoration: none; }
 
 /* ===== 表内インライン編集 (生徒・保護者ロスター) ===== */
-/* セルは四角・余白なし。入力欄はセルに溶け込ませ内側の枠を出さない。 */
-.roster td { padding: 0; vertical-align: middle; height: 42px; }
+/* エクセル風: 全セルに縦横の罫線、編集セルは白く凹ませて「入力できる」と分かる。 */
+.roster .record-table { border: 1px solid #c7ced6; }
+.roster th,
+.roster td {
+  padding: 0;
+  vertical-align: middle;
+  height: 42px;
+  border-right: 1px solid #dce1e7;
+  border-bottom: 1px solid #dce1e7;
+}
+.roster tr > th:last-child,
+.roster tr > td:last-child { border-right: 0; }
+.roster thead th { padding: 8px 10px; height: auto; }
 .roster input,
 .roster select {
   width: 100%;
@@ -242,25 +253,26 @@ body {
   margin: 0;
   font: inherit;
   font-size: 14px;
-  background: transparent;
+  background: #fff;
   color: var(--text);
   appearance: none;
 }
-.roster select { padding-right: 22px; }
+.roster select { padding-right: 22px; cursor: pointer; }
+.roster input:hover,
+.roster select:hover { background: #f5fafd; }
 .roster input:focus,
 .roster select:focus {
   outline: none;
-  background: #eef7fd;
+  background: #fff;
   box-shadow: inset 0 0 0 2px var(--primary);
 }
 .roster input::placeholder { color: #9aa6b2; }
 .roster input.code { font-weight: 700; letter-spacing: 0.04em; }
 /* テキスト表示のセル(リンク/補足/非管理者表示)はセル内に余白を持たせる */
 .roster .cell-pad { display: inline-block; padding: 0 10px; }
-/* 入力 + 付随ボタン(自動生成など)を隙間なく横並び */
-.roster .input-with-btn { display: flex; align-items: stretch; height: 42px; }
+/* 入力 + 付随ボタン(自動生成など)。ボタンは削除等と同じ大きさに揃える。 */
+.roster .input-with-btn { display: flex; align-items: center; gap: 6px; padding-right: 6px; background: #fff; }
 .roster .input-with-btn input { flex: 1 1 auto; }
-.roster .input-with-btn .gbtn { height: 42px; border-left: 1px solid var(--line); }
 /* 操作セルのボタン群 — セル高さに合わせて統一 */
 .roster .row-actions {
   display: inline-flex;
@@ -271,13 +283,14 @@ body {
   padding: 0 8px;
 }
 .roster .gbtn {
-  height: 30px;
-  padding: 0 11px;
+  height: 28px;
+  padding: 0 10px;
   font-size: 12px;
   font-weight: 700;
   border-radius: 0;
   white-space: nowrap;
   box-shadow: none;
+  flex: 0 0 auto;
 }
 .roster .gbtn:hover { transform: none; box-shadow: none; }
 /* 追加行の全幅ボタンはセルにぴったり */
