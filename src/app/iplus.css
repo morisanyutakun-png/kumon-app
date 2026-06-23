@@ -1296,6 +1296,7 @@ body {
 }
 .status-chip.ok { background: #e6f7ef; color: #0e7a55; border: 1px solid #9ad9bd; }
 .status-chip.wait { background: #fef3c7; color: #92400e; border: 1px solid #f3d98b; }
+.status-chip.done { background: #e8f4fb; color: #1567a0; border: 1px solid #b6ddf1; }
 
 /* 全答案を結合した連続プレビュー(1まとまりの答案として見る) */
 .gstudent-combined {
@@ -1335,11 +1336,13 @@ body {
 .pass-check .pass-yes { color: #0e7a55; font-weight: 800; }
 .pass-check .pass-no { color: #9aa6b2; font-weight: 700; }
 
-/* PHP風 列=教材レイアウト(添削結果入力) */
+/* PHP風 列=教材レイアウト(添削結果入力)。幅は固定し、表だけ横スクロール。 */
+.gsheet-col { width: auto; table-layout: fixed; }
 .gsheet-col .rowlab {
-  background: #eef3f7; font-weight: 800; color: #475569; width: 92px;
+  background: #eef3f7; font-weight: 800; color: #475569; width: 108px;
   position: sticky; left: 0; z-index: 1; text-align: left;
 }
+.gsheet-col .matcol { width: 172px; }
 .gsheet-col thead th { text-align: center; }
 .gsheet-col thead th.rowlab { text-align: left; }
 .gsheet-col tbody td { text-align: center; }

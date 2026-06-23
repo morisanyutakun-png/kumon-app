@@ -153,7 +153,7 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
               <div>
                 <span className="gstudent-name">{g.studentName}</span>
                 <span className="gstudent-grade">{g.studentGrade}</span>
-                <span className={`status-chip ${isSent ? "ok" : "wait"}`}>{isSent ? "● 返却済み" : "● 未返却"}</span>
+                <span className={`status-chip ${isSent ? "done" : "ok"}`}>{isSent ? "● 返却済み" : "● 採点可能"}</span>
                 <span className="gstudent-count">答案 {g.answers.length} 件</span>
               </div>
               <div style={{ display: "inline-flex", gap: 8 }}>
@@ -165,12 +165,12 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
             {/* PHP風: 列=教材, 行=項目 の添削結果入力 */}
             <div className="roster gsheet">
               <div className="grid-scroll" style={{ border: "1px solid #dde2e7" }}>
-                <table className="record-table gsheet-col" style={{ minWidth: 320 + g.answers.length * 200 }}>
+                <table className="record-table gsheet-col">
                   <thead>
                     <tr>
                       <th className="rowlab">教材</th>
                       {g.answers.map((a) => (
-                        <th key={a.submissionId}>
+                        <th key={a.submissionId} className="matcol">
                           {a.materialName}
                           <div className="muted" style={{ fontWeight: 400, fontSize: 11 }}>{a.subject}{a.attemptCount > 1 ? ` ・ 再提出${a.attemptCount - 1}` : ""}</div>
                         </th>
