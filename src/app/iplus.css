@@ -1334,3 +1334,22 @@ body {
 .pass-check input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .pass-check .pass-yes { color: #0e7a55; font-weight: 800; }
 .pass-check .pass-no { color: #9aa6b2; font-weight: 700; }
+
+/* PHP風 列=教材レイアウト(添削結果入力) */
+.gsheet-col .rowlab {
+  background: #eef3f7; font-weight: 800; color: #475569; width: 92px;
+  position: sticky; left: 0; z-index: 1; text-align: left;
+}
+.gsheet-col thead th { text-align: center; }
+.gsheet-col thead th.rowlab { text-align: left; }
+.gsheet-col tbody td { text-align: center; }
+.gsheet-col tbody td.rowlab { text-align: left; }
+/* 次回セル(コンパクト) */
+.next-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; }
+.next-cell.is-off { opacity: 0.45; }
+.next-cell .next-val { min-width: 70px; padding: 3px 8px; background: #fff; border: 1px solid #cdd6df; font-weight: 800; color: var(--ink); }
+.next-cell .next-manual { width: 100%; height: 32px; padding: 0 8px; border: 1px solid #cdd6df; font: inherit; background: #fff; }
+.next-cell .next-steps { display: inline-flex; gap: 8px; }
+.next-cell .next-grp { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 800; color: #475569; }
+.next-cell .next-grp button { width: 26px; height: 26px; border: 1.5px solid #b9d8c6; background: #fff; color: #0e7a55; font-size: 14px; font-weight: 900; cursor: pointer; border-radius: 0; line-height: 1; }
+.next-cell .next-grp button:hover { background: #e6f7ef; }
