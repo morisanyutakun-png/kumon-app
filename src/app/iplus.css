@@ -1262,3 +1262,9 @@ body {
 .gsheet .judge-btn.ng.on { background: #fdecef; border-color: #e11d48; color: #b21437; }
 .gsheet tr.j-ok > td { background: #f3fbf7; }
 .gsheet tr.j-ng > td { background: #fdf4f6; }
+
+/* 返却済タブの状態バッジ */
+.done-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+.done-badge.ok { background: #e6f7ef; color: #0e7a55; }
+.done-badge.done { background: #ede9fe; color: #6d28d9; }
+.done-badge.ng { background: #fdecef; color: #b21437; }

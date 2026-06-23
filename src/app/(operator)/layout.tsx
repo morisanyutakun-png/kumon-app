@@ -8,8 +8,7 @@ import { NavTabs, type NavTabItem } from "@/components/nav-tabs";
 
 const BASE_TABS: NavTabItem[] = [
   { href: "/dashboard", label: "ダッシュボード" },
-  { href: "/grading/batch", label: "採点（添削シート）" },
-  { href: "/grading", label: "提出一覧", exact: true },
+  { href: "/grading", label: "採点" },
   { href: "/students", label: "生徒・保護者" },
   { href: "/grades", label: "成績" },
   { href: "/materials", label: "教材" },
