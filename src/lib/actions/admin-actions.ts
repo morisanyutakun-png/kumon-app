@@ -721,10 +721,10 @@ export async function issueStudentCredentials(studentId: string, fd: FormData) {
 }
 
 /** 保護者(parent)のパスワードを再発行する。 */
-export async function resetGuardianPassword(userId: string, fd: FormData) {
+export async function resetGuardianPassword(userId: string, fd?: FormData) {
   const p = await requireOperator();
-  const password = str(fd, "password");
-  if (!password) throw new Error("新しいパスワードを入力してください。");
+  // パスワード未指定なら自動生成(ワンクリック再発行)。
+  const password = (fd && str(fd, "password")) || randomPassword();
 
   const [u] = await db
     .select()

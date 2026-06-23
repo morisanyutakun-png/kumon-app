@@ -11,7 +11,6 @@ import {
   resetGuardianPassword,
 } from "@/lib/actions/admin-actions";
 import { ActionButton } from "@/components/action-button";
-import { PasswordResetForm } from "@/components/credential-forms";
 
 export const GRADES = ["小1", "小2", "小3", "小4", "小5", "小6", "中1", "中2", "中3"];
 
@@ -50,14 +49,15 @@ function genPassword(n = 8) {
 
 const cellInput: React.CSSProperties = {
   width: "100%",
-  height: 38,
+  height: 36,
   border: "1px solid #cdd4db",
-  padding: "0 10px",
+  padding: "0 9px",
   font: "inherit",
   fontSize: 14,
   background: "#fff",
 };
-
+const nowrap: React.CSSProperties = { whiteSpace: "nowrap" };
+const actCell: React.CSSProperties = { whiteSpace: "nowrap" };
 const gBorder = "2px solid #cfe6f4"; // 生徒 / 保護者 の区切り
 
 export function RosterGrid({ rows }: { rows: RosterRow[] }) {
@@ -132,105 +132,102 @@ export function RosterGrid({ rows }: { rows: RosterRow[] }) {
   return (
     <div>
       <div className="grid-scroll" style={{ border: "1px solid #dde2e7" }}>
-        <table className="record-table" style={{ minWidth: 1080 }}>
+        <table className="record-table" style={{ minWidth: 1180 }}>
           <thead>
             <tr>
-              <th colSpan={4} style={{ background: "#eaf5fb", color: "#14365a" }}>
+              <th colSpan={5} style={{ background: "#eaf5fb", color: "#14365a" }}>
                 生徒
               </th>
-              <th colSpan={3} style={{ background: "#eaf5fb", color: "#14365a", borderLeft: gBorder }}>
+              <th colSpan={4} style={{ background: "#eaf5fb", color: "#14365a", borderLeft: gBorder }}>
                 保護者
               </th>
-              <th className="right" style={{ width: 150 }}>操作</th>
             </tr>
             <tr>
-              <th style={{ width: "16%" }}>氏名</th>
-              <th style={{ width: 84 }}>学年</th>
-              <th>ログインID</th>
-              <th>PIN</th>
-              <th style={{ borderLeft: gBorder }}>氏名</th>
+              <th style={{ width: "15%" }}>氏名</th>
+              <th style={{ width: 74 }}>学年</th>
+              <th style={{ width: 110 }}>ログインID</th>
+              <th style={{ width: 96 }}>PIN</th>
+              <th className="right" style={{ width: 130 }}>操作</th>
+              <th style={{ width: "15%", borderLeft: gBorder }}>氏名</th>
               <th>メールアドレス</th>
-              <th>初期パスワード</th>
-              <th className="right">操作</th>
+              <th style={{ width: 120 }}>初期パスワード</th>
+              <th className="right" style={{ width: 150 }}>操作</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((s) => (
               <tr key={s.id}>
+                {/* ── 生徒(左)で完結 ── */}
                 <td>
                   <Link href={`/students/${s.id}`} style={{ fontWeight: 600 }}>{s.name}</Link>
                   {!s.active && (
-                    <span className="badge" style={{ marginLeft: 8, background: "#f1f5f9", color: "#64748b" }}>停止中</span>
+                    <span className="badge" style={{ marginLeft: 6, background: "#f1f5f9", color: "#64748b" }}>停止</span>
                   )}
                 </td>
                 <td>{s.grade || "—"}</td>
                 <td className="muted">{s.loginId || "—"}</td>
                 <td>
                   {s.pin ? (
-                    <code style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em" }}>{s.pin}</code>
+                    <code style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em" }}>{s.pin}</code>
                   ) : (
-                    <span className="muted">{s.hasPin ? "設定済み" : "未設定"}</span>
+                    <span className="muted">{s.hasPin ? "設定済" : "未設定"}</span>
                   )}
                 </td>
+                <td className="right" style={actCell}>
+                  <Link href={`/students/${s.id}/edit`} className="db-badge">編集</Link>{" "}
+                  <ActionButton
+                    action={deleteStudent.bind(null, s.id)}
+                    variant="destructive"
+                    confirm={`生徒「${s.name}」と関連する割当・提出を削除しますか?`}
+                    successMessage="削除しました。"
+                  >
+                    削除
+                  </ActionButton>
+                </td>
 
+                {/* ── 保護者(右)で完結 ── */}
                 {s.guardian ? (
                   <>
                     <td style={{ borderLeft: gBorder, fontWeight: 600 }}>{s.guardian.name}</td>
-                    <td className="muted">{s.guardian.email}</td>
+                    <td className="muted" style={nowrap}>{s.guardian.email}</td>
                     <td>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        {s.guardian.pw ? (
-                          <code style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.04em" }}>{s.guardian.pw}</code>
-                        ) : (
-                          <span className="muted">設定済み</span>
-                        )}
-                        <span style={{ display: "inline-flex", gap: 6 }}>
-                          <PasswordResetForm action={resetGuardianPassword.bind(null, s.guardian.id)} />
-                          <ActionButton
-                            action={deleteGuardian.bind(null, s.guardian.id)}
-                            variant="destructive"
-                            confirm={`保護者「${s.guardian.name}」を削除しますか?（生徒との紐づけも解除されます）`}
-                            successMessage="削除しました。"
-                          >
-                            保護者削除
-                          </ActionButton>
-                        </span>
-                      </div>
+                      {s.guardian.pw ? (
+                        <code style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.03em" }}>{s.guardian.pw}</code>
+                      ) : (
+                        <span className="muted">設定済</span>
+                      )}
+                    </td>
+                    <td className="right" style={actCell}>
+                      <ActionButton
+                        action={() => resetGuardianPassword(s.guardian!.id)}
+                        variant="secondary"
+                        confirm={`保護者「${s.guardian.name}」のパスワードを再発行しますか?`}
+                        successMessage="再発行しました。"
+                      >
+                        再発行
+                      </ActionButton>{" "}
+                      <ActionButton
+                        action={deleteGuardian.bind(null, s.guardian.id)}
+                        variant="destructive"
+                        confirm={`保護者「${s.guardian.name}」を削除しますか?（生徒との紐づけも解除されます）`}
+                        successMessage="削除しました。"
+                      >
+                        削除
+                      </ActionButton>
                     </td>
                   </>
                 ) : (
-                  <td colSpan={3} className="muted" style={{ borderLeft: gBorder }}>
+                  <td colSpan={4} className="muted" style={{ borderLeft: gBorder }}>
                     （保護者なし）
                   </td>
                 )}
-
-                <td className="right">
-                  <span style={{ display: "inline-flex", gap: 6, justifyContent: "flex-end" }}>
-                    <Link href={`/students/${s.id}/edit`} className="db-badge">編集</Link>
-                    <ActionButton
-                      action={deleteStudent.bind(null, s.id)}
-                      variant="destructive"
-                      confirm={`生徒「${s.name}」と関連する割当・提出を削除しますか?`}
-                      successMessage="削除しました。"
-                    >
-                      削除
-                    </ActionButton>
-                  </span>
-                </td>
               </tr>
             ))}
 
             {/* 追加行 — 1行で 生徒 ＋ 保護者(任意) を登録 */}
             <tr style={{ background: "#f3f9fc" }}>
               <td>
-                <input
-                  ref={nameRef}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  onKeyDown={onKeyDown}
-                  placeholder="生徒 氏名"
-                  style={cellInput}
-                />
+                <input ref={nameRef} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={onKeyDown} placeholder="生徒 氏名" style={cellInput} />
               </td>
               <td>
                 <select value={grade} onChange={(e) => setGrade(e.target.value)} style={cellInput}>
@@ -243,18 +240,12 @@ export function RosterGrid({ rows }: { rows: RosterRow[] }) {
                 <input value={loginId} onChange={(e) => setLoginId(e.target.value)} onKeyDown={onKeyDown} style={cellInput} />
               </td>
               <td>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <input value={pin} onChange={(e) => setPin(e.target.value)} onKeyDown={onKeyDown} inputMode="numeric" style={cellInput} />
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    style={{ padding: "0 8px", whiteSpace: "nowrap" }}
-                    onClick={() => { setLoginId(genId()); setPin(genPin()); }}
-                    title="ID/PINを再生成"
-                  >
-                    再生成
-                  </button>
-                </div>
+                <input value={pin} onChange={(e) => setPin(e.target.value)} onKeyDown={onKeyDown} inputMode="numeric" style={cellInput} />
+              </td>
+              <td className="right">
+                <button type="button" className="btn-secondary" style={{ width: "100%", padding: "0 6px", ...nowrap }} onClick={() => { setLoginId(genId()); setPin(genPin()); }} title="ID/PINを再生成">
+                  ID再生成
+                </button>
               </td>
               <td style={{ borderLeft: gBorder }}>
                 <input value={gName} onChange={(e) => setGName(e.target.value)} onKeyDown={onKeyDown} placeholder="保護者 氏名（任意）" style={cellInput} />
@@ -263,13 +254,10 @@ export function RosterGrid({ rows }: { rows: RosterRow[] }) {
                 <input value={gEmail} onChange={(e) => setGEmail(e.target.value)} onKeyDown={onKeyDown} placeholder="parent@example.com" type="email" autoCapitalize="none" style={cellInput} />
               </td>
               <td>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <input value={gPassword} onChange={(e) => setGPassword(e.target.value)} onKeyDown={onKeyDown} style={cellInput} />
-                  <button type="button" className="btn-secondary" style={{ padding: "0 8px", whiteSpace: "nowrap" }} onClick={() => setGPassword(genPassword())}>再生成</button>
-                </div>
+                <input value={gPassword} onChange={(e) => setGPassword(e.target.value)} onKeyDown={onKeyDown} style={cellInput} />
               </td>
               <td className="right">
-                <button type="button" className="btn-primary" style={{ width: "100%" }} onClick={add} disabled={pending}>
+                <button type="button" className="btn-primary" style={{ width: "100%", ...nowrap }} onClick={add} disabled={pending}>
                   {pending ? "追加中…" : "＋ 追加"}
                 </button>
               </td>
@@ -289,7 +277,7 @@ export function RosterGrid({ rows }: { rows: RosterRow[] }) {
         </p>
       )}
       <p className="hint" style={{ marginTop: 8 }}>
-        1行で生徒（左）と保護者（右）をまとめて登録できます。保護者は任意。氏名を入れてEnterでも追加できます。
+        左が生徒・右が保護者で、それぞれ操作も各側にあります。最下行で1行にまとめて追加できます（保護者は任意）。
       </p>
     </div>
   );
