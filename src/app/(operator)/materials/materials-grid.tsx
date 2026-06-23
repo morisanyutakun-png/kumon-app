@@ -6,7 +6,6 @@ import { toast } from "sonner";
 
 import { deleteMaterial, quickAddMaterial, uploadMaterialFile } from "@/lib/actions/admin-actions";
 import { ActionButton } from "@/components/action-button";
-import { FileUploadForm } from "@/components/file-upload-form";
 
 export const SUBJECTS = ["算数", "国語", "理科", "社会", "英語", "プログラミング", "その他"];
 export const PROGRESS_OPTIONS: { value: string; label: string }[] = [
@@ -37,6 +36,49 @@ const cellInput: React.CSSProperties = {
   fontSize: 14,
   background: "#fff",
 };
+
+/** 1つのボタンでファイル選択ダイアログを開き、選んだら即アップロード（複数可）。 */
+function MaterialFiles({ materialId, files }: { materialId: string; files: MaterialRow["files"] }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [pending, startTransition] = useTransition();
+
+  function onPicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = e.target.files;
+    if (!picked || picked.length === 0) return;
+    const fd = new FormData();
+    for (const f of Array.from(picked)) fd.append("file", f);
+    const count = picked.length;
+    startTransition(async () => {
+      try {
+        await uploadMaterialFile(materialId, fd);
+        toast.success(`ファイルを${count}件追加しました。`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "アップロードに失敗しました。");
+      } finally {
+        if (inputRef.current) inputRef.current.value = "";
+      }
+    });
+  }
+
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+      {files.map((f) => (
+        <a key={f.id} href={`/api/files/material/${f.id}`} target="_blank" rel="noreferrer" className="db-badge">📎 {f.fileName}</a>
+      ))}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf,image/*"
+        multiple
+        onChange={onPicked}
+        style={{ display: "none" }}
+      />
+      <button type="button" className="db-badge" onClick={() => inputRef.current?.click()} disabled={pending} style={{ cursor: "pointer", color: "var(--primary)", borderColor: "var(--primary)" }}>
+        {pending ? "アップロード中…" : files.length > 0 ? "＋ 追加" : "＋ ファイルを追加"}
+      </button>
+    </div>
+  );
+}
 
 export function MaterialsGrid({ materials }: { materials: MaterialRow[] }) {
   const [name, setName] = useState("");
@@ -85,12 +127,7 @@ export function MaterialsGrid({ materials }: { materials: MaterialRow[] }) {
               <td style={{ fontWeight: 600 }}>{m.name}</td>
               <td className="muted">{PROGRESS_LABEL[m.progressType] ?? m.progressType}</td>
               <td>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
-                  {m.files.map((f) => (
-                    <a key={f.id} href={`/api/files/material/${f.id}`} target="_blank" rel="noreferrer" className="db-badge">📎 {f.fileName}</a>
-                  ))}
-                  <FileUploadForm action={uploadMaterialFile.bind(null, m.id)} accept="application/pdf,image/*" buttonLabel="ファイル追加" />
-                </div>
+                <MaterialFiles materialId={m.id} files={m.files} />
               </td>
               <td className="right">
                 <span style={{ display: "inline-flex", gap: 6, justifyContent: "flex-end" }}>

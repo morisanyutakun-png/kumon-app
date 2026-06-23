@@ -607,29 +607,34 @@ export async function uploadMaterialFile(materialId: string, fd: FormData) {
     .limit(1);
   if (!m) throw new Error("教材が見つかりません。");
 
-  const file = fd.get("file");
-  if (!(file instanceof File) || file.size === 0) {
+  // 複数ファイルをまとめてアップロード可能。
+  const files = fd
+    .getAll("file")
+    .filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) {
     throw new Error("ファイルを選択してください。");
   }
-  if (file.size > 25 * 1024 * 1024) {
-    throw new Error("ファイルサイズが大きすぎます (25MBまで)。");
+
+  for (const file of files) {
+    if (file.size > 25 * 1024 * 1024) {
+      throw new Error(`「${file.name}」が大きすぎます (25MBまで)。`);
+    }
+    const buf = Buffer.from(await file.arrayBuffer());
+    const safeName = file.name.replace(/[^\w.\-]/g, "_");
+    const pathname = `${p.organizationId}/materials/${materialId}/${Date.now()}-${safeName}`;
+    const stored = await saveBlob(pathname, buf, file.type || "application/octet-stream");
+
+    await db.insert(materialFiles).values({
+      organizationId: p.organizationId,
+      materialId,
+      kind: "assignment",
+      blobUrl: stored.url,
+      pathname: stored.pathname,
+      fileName: file.name,
+      contentType: file.type || "application/octet-stream",
+      size: file.size,
+    });
   }
-
-  const buf = Buffer.from(await file.arrayBuffer());
-  const safeName = file.name.replace(/[^\w.\-]/g, "_");
-  const pathname = `${p.organizationId}/materials/${materialId}/${safeName}`;
-  const stored = await saveBlob(pathname, buf, file.type || "application/octet-stream");
-
-  await db.insert(materialFiles).values({
-    organizationId: p.organizationId,
-    materialId,
-    kind: "assignment",
-    blobUrl: stored.url,
-    pathname: stored.pathname,
-    fileName: file.name,
-    contentType: file.type || "application/octet-stream",
-    size: file.size,
-  });
 
   revalidatePath("/materials");
 }
