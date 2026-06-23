@@ -56,6 +56,7 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
     return init;
   });
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [sent, setSent] = useState<Record<string, boolean>>({});
   const [, startTransition] = useTransition();
 
   if (groups.length === 0) {
@@ -103,7 +104,8 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
     startTransition(async () => {
       try {
         const res = await batchGrade(items);
-        toast.success(`${g.studentName}さん：${res.processed}件を確定しました。`);
+        setSent((s) => ({ ...s, [g.studentId]: true }));
+        toast.success(`${g.studentName}さんに結果を返しました（${res.processed}件・生徒に届きました）。`);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "保存に失敗しました。");
       } finally {
@@ -138,23 +140,24 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
   return (
     <div className="gstudents">
       <p className="hint" style={{ marginBottom: 12 }}>
-        生徒を1人ずつ採点します（採点可能 {groups.length} 名）。各教材の<b>合格</b>にチェック（スペース可）→「確定」。チェック無し＝やり直し。矢印キーでセル移動。
+        生徒を1人ずつ採点します（採点可能 {groups.length} 名）。各教材の<b>合格</b>にチェック（スペース可）→<b>「結果を返す」</b>で生徒に届きます。チェック無し＝やり直し。矢印キーでセル移動。
       </p>
 
       {groups.map((g) => {
         const busy = pendingId === g.studentId;
+        const isSent = !!sent[g.studentId];
         const passN = g.answers.filter((a) => state[a.submissionId]?.pass).length;
         return (
-          <section key={g.studentId} className="gstudent" onKeyDown={onGridKey}>
+          <section key={g.studentId} className={`gstudent${isSent ? " is-sent" : ""}`} onKeyDown={onGridKey}>
             <div className="gstudent-head">
               <div>
                 <span className="gstudent-name">{g.studentName}</span>
                 <span className="gstudent-grade">{g.studentGrade}</span>
-                <span className="status-chip ok">● 採点可能</span>
+                <span className={`status-chip ${isSent ? "ok" : "wait"}`}>{isSent ? "● 返却済み" : "● 未返却"}</span>
                 <span className="gstudent-count">答案 {g.answers.length} 件</span>
               </div>
               <div style={{ display: "inline-flex", gap: 8 }}>
-                <Link href={`/grading/write/${g.studentId}`} className="btn-primary" style={{ padding: "8px 14px", fontSize: 13 }}>✏️ PDFを開いて添削</Link>
+                <Link href={`/grading/write/${g.studentId}`} className="btn-secondary" style={{ padding: "8px 14px", fontSize: 13 }}>✏️ PDFを開いて添削</Link>
                 <a href={`/api/files/student-answers/${g.studentId}?dl=1`} className="btn-secondary" style={{ padding: "8px 12px", fontSize: 13 }}>⬇ ダウンロード</a>
               </div>
             </div>
@@ -251,10 +254,14 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
             </div>
 
             <div className="gstudent-foot">
-              <span className="hint">合格 {passN} / {g.answers.length} 件 ・ 合格は返却して次回へ進みます（次回範囲は合格時のみ適用）。</span>
-              <button type="button" className="btn-primary big" onClick={() => confirmStudent(g)} disabled={pendingId !== null}>
-                {busy ? "確定中…" : `${g.studentName}さんを確定`}
-              </button>
+              <span className="hint">合格 {passN} / {g.answers.length} 件 ・ 「結果を返す」で生徒に届きます（チェック無し＝やり直し）。</span>
+              {isSent ? (
+                <span className="btn-sent">✓ 返却済み（生徒に届きました）</span>
+              ) : (
+                <button type="button" className="btn-send big" onClick={() => confirmStudent(g)} disabled={pendingId !== null}>
+                  {busy ? "返しています…" : `📨 ${g.studentName}さんに結果を返す`}
+                </button>
+              )}
             </div>
           </section>
         );
