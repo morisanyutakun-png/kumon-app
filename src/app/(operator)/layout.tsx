@@ -10,8 +10,7 @@ const BASE_TABS: NavTabItem[] = [
   { href: "/dashboard", label: "ダッシュボード" },
   { href: "/grading", label: "採点", exact: true },
   { href: "/grading/batch", label: "一括採点" },
-  { href: "/students", label: "生徒" },
-  { href: "/guardians", label: "保護者" },
+  { href: "/students", label: "生徒・保護者" },
   { href: "/materials", label: "教材" },
   { href: "/assignments", label: "課題割当" },
 ];

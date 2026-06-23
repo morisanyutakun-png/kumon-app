@@ -203,7 +203,7 @@ export async function quickAddGuardian(
     passwordHash: await bcrypt.hash(password, 10),
     pwPlain: password,
   });
-  revalidatePath("/guardians");
+  revalidatePath("/students");
   return { name, email, password };
 }
 
@@ -274,8 +274,8 @@ export async function createGuardian(
     pwPlain: password,
   });
 
-  revalidatePath("/guardians");
-  redirect("/guardians");
+  revalidatePath("/students");
+  redirect("/students");
 }
 
 /** 保護者と生徒を紐づける。 */
@@ -329,9 +329,9 @@ export async function linkGuardianStudent(
     });
   }
 
-  revalidatePath("/guardians");
+  revalidatePath("/students");
   // 紐づけ直後に最新の担当生徒が反映されるよう再読み込みする。
-  redirect("/guardians");
+  redirect("/students");
 }
 
 // =============================================================================
@@ -661,7 +661,7 @@ export async function resetGuardianPassword(userId: string, fd: FormData) {
     .update(users)
     .set({ passwordHash: await bcrypt.hash(password, 10), pwPlain: password })
     .where(eq(users.id, userId));
-  revalidatePath("/guardians");
+  revalidatePath("/students");
 }
 
 /** 保護者を削除する (生徒との紐づけもカスケード削除)。 */
@@ -676,7 +676,7 @@ export async function deleteGuardian(userId: string) {
         eq(users.role, "parent"),
       ),
     );
-  revalidatePath("/guardians");
+  revalidatePath("/students");
 }
 
 /** 採点者(operator)アカウントを発行する。管理者のみ。 */
