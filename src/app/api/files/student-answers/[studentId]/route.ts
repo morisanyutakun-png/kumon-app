@@ -13,7 +13,7 @@ export const runtime = "nodejs";
  * 添削をまとめて行うための統合PDF。アクセスは運営者 or その生徒に限る。
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ studentId: string }> },
 ) {
   const { studentId } = await ctx.params;
@@ -75,10 +75,11 @@ export async function GET(
   if (pdf.getPageCount() === 0) return new Response("Not found", { status: 404 });
 
   const out = await pdf.save();
+  const dl = new URL(req.url).searchParams.get("dl") === "1";
   return new Response(out as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename*=UTF-8''answers-${studentId}.pdf`,
+      "Content-Disposition": `${dl ? "attachment" : "inline"}; filename*=UTF-8''answers-${studentId}.pdf`,
       "Cache-Control": "private, max-age=30",
     },
   });

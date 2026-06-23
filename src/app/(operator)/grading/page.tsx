@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { assignments, students, submissionImages } from "@/db/schema";
+import { assignments, students } from "@/db/schema";
 import { requireOperator } from "@/lib/access";
 import { listSubmissions, type SubmissionRow } from "@/lib/queries";
 import { GradeByStudent, type StudentGroup } from "./grade-by-student";
@@ -108,22 +108,6 @@ export default async function GradingPage({
   const readyAgg = [...agg.values()].filter((g) => g.gradable.length > 0 && g.pend === 0).sort(byName);
   const inProgress = [...agg.values()].filter((g) => g.gradable.length > 0 && g.pend > 0).sort(byName);
 
-  // 採点可能な答案の画像
-  const gradableIds = readyAgg.flatMap((g) => g.gradable.map((s) => s.submissionId));
-  const imgs =
-    gradableIds.length > 0
-      ? await db
-          .select()
-          .from(submissionImages)
-          .where(inArray(submissionImages.submissionId, gradableIds))
-          .orderBy(asc(submissionImages.attemptNo), asc(submissionImages.sortOrder))
-      : [];
-  const imagesFor = (subId: string) => {
-    const all = imgs.filter((i) => i.submissionId === subId);
-    const latest = all.reduce((m, i) => Math.max(m, i.attemptNo), 0);
-    return all.filter((i) => i.attemptNo === latest).map((i) => ({ id: i.id, fileName: i.fileName }));
-  };
-
   const groups: StudentGroup[] = readyAgg.map((g) => ({
     studentId: g.studentId,
     studentName: g.name,
@@ -135,7 +119,6 @@ export default async function GradingPage({
       rangeText: s.rangeText,
       sessionNo: s.sessionNo,
       attemptCount: s.attemptCount,
-      images: imagesFor(s.submissionId),
     })),
   }));
 

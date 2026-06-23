@@ -27,12 +27,17 @@ export function PdfAnnotator({
   resubmit,
   fullBleed = false,
   redirectTo,
+  mode = "submit",
+  downloadName = "添削",
 }: {
   pdfUrl: string;
-  submissionId: string;
+  submissionId?: string;
   resubmit?: boolean;
   fullBleed?: boolean;
   redirectTo?: string;
+  /** "submit"=生徒の提出 / "markup"=採点者の添削(提出せずPDFでダウンロード)。 */
+  mode?: "submit" | "markup";
+  downloadName?: string;
 }) {
   const router = useRouter();
   const stageRef = useRef<HTMLDivElement>(null); // ビューポート(固定枠)
@@ -343,51 +348,76 @@ export function PdfAnnotator({
 
   const hasAnyInk = [...strokesRef.current.values()].some((l) => l.length > 0);
 
+  /** 各ページを「PDF描画＋手書き」で1枚のPNGに焼き込んで返す。 */
+  async function renderPages(): Promise<{ bytes: Uint8Array; w: number; h: number }[]> {
+    const doc = pdfRef.current;
+    const out: { bytes: Uint8Array; w: number; h: number }[] = [];
+    for (let pn = 1; pn <= numPages; pn++) {
+      const page = await doc.getPage(pn);
+      const base = page.getViewport({ scale: 1 });
+      const exportScale = Math.min(2, 1600 / base.width);
+      const vp = page.getViewport({ scale: Math.max(1, exportScale) });
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.floor(vp.width);
+      canvas.height = Math.floor(vp.height);
+      const ctx = canvas.getContext("2d")!;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+      const strokes = strokesRef.current.get(pn) ?? [];
+      if (strokes.length) {
+        const ink = document.createElement("canvas");
+        ink.width = canvas.width;
+        ink.height = canvas.height;
+        const ictx = ink.getContext("2d")!;
+        const factor = canvas.width / (displayWRef.current || canvas.width);
+        for (const s of strokes) drawStroke(ictx, { ...s, width: s.width * factor }, canvas.width, canvas.height);
+        ctx.drawImage(ink, 0, 0);
+      }
+
+      const blob: Blob = await new Promise((res) => canvas.toBlob((b) => res(b!), "image/png"));
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      out.push({ bytes, w: canvas.width, h: canvas.height });
+    }
+    return out;
+  }
+
   async function submit() {
     if (submitting) return;
     setSubmitting(true);
     try {
-      const doc = pdfRef.current;
-      const files: File[] = [];
-      for (let pn = 1; pn <= numPages; pn++) {
-        const page = await doc.getPage(pn);
-        const base = page.getViewport({ scale: 1 });
-        const exportScale = Math.min(2, 1600 / base.width);
-        const vp = page.getViewport({ scale: Math.max(1, exportScale) });
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.floor(vp.width);
-        canvas.height = Math.floor(vp.height);
-        const ctx = canvas.getContext("2d")!;
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      const pages = await renderPages();
 
-        const strokes = strokesRef.current.get(pn) ?? [];
-        if (strokes.length) {
-          const ink = document.createElement("canvas");
-          ink.width = canvas.width;
-          ink.height = canvas.height;
-          const ictx = ink.getContext("2d")!;
-          const factor = canvas.width / (displayWRef.current || canvas.width);
-          for (const s of strokes) {
-            drawStroke(ictx, { ...s, width: s.width * factor }, canvas.width, canvas.height);
-          }
-          ctx.drawImage(ink, 0, 0);
+      if (mode === "markup") {
+        // 採点者の添削: 提出せず、書き込み済みPDFをダウンロード。
+        const { PDFDocument } = await import("pdf-lib");
+        const pdf = await PDFDocument.create();
+        for (const pg of pages) {
+          const img = await pdf.embedPng(pg.bytes);
+          const page = pdf.addPage([pg.w, pg.h]);
+          page.drawImage(img, { x: 0, y: 0, width: pg.w, height: pg.h });
         }
-
-        const blob: Blob = await new Promise((res) => canvas.toBlob((b) => res(b!), "image/png"));
-        files.push(new File([blob], `page-${pn}.png`, { type: "image/png" }));
+        const out = await pdf.save();
+        const url = URL.createObjectURL(new Blob([out as BlobPart], { type: "application/pdf" }));
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${downloadName}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success("書き込み済みPDFをダウンロードしました。");
+        return;
       }
 
       const fd = new FormData();
-      for (const f of files) fd.append("images", f);
-      await submitAnswer(submissionId, fd);
+      pages.forEach((pg, i) => fd.append("images", new File([pg.bytes as BlobPart], `page-${i + 1}.png`, { type: "image/png" })));
+      await submitAnswer(submissionId!, fd);
       toast.success(resubmit ? "再提出しました。" : "提出しました。おつかれさま！");
       if (redirectTo) router.push(redirectTo);
       else router.refresh();
     } catch (e) {
       console.error(e);
-      toast.error(e instanceof Error ? e.message : "提出に失敗しました。");
+      toast.error(e instanceof Error ? e.message : mode === "markup" ? "ダウンロードに失敗しました。" : "提出に失敗しました。");
     } finally {
       setSubmitting(false);
     }
@@ -458,9 +488,15 @@ export function PdfAnnotator({
 
       <div className="annot-submit">
         <button type="button" className="btn-primary big" onClick={submit} disabled={!ready || submitting}>
-          {submitting ? "提出中…" : resubmit ? "✓ 書き込んで再提出" : "✓ 完了して提出"}
+          {submitting
+            ? (mode === "markup" ? "作成中…" : "提出中…")
+            : mode === "markup"
+              ? "⬇ 書き込み済みPDFをダウンロード"
+              : resubmit
+                ? "✓ 書き込んで再提出"
+                : "✓ 完了して提出"}
         </button>
-        {!hasAnyInk && ready && <span className="muted" style={{ marginLeft: 10 }}>書き込んでから提出してください。</span>}
+        {mode === "submit" && !hasAnyInk && ready && <span className="muted" style={{ marginLeft: 10 }}>書き込んでから提出してください。</span>}
       </div>
       <p className="hint" style={{ marginTop: 6 }}>
         ペン(Apple Pencil等)で書けます。手のひらは無視され、指でのピンチで拡大・1本指でスクロールできます。指でも書きたいときは「ペンのみ」を切り替え。

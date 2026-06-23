@@ -13,7 +13,6 @@ export interface AnswerRow {
   rangeText: string;
   sessionNo: number;
   attemptCount: number;
-  images: { id: string; fileName: string }[];
 }
 export interface StudentGroup {
   studentId: string;
@@ -101,7 +100,6 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
       {groups.map((g) => {
         const st = state[g.studentId];
         const busy = pendingId === g.studentId;
-        const totalImgs = g.answers.reduce((n, a) => n + a.images.length, 0);
         return (
           <section key={g.studentId} className={`gstudent${st.judge === "ok" ? " is-ok" : st.judge === "ng" ? " is-ng" : ""}`}>
             <div className="gstudent-head">
@@ -112,24 +110,13 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
                 <span className="gstudent-count">答案 {g.answers.length} 件</span>
               </div>
               <div style={{ display: "inline-flex", gap: 8 }}>
-                <a href={`/api/files/student-answers/${g.studentId}`} target="_blank" rel="noreferrer" className="btn-secondary" style={{ padding: "6px 12px", fontSize: 13 }}>
-                  📄 答案を1つのPDFで開く
+                <Link href={`/grading/write/${g.studentId}`} className="btn-primary" style={{ padding: "8px 14px", fontSize: 13 }}>
+                  ✏️ PDFを開いて添削
+                </Link>
+                <a href={`/api/files/student-answers/${g.studentId}?dl=1`} className="btn-secondary" style={{ padding: "8px 12px", fontSize: 13 }}>
+                  ⬇ ダウンロード
                 </a>
-                <Link href={`/grades/${g.studentId}`} className="db-badge">成績</Link>
               </div>
-            </div>
-
-            {/* 全答案を結合して連続表示(1つのまとまりとして見る) */}
-            <div className="gstudent-combined">
-              {totalImgs === 0 && <span className="muted" style={{ fontSize: 12 }}>画像なし</span>}
-              {g.answers.flatMap((a) =>
-                a.images.map((img) => (
-                  <a key={img.id} href={`/api/files/submission/${img.id}`} target="_blank" rel="noreferrer" title={`${a.materialName} / ${img.fileName}`}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`/api/files/submission/${img.id}`} alt={img.fileName} />
-                  </a>
-                )),
-              )}
             </div>
 
             {/* 添削結果入力(1人=1行にまとめる) */}
