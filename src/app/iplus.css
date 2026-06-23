@@ -1117,3 +1117,58 @@ body {
   .mission { flex-wrap: wrap; }
   .mission-cta { width: 100%; text-align: center; }
 }
+
+/* ============================================================
+   生徒の提出: PDF書き込み(GoodNote風) + 写真ピッカー
+   ============================================================ */
+.submit-modes { display: flex; gap: 8px; }
+.submit-mode {
+  flex: 1; padding: 11px 12px; border: 2px solid #dbe3ea; background: #fff;
+  border-radius: 12px; font-weight: 800; font-size: 14px; color: #475569; cursor: pointer;
+}
+.submit-mode.on { border-color: var(--primary); background: #eaf6fc; color: var(--ink); }
+
+.annotator { display: grid; gap: 12px; }
+.annot-toolbar {
+  display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center;
+  padding: 10px 12px; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+}
+.annot-tools, .annot-colors, .annot-widths, .annot-edit { display: inline-flex; gap: 6px; align-items: center; }
+.annot-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  min-height: 36px; padding: 0 12px; border: 1.5px solid #cdd6df; background: #fff;
+  border-radius: 9px; font-weight: 700; font-size: 13px; color: #334155; cursor: pointer;
+}
+.annot-btn.on { border-color: var(--primary); background: #eaf6fc; color: var(--ink); }
+.annot-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+.annot-swatch { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1.5px #cdd6df; cursor: pointer; }
+.annot-swatch.on { box-shadow: 0 0 0 3px var(--primary); }
+
+.annot-stage { position: relative; display: flex; justify-content: center; background: #eef2f6; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; overflow: auto; }
+.annot-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #64748b; font-weight: 700; }
+.annot-canvas-wrap { position: relative; display: inline-block; line-height: 0; box-shadow: 0 2px 12px rgba(15,40,70,0.12); }
+.annot-page { display: block; background: #fff; }
+.annot-ink { position: absolute; top: 0; left: 0; cursor: crosshair; }
+
+.annot-pager { display: flex; gap: 12px; align-items: center; justify-content: center; font-weight: 700; color: #475569; }
+.annot-submit { display: flex; align-items: center; }
+
+/* 写真ピッカー */
+.photo-drop {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 28px 16px; border: 2.5px dashed #b9d8ea; border-radius: 16px;
+  background: #f3fafe; color: var(--ink); cursor: pointer; width: 100%;
+}
+.photo-drop:hover { border-color: var(--primary); background: #eaf6fc; }
+.photo-drop-ico { font-size: 34px; }
+.photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+.photo-thumb { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; background: #fff; }
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.photo-del {
+  position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%;
+  border: 0; background: rgba(15,23,42,0.72); color: #fff; font-size: 16px; line-height: 1; cursor: pointer;
+}
+.photo-add {
+  display: grid; place-items: center; aspect-ratio: 1; border-radius: 12px;
+  border: 2px dashed #b9d8ea; background: #f3fafe; color: var(--primary); font-weight: 800; cursor: pointer;
+}

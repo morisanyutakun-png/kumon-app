@@ -9,7 +9,7 @@ import { AnswerImages } from "@/components/answer-images";
 import { GradingHistory } from "@/components/grading-history";
 import { MarkRead } from "@/components/mark-read";
 import { StatusBadge } from "@/components/status-badge";
-import { SubmitForm } from "./submit-form";
+import { SubmitPanel } from "./submit-panel";
 
 export default async function StudentSubmissionPage({
   params,
@@ -26,6 +26,10 @@ export default async function StudentSubmissionPage({
 
   const { submission, assignment, material, materialFiles, images, gradings } = detail;
   const canSubmit = submission.status === "not_submitted" || submission.status === "resubmit_required";
+  const pdfFile = materialFiles.find(
+    (f) => f.contentType === "application/pdf" || f.fileName.toLowerCase().endsWith(".pdf"),
+  );
+  const pdfUrl = pdfFile ? `/api/files/material/${pdfFile.id}` : null;
   const hasResult = submission.status === "returned" || submission.status === "done" || gradings.length > 0;
 
   return (
@@ -70,7 +74,11 @@ export default async function StudentSubmissionPage({
               先生から再提出の依頼があります。コメントを確認して、もう一度提出してください。
             </p>
           )}
-          <SubmitForm submissionId={submission.id} resubmit={submission.status === "resubmit_required"} />
+          <SubmitPanel
+            submissionId={submission.id}
+            resubmit={submission.status === "resubmit_required"}
+            pdfUrl={pdfUrl}
+          />
         </div>
       )}
 
