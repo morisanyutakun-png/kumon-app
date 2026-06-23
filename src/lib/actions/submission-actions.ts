@@ -20,7 +20,7 @@ import {
 import type { Submission, SubmissionStatus } from "@/db/schema";
 import { getPrincipal, isOperator } from "@/lib/access";
 import type { Principal } from "@/auth";
-import { saveBlob } from "@/lib/blob";
+import { saveFile } from "@/lib/blob";
 import { isAutoAdvance, planAdvance } from "@/lib/progress-db";
 import {
   actorForRole,
@@ -133,14 +133,15 @@ export async function submitAnswer(submissionId: string, formData: FormData) {
     const buf = Buffer.from(await file.arrayBuffer());
     const safeName = file.name.replace(/[^\w.\-]/g, "_");
     const pathname = `${sub.organizationId}/submissions/${sub.id}/${attemptNo}/${sortOrder}-${safeName}`;
-    const stored = await saveBlob(pathname, buf, file.type);
+    const stored = await saveFile(pathname, buf, file.type);
     await db.insert(submissionImages).values({
       organizationId: sub.organizationId,
       submissionId: sub.id,
       attemptNo,
       sortOrder,
-      blobUrl: stored.url,
+      blobUrl: stored.blobUrl,
       pathname: stored.pathname,
+      dataB64: stored.dataB64,
       fileName: file.name,
       contentType: file.type,
       size: file.size,

@@ -207,6 +207,8 @@ export const materialFiles = pgTable("material_files", {
   kind: materialFileKindEnum("kind").notNull().default("assignment"),
   blobUrl: text("blob_url").notNull(),
   pathname: text("pathname").notNull(),
+  /** Blob未設定環境ではファイル実体をDBに base64 で保持(Vercelの/tmp揮発対策)。 */
+  dataB64: text("data_b64"),
   fileName: varchar("file_name", { length: 255 }).notNull().default(""),
   contentType: varchar("content_type", { length: 128 }).notNull().default(""),
   size: integer("size").notNull().default(0),
@@ -329,6 +331,8 @@ export const submissionImages = pgTable("submission_images", {
   sortOrder: integer("sort_order").notNull().default(0),
   blobUrl: text("blob_url").notNull(),
   pathname: text("pathname").notNull(),
+  /** Blob未設定環境ではファイル実体をDBに base64 で保持(Vercelの/tmp揮発対策)。 */
+  dataB64: text("data_b64"),
   fileName: varchar("file_name", { length: 255 }).notNull().default(""),
   contentType: varchar("content_type", { length: 128 }).notNull().default(""),
   size: integer("size").notNull().default(0),

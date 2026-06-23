@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { submissionImages, submissions } from "@/db/schema";
 import { canAccessStudent, getPrincipal, isOperator } from "@/lib/access";
-import { readBlob } from "@/lib/blob";
+import { readStored } from "@/lib/blob";
 
 export const runtime = "nodejs";
 
@@ -23,6 +23,7 @@ export async function GET(
     .select({
       blobUrl: submissionImages.blobUrl,
       pathname: submissionImages.pathname,
+      dataB64: submissionImages.dataB64,
       contentType: submissionImages.contentType,
       studentId: submissions.studentId,
     })
@@ -43,7 +44,7 @@ export async function GET(
     if (!ok) return new Response("Forbidden", { status: 403 });
   }
 
-  const file = await readBlob(row.blobUrl, row.pathname);
+  const file = await readStored(row);
   if (!file) return new Response("Not found", { status: 404 });
 
   return new Response(new Uint8Array(file.body), {

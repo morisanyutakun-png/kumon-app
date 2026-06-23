@@ -53,12 +53,17 @@ export default async function StudentSubmissionPage({
         {assignment.instructions && <p style={{ whiteSpace: "pre-wrap" }}>{assignment.instructions}</p>}
         {material.description && <p className="muted">{material.description}</p>}
         {materialFiles.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+          <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
             {materialFiles.map((f) => (
-              <a key={f.id} href={`/api/files/material/${f.id}`} target="_blank" rel="noreferrer" className="db-badge">
-                📎 {f.fileName}
-              </a>
+              <div key={f.id} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                <span style={{ fontWeight: 700 }}>📄 {f.fileName}</span>
+                <a href={`/api/files/material/${f.id}`} target="_blank" rel="noreferrer" className="db-badge">開く</a>
+                <a href={`/api/files/material/${f.id}?dl=1`} className="db-badge">保存する</a>
+              </div>
             ))}
+            <p className="muted" style={{ margin: "2px 0 0", fontSize: 12 }}>
+              「保存する」でダウンロードして、GoodNotes などのアプリで解いてもOK。解き終わったら下の「写真で出す」から提出してね。
+            </p>
           </div>
         )}
         {!assignment.instructions && !material.description && materialFiles.length === 0 && (

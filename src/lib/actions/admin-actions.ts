@@ -19,7 +19,7 @@ import {
   users,
 } from "@/db/schema";
 import { requireAdmin, requireOperator } from "@/lib/access";
-import { saveBlob } from "@/lib/blob";
+import { saveFile } from "@/lib/blob";
 import { initialSessionRange } from "@/lib/progress-db";
 
 export interface FormState {
@@ -622,16 +622,18 @@ export async function uploadMaterialFile(materialId: string, fd: FormData) {
     const buf = Buffer.from(await file.arrayBuffer());
     const safeName = file.name.replace(/[^\w.\-]/g, "_");
     const pathname = `${p.organizationId}/materials/${materialId}/${Date.now()}-${safeName}`;
-    const stored = await saveBlob(pathname, buf, file.type || "application/octet-stream");
+    const ctype = file.type || "application/octet-stream";
+    const stored = await saveFile(pathname, buf, ctype);
 
     await db.insert(materialFiles).values({
       organizationId: p.organizationId,
       materialId,
       kind: "assignment",
-      blobUrl: stored.url,
+      blobUrl: stored.blobUrl,
       pathname: stored.pathname,
+      dataB64: stored.dataB64,
       fileName: file.name,
-      contentType: file.type || "application/octet-stream",
+      contentType: ctype,
       size: file.size,
     });
   }
