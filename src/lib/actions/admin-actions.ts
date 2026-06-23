@@ -663,6 +663,21 @@ export async function resetGuardianPassword(userId: string, fd: FormData) {
   revalidatePath("/guardians");
 }
 
+/** 保護者を削除する (生徒との紐づけもカスケード削除)。 */
+export async function deleteGuardian(userId: string) {
+  const p = await requireOperator();
+  await db
+    .delete(users)
+    .where(
+      and(
+        eq(users.id, userId),
+        eq(users.organizationId, p.organizationId),
+        eq(users.role, "parent"),
+      ),
+    );
+  revalidatePath("/guardians");
+}
+
 /** 採点者(operator)アカウントを発行する。管理者のみ。 */
 export async function createOperator(
   _prev: FormState,

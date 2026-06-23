@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { quickAddGuardian, resetGuardianPassword } from "@/lib/actions/admin-actions";
+import { deleteGuardian, quickAddGuardian, resetGuardianPassword } from "@/lib/actions/admin-actions";
+import { ActionButton } from "@/components/action-button";
 import { PasswordResetForm } from "@/components/credential-forms";
 
 export interface GuardianRow {
@@ -76,6 +77,7 @@ export function GuardiansGrid({ parents }: { parents: GuardianRow[] }) {
               <th>メールアドレス</th>
               <th>初期パスワード</th>
               <th>担当生徒 / 再発行</th>
+              <th className="right" style={{ width: 90 }}>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -96,6 +98,16 @@ export function GuardiansGrid({ parents }: { parents: GuardianRow[] }) {
                     <PasswordResetForm action={resetGuardianPassword.bind(null, g.id)} />
                   </div>
                 </td>
+                <td className="right">
+                  <ActionButton
+                    action={deleteGuardian.bind(null, g.id)}
+                    variant="destructive"
+                    confirm={`保護者「${g.name}」を削除しますか?（生徒との紐づけも解除されます）`}
+                    successMessage="削除しました。"
+                  >
+                    削除
+                  </ActionButton>
+                </td>
               </tr>
             ))}
 
@@ -112,7 +124,7 @@ export function GuardiansGrid({ parents }: { parents: GuardianRow[] }) {
                   <button type="button" className="btn-secondary" style={{ padding: "0 10px", whiteSpace: "nowrap" }} onClick={() => setPassword(genPassword())}>再生成</button>
                 </div>
               </td>
-              <td>
+              <td colSpan={2}>
                 <button type="button" className="btn-primary" style={{ width: "100%" }} onClick={add} disabled={pending}>
                   {pending ? "追加中…" : "＋ 追加"}
                 </button>
