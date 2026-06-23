@@ -57,7 +57,7 @@ export default async function StaffPage() {
         <div className="grid-scroll" style={{ border: "none" }}>
           <table className="record-table">
             <thead>
-              <tr><th>氏名</th><th>メール</th><th>権限</th><th>パスワード再発行</th></tr>
+              <tr><th>氏名</th><th>メール</th><th>権限</th><th>初期パスワード</th><th>パスワード再発行</th></tr>
             </thead>
             <tbody>
               {staff.map((u) => (
@@ -68,6 +68,13 @@ export default async function StaffPage() {
                     <span className="badge" style={u.role === "admin" ? { background: "#ede9fe", color: "#5b21b6" } : undefined}>
                       {u.role === "admin" ? "管理者" : "採点者"}
                     </span>
+                  </td>
+                  <td>
+                    {u.pwPlain ? (
+                      <code style={{ fontSize: 14, fontWeight: 700 }}>{u.pwPlain}</code>
+                    ) : (
+                      <span className="muted">設定済み</span>
+                    )}
                   </td>
                   <td>
                     <PasswordResetForm action={resetStaffPassword.bind(null, u.id)} />

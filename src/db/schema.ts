@@ -106,6 +106,8 @@ export const users = pgTable(
     name: varchar("name", { length: 255 }).notNull().default(""),
     role: userRoleEnum("role").notNull(),
     passwordHash: text("password_hash").notNull(),
+    // 管理者のみが閲覧できる平文パスワード(本人へ伝達する用途)。認証は passwordHash を使用。
+    pwPlain: varchar("pw_plain", { length: 64 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [uniqueIndex("users_email_unique").on(t.email)],

@@ -35,11 +35,14 @@ export default async function GuardiansPage() {
     childrenByGuardian.set(l.guardianUserId, arr);
   }
 
+  const isAdmin = p.role === "admin";
   const rows: GuardianRow[] = parents.map((g) => ({
     id: g.id,
     name: g.name,
     email: g.email,
     children: childrenByGuardian.get(g.id) ?? [],
+    // 初期パスワードの平文は管理者にのみ渡す(最高権限)。
+    pw: isAdmin ? g.pwPlain : undefined,
   }));
 
   const selectCls = "h-9 rounded-none border border-slate-300 bg-white px-3 text-sm";

@@ -201,6 +201,7 @@ export async function quickAddGuardian(
     email,
     role: "parent",
     passwordHash: await bcrypt.hash(password, 10),
+    pwPlain: password,
   });
   revalidatePath("/guardians");
   return { name, email, password };
@@ -270,6 +271,7 @@ export async function createGuardian(
     email,
     role: "parent",
     passwordHash: await bcrypt.hash(password, 10),
+    pwPlain: password,
   });
 
   revalidatePath("/guardians");
@@ -656,7 +658,7 @@ export async function resetGuardianPassword(userId: string, fd: FormData) {
 
   await db
     .update(users)
-    .set({ passwordHash: await bcrypt.hash(password, 10) })
+    .set({ passwordHash: await bcrypt.hash(password, 10), pwPlain: password })
     .where(eq(users.id, userId));
   revalidatePath("/guardians");
 }
@@ -682,6 +684,7 @@ export async function createOperator(
     email,
     role: "operator",
     passwordHash: await bcrypt.hash(password, 10),
+    pwPlain: password,
   });
   revalidatePath("/staff");
   redirect("/staff");
@@ -703,7 +706,7 @@ export async function resetStaffPassword(userId: string, fd: FormData) {
   }
   await db
     .update(users)
-    .set({ passwordHash: await bcrypt.hash(password, 10) })
+    .set({ passwordHash: await bcrypt.hash(password, 10), pwPlain: password })
     .where(eq(users.id, userId));
   revalidatePath("/staff");
 }

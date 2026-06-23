@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "pw_plain" varchar(64);

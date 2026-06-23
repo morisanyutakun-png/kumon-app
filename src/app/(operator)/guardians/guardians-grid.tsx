@@ -11,6 +11,8 @@ export interface GuardianRow {
   name: string;
   email: string;
   children: string[];
+  /** 管理者のみ渡される初期パスワード(平文)。 */
+  pw?: string | null;
 }
 
 function genPassword(n = 8) {
@@ -81,7 +83,13 @@ export function GuardiansGrid({ parents }: { parents: GuardianRow[] }) {
               <tr key={g.id}>
                 <td style={{ fontWeight: 600 }}>{g.name}</td>
                 <td className="muted">{g.email}</td>
-                <td className="muted">設定済み</td>
+                <td>
+                  {g.pw ? (
+                    <code style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.04em" }}>{g.pw}</code>
+                  ) : (
+                    <span className="muted">設定済み</span>
+                  )}
+                </td>
                 <td>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     <span className="muted">{g.children.length > 0 ? g.children.join("、") : "（未紐づけ）"}</span>
