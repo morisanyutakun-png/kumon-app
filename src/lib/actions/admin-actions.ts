@@ -263,6 +263,100 @@ export async function addStudentWithGuardian(
   return { studentName: name, loginId, pin, guardian: guardianOut };
 }
 
+/**
+ * 生徒のログインID/PIN/氏名/学年をその場で更新(管理者の表内インライン編集)。
+ * pin は入力があれば更新、空なら据え置き。loginId を空にすると認証情報を無効化。
+ */
+export async function inlineUpdateStudent(studentId: string, fd: FormData) {
+  const p = await requireOperator();
+  const [target] = await db
+    .select()
+    .from(students)
+    .where(and(eq(students.id, studentId), eq(students.organizationId, p.organizationId)))
+    .limit(1);
+  if (!target) throw new Error("生徒が見つかりません。");
+
+  const name = str(fd, "name");
+  const grade = str(fd, "grade");
+  const loginId = str(fd, "loginId");
+  const pin = str(fd, "pin");
+
+  if (loginId) {
+    const [dup] = await db
+      .select({ id: students.id })
+      .from(students)
+      .where(eq(students.loginId, loginId))
+      .limit(1);
+    if (dup && dup.id !== studentId) {
+      throw new Error("そのログインIDは既に使われています。");
+    }
+  }
+
+  const patch: Partial<typeof students.$inferInsert> = {
+    loginId: loginId || null,
+  };
+  if (name) patch.name = name;
+  if (grade) patch.grade = grade;
+  if (!loginId) {
+    patch.pinHash = null;
+    patch.pinPlain = null;
+  } else if (pin) {
+    patch.pinHash = await bcrypt.hash(pin, 10);
+    patch.pinPlain = pin;
+  }
+
+  await db.update(students).set(patch).where(eq(students.id, studentId));
+  revalidatePath("/students");
+}
+
+/**
+ * 保護者のメール/パスワード/氏名をその場で更新(管理者の表内インライン編集)。
+ * password は入力があれば更新、空なら据え置き。
+ */
+export async function inlineUpdateGuardian(userId: string, fd: FormData) {
+  const p = await requireOperator();
+  const [u] = await db
+    .select()
+    .from(users)
+    .where(
+      and(
+        eq(users.id, userId),
+        eq(users.organizationId, p.organizationId),
+        eq(users.role, "parent"),
+      ),
+    )
+    .limit(1);
+  if (!u) throw new Error("保護者が見つかりません。");
+
+  const name = str(fd, "name");
+  const email = str(fd, "email").toLowerCase();
+  const password = str(fd, "password");
+
+  if (email && email !== u.email) {
+    const [dup] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    if (dup && dup.id !== userId) {
+      throw new Error("そのメールアドレスは既に使われています。");
+    }
+  }
+
+  const patch: Partial<typeof users.$inferInsert> = {};
+  if (name) patch.name = name;
+  if (email) patch.email = email;
+  if (password) {
+    patch.passwordHash = await bcrypt.hash(password, 10);
+    patch.pwPlain = password;
+  }
+
+  if (Object.keys(patch).length > 0) {
+    await db.update(users).set(patch).where(eq(users.id, userId));
+  }
+  revalidatePath("/students");
+}
+
 /** 行から保護者を追加。パスワードは未入力なら自動割当。設定値を返す。 */
 export async function quickAddGuardian(
   fd: FormData,

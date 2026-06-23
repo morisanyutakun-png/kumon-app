@@ -64,7 +64,7 @@ export default async function PeoplePage() {
         </p>
       </div>
 
-      <RosterGrid rows={rows} />
+      <RosterGrid rows={rows} admin={isAdmin} />
     </div>
   );
 }

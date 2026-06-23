@@ -8,7 +8,8 @@ import {
   addStudentWithGuardian,
   deleteGuardian,
   deleteStudent,
-  resetGuardianPassword,
+  inlineUpdateGuardian,
+  inlineUpdateStudent,
 } from "@/lib/actions/admin-actions";
 import { ActionButton } from "@/components/action-button";
 
@@ -49,18 +50,155 @@ function genPassword(n = 8) {
 
 const cellInput: React.CSSProperties = {
   width: "100%",
-  height: 36,
+  height: 34,
   border: "1px solid #cdd4db",
-  padding: "0 9px",
+  padding: "0 8px",
   font: "inherit",
   fontSize: 14,
   background: "#fff",
 };
+const codeInput: React.CSSProperties = {
+  ...cellInput,
+  fontWeight: 700,
+  letterSpacing: "0.04em",
+};
 const nowrap: React.CSSProperties = { whiteSpace: "nowrap" };
-const actCell: React.CSSProperties = { whiteSpace: "nowrap" };
 const gBorder = "2px solid #cfe6f4"; // 生徒 / 保護者 の区切り
 
-export function RosterGrid({ rows }: { rows: RosterRow[] }) {
+/** 既存行: 認証情報をその場で編集できる行。 */
+function EditableRow({ s, admin }: { s: RosterRow; admin: boolean }) {
+  const [loginId, setLoginId] = useState(s.loginId ?? "");
+  const [pin, setPin] = useState(s.pin ?? "");
+  const [email, setEmail] = useState(s.guardian?.email ?? "");
+  const [pw, setPw] = useState(s.guardian?.pw ?? "");
+  const [savingS, startS] = useTransition();
+  const [savingG, startG] = useTransition();
+
+  const sDirty = loginId !== (s.loginId ?? "") || pin !== (s.pin ?? "");
+  const gDirty =
+    !!s.guardian && (email !== (s.guardian.email ?? "") || pw !== (s.guardian.pw ?? ""));
+
+  function saveStudent() {
+    const fd = new FormData();
+    fd.set("loginId", loginId.trim());
+    fd.set("pin", pin.trim());
+    startS(async () => {
+      try {
+        await inlineUpdateStudent(s.id, fd);
+        toast.success(`保存：${s.name}`);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "保存に失敗しました。");
+      }
+    });
+  }
+  function saveGuardian() {
+    if (!s.guardian) return;
+    const fd = new FormData();
+    fd.set("email", email.trim());
+    fd.set("password", pw.trim());
+    startG(async () => {
+      try {
+        await inlineUpdateGuardian(s.guardian!.id, fd);
+        toast.success(`保存：${s.guardian!.name}`);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "保存に失敗しました。");
+      }
+    });
+  }
+
+  return (
+    <tr>
+      {/* ── 生徒(左)で完結 ── */}
+      <td>
+        <Link href={`/students/${s.id}`} style={{ fontWeight: 600 }}>{s.name}</Link>
+        {!s.active && (
+          <span className="badge" style={{ marginLeft: 6, background: "#f1f5f9", color: "#64748b" }}>停止</span>
+        )}
+      </td>
+      <td>{s.grade || "—"}</td>
+      <td>
+        {admin ? (
+          <input value={loginId} onChange={(e) => setLoginId(e.target.value)} style={cellInput} />
+        ) : (
+          <span className="muted">{s.loginId || "—"}</span>
+        )}
+      </td>
+      <td>
+        {admin ? (
+          <input value={pin} onChange={(e) => setPin(e.target.value)} inputMode="numeric" style={codeInput} />
+        ) : (
+          <span className="muted">{s.hasPin ? "設定済" : "未設定"}</span>
+        )}
+      </td>
+      <td className="right" style={nowrap}>
+        {admin && (
+          <>
+            <button type="button" className="btn-primary" disabled={!sDirty || savingS} onClick={saveStudent}>
+              {savingS ? "保存中" : "保存"}
+            </button>{" "}
+          </>
+        )}
+        <ActionButton
+          action={deleteStudent.bind(null, s.id)}
+          variant="destructive"
+          confirm={`生徒「${s.name}」と関連する割当・提出を削除しますか?`}
+          successMessage="削除しました。"
+        >
+          削除
+        </ActionButton>
+      </td>
+
+      {/* ── 保護者(右)で完結 ── */}
+      {s.guardian ? (
+        <>
+          <td style={{ borderLeft: gBorder, fontWeight: 600 }}>{s.guardian.name}</td>
+          <td>
+            {admin ? (
+              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoCapitalize="none" style={cellInput} />
+            ) : (
+              <span className="muted">{s.guardian.email}</span>
+            )}
+          </td>
+          <td>
+            {admin ? (
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={pw} onChange={(e) => setPw(e.target.value)} style={codeInput} />
+                <button type="button" className="btn-secondary" style={{ padding: "0 8px", ...nowrap }} onClick={() => setPw(genPassword())} title="パスワードを生成">
+                  自動
+                </button>
+              </div>
+            ) : (
+              <span className="muted">設定済</span>
+            )}
+          </td>
+          <td className="right" style={nowrap}>
+            {admin && (
+              <>
+                <button type="button" className="btn-primary" disabled={!gDirty || savingG} onClick={saveGuardian}>
+                  {savingG ? "保存中" : "保存"}
+                </button>{" "}
+              </>
+            )}
+            <ActionButton
+              action={deleteGuardian.bind(null, s.guardian.id)}
+              variant="destructive"
+              confirm={`保護者「${s.guardian.name}」を削除しますか?（生徒との紐づけも解除されます）`}
+              successMessage="削除しました。"
+            >
+              削除
+            </ActionButton>
+          </td>
+        </>
+      ) : (
+        <td colSpan={4} className="muted" style={{ borderLeft: gBorder }}>
+          （保護者なし）
+        </td>
+      )}
+    </tr>
+  );
+}
+
+export function RosterGrid({ rows, admin }: { rows: RosterRow[]; admin: boolean }) {
   const [name, setName] = useState("");
   const [grade, setGrade] = useState("小1");
   const [loginId, setLoginId] = useState("");
@@ -132,96 +270,27 @@ export function RosterGrid({ rows }: { rows: RosterRow[] }) {
   return (
     <div>
       <div className="grid-scroll" style={{ border: "1px solid #dde2e7" }}>
-        <table className="record-table" style={{ minWidth: 1180 }}>
+        <table className="record-table" style={{ minWidth: 1200 }}>
           <thead>
             <tr>
-              <th colSpan={5} style={{ background: "#eaf5fb", color: "#14365a" }}>
-                生徒
-              </th>
-              <th colSpan={4} style={{ background: "#eaf5fb", color: "#14365a", borderLeft: gBorder }}>
-                保護者
-              </th>
+              <th colSpan={5} style={{ background: "#eaf5fb", color: "#14365a" }}>生徒</th>
+              <th colSpan={4} style={{ background: "#eaf5fb", color: "#14365a", borderLeft: gBorder }}>保護者</th>
             </tr>
             <tr>
-              <th style={{ width: "15%" }}>氏名</th>
-              <th style={{ width: 74 }}>学年</th>
-              <th style={{ width: 110 }}>ログインID</th>
-              <th style={{ width: 96 }}>PIN</th>
+              <th style={{ width: "14%" }}>氏名</th>
+              <th style={{ width: 72 }}>学年</th>
+              <th style={{ width: 120 }}>ログインID</th>
+              <th style={{ width: 110 }}>PIN</th>
               <th className="right" style={{ width: 130 }}>操作</th>
-              <th style={{ width: "15%", borderLeft: gBorder }}>氏名</th>
+              <th style={{ width: "14%", borderLeft: gBorder }}>氏名</th>
               <th>メールアドレス</th>
-              <th style={{ width: 120 }}>初期パスワード</th>
-              <th className="right" style={{ width: 150 }}>操作</th>
+              <th style={{ width: 150 }}>初期パスワード</th>
+              <th className="right" style={{ width: 130 }}>操作</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((s) => (
-              <tr key={s.id}>
-                {/* ── 生徒(左)で完結 ── */}
-                <td>
-                  <Link href={`/students/${s.id}`} style={{ fontWeight: 600 }}>{s.name}</Link>
-                  {!s.active && (
-                    <span className="badge" style={{ marginLeft: 6, background: "#f1f5f9", color: "#64748b" }}>停止</span>
-                  )}
-                </td>
-                <td>{s.grade || "—"}</td>
-                <td className="muted">{s.loginId || "—"}</td>
-                <td>
-                  {s.pin ? (
-                    <code style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em" }}>{s.pin}</code>
-                  ) : (
-                    <span className="muted">{s.hasPin ? "設定済" : "未設定"}</span>
-                  )}
-                </td>
-                <td className="right" style={actCell}>
-                  <Link href={`/students/${s.id}/edit`} className="db-badge">編集</Link>{" "}
-                  <ActionButton
-                    action={deleteStudent.bind(null, s.id)}
-                    variant="destructive"
-                    confirm={`生徒「${s.name}」と関連する割当・提出を削除しますか?`}
-                    successMessage="削除しました。"
-                  >
-                    削除
-                  </ActionButton>
-                </td>
-
-                {/* ── 保護者(右)で完結 ── */}
-                {s.guardian ? (
-                  <>
-                    <td style={{ borderLeft: gBorder, fontWeight: 600 }}>{s.guardian.name}</td>
-                    <td className="muted" style={nowrap}>{s.guardian.email}</td>
-                    <td>
-                      {s.guardian.pw ? (
-                        <code style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.03em" }}>{s.guardian.pw}</code>
-                      ) : (
-                        <span className="muted">設定済</span>
-                      )}
-                    </td>
-                    <td className="right" style={actCell}>
-                      <ActionButton
-                        action={() => resetGuardianPassword(s.guardian!.id)}
-                        variant="secondary"
-                        confirm={`保護者「${s.guardian.name}」のパスワードを再発行しますか?`}
-                        successMessage="再発行しました。"
-                      >
-                        再発行
-                      </ActionButton>{" "}
-                      <ActionButton
-                        action={deleteGuardian.bind(null, s.guardian.id)}
-                        variant="destructive"
-                        confirm={`保護者「${s.guardian.name}」を削除しますか?（生徒との紐づけも解除されます）`}
-                        successMessage="削除しました。"
-                      >
-                        削除
-                      </ActionButton>
-                    </td>
-                  </>
-                ) : (
-                  <td colSpan={4} className="muted" style={{ borderLeft: gBorder }}>
-                    （保護者なし）
-                  </td>
-                )}
-              </tr>
+              <EditableRow key={s.id} s={s} admin={admin} />
             ))}
 
             {/* 追加行 — 1行で 生徒 ＋ 保護者(任意) を登録 */}
@@ -240,7 +309,7 @@ export function RosterGrid({ rows }: { rows: RosterRow[] }) {
                 <input value={loginId} onChange={(e) => setLoginId(e.target.value)} onKeyDown={onKeyDown} style={cellInput} />
               </td>
               <td>
-                <input value={pin} onChange={(e) => setPin(e.target.value)} onKeyDown={onKeyDown} inputMode="numeric" style={cellInput} />
+                <input value={pin} onChange={(e) => setPin(e.target.value)} onKeyDown={onKeyDown} inputMode="numeric" style={codeInput} />
               </td>
               <td className="right">
                 <button type="button" className="btn-secondary" style={{ width: "100%", padding: "0 6px", ...nowrap }} onClick={() => { setLoginId(genId()); setPin(genPin()); }} title="ID/PINを再生成">
@@ -254,7 +323,7 @@ export function RosterGrid({ rows }: { rows: RosterRow[] }) {
                 <input value={gEmail} onChange={(e) => setGEmail(e.target.value)} onKeyDown={onKeyDown} placeholder="parent@example.com" type="email" autoCapitalize="none" style={cellInput} />
               </td>
               <td>
-                <input value={gPassword} onChange={(e) => setGPassword(e.target.value)} onKeyDown={onKeyDown} style={cellInput} />
+                <input value={gPassword} onChange={(e) => setGPassword(e.target.value)} onKeyDown={onKeyDown} style={codeInput} />
               </td>
               <td className="right">
                 <button type="button" className="btn-primary" style={{ width: "100%", ...nowrap }} onClick={add} disabled={pending}>
@@ -277,7 +346,7 @@ export function RosterGrid({ rows }: { rows: RosterRow[] }) {
         </p>
       )}
       <p className="hint" style={{ marginTop: 8 }}>
-        左が生徒・右が保護者で、それぞれ操作も各側にあります。最下行で1行にまとめて追加できます（保護者は任意）。
+        ログインID・PIN・メール・パスワードは表内でいつでも編集でき、変更すると「保存」ボタンが有効になります（管理者のみ）。
       </p>
     </div>
   );
