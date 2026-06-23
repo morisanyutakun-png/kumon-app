@@ -1194,3 +1194,47 @@ body {
 /* 全画面では操作バーを上部に貼り付けて使いやすく */
 .write-body .annot-toolbar { position: sticky; top: 0; z-index: 5; }
 .write-body .annot-submit .btn-primary { width: 100%; }
+
+/* ============================================================
+   成績(グレード)レポート
+   ============================================================ */
+.grade-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.grade-tile {
+  display: flex; flex-direction: column; gap: 2px; padding: 14px 16px;
+  background: #fff; border: 1px solid #dde2e7; border-radius: 14px;
+}
+.grade-tile-label { font-size: 12px; font-weight: 700; color: #64748b; }
+.grade-tile-value { font-size: 26px; font-weight: 900; color: var(--ink); line-height: 1.1; }
+.grade-tile-sub { font-size: 11px; color: #94a3b8; }
+.grade-tile.tone-ok .grade-tile-value { color: #0e9f6e; }
+.grade-tile.tone-info .grade-tile-value { color: var(--primary); }
+.grade-tile.tone-star .grade-tile-value { color: #d97706; }
+.grade-tile.tone-fire .grade-tile-value { color: #e0497b; }
+
+.grade-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 760px) { .grade-cols { grid-template-columns: 1fr; } }
+
+/* 教科別バー */
+.subj-list { display: grid; gap: 12px; }
+.subj-row { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "head rate" "bar rate"; align-items: center; gap: 2px 10px; }
+.subj-head { grid-area: head; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.subj-name { font-weight: 800; color: var(--ink); }
+.subj-meta { font-size: 12px; color: #64748b; }
+.subj-bar { grid-area: bar; height: 10px; background: #eef2f6; border-radius: 999px; overflow: hidden; }
+.subj-bar-fill { display: block; height: 100%; background: linear-gradient(90deg, var(--primary), #34b3e6); border-radius: 999px; }
+.subj-rate { grid-area: rate; font-weight: 900; color: var(--ink); min-width: 44px; text-align: right; }
+
+/* スパークライン */
+.grade-spark { width: 100%; height: 90px; display: block; }
+.grade-spark-line { fill: none; stroke: var(--primary); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.grade-spark-area { fill: rgba(28,157,216,0.10); stroke: none; }
+.grade-spark-dot { fill: #fff; stroke: var(--primary); stroke-width: 2; }
+.grade-spark-guide { stroke: #e2e8f0; stroke-width: 1; stroke-dasharray: 3 3; }
+
+/* 生徒切替 */
+.stu-switch { display: inline-flex; align-items: center; gap: 8px; }
+.stu-switch-label { font-size: 12px; font-weight: 800; color: #64748b; }
+.stu-switch select {
+  height: 38px; padding: 0 12px; border: 1.5px solid #cdd6df; border-radius: 10px;
+  background: #fff; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer;
+}

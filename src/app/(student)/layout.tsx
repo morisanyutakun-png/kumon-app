@@ -9,7 +9,7 @@ import { NavTabs, type NavTabItem } from "@/components/nav-tabs";
 
 const TABS: NavTabItem[] = [
   { href: "/home", label: "課題" },
-  { href: "/history", label: "成績・履歴" },
+  { href: "/history", label: "成績" },
 ];
 
 export default async function StudentLayout({

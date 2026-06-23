@@ -115,7 +115,7 @@ function EditableRow({ s, admin }: { s: RosterRow; admin: boolean }) {
         {admin ? (
           <input value={name} onChange={(e) => setName(e.target.value)} />
         ) : (
-          <Link href={`/students/${s.id}`} className="cell-pad" style={{ fontWeight: 600 }}>{s.name}</Link>
+          <Link href={`/grades/${s.id}`} className="cell-pad" style={{ fontWeight: 600 }}>{s.name}</Link>
         )}
       </td>
       <td>
@@ -150,7 +150,7 @@ function EditableRow({ s, admin }: { s: RosterRow; admin: boolean }) {
               {savingS ? "保存中" : "保存"}
             </button>
           )}
-          <Link href={`/students/${s.id}`} className="btn-secondary gbtn">詳細</Link>
+          <Link href={`/grades/${s.id}`} className="btn-secondary gbtn">成績</Link>
           <ActionButton
             action={deleteStudent.bind(null, s.id)}
             variant="destructive"
