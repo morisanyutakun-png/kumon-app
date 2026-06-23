@@ -1247,3 +1247,18 @@ body {
   height: 38px; padding: 0 12px; border: 1.5px solid #cdd6df; border-radius: 10px;
   background: #fff; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer;
 }
+
+/* ============================================================
+   添削シート(一括採点) — エクセル風・機械的に○×判定
+   ============================================================ */
+.gsheet .score-cell { display: flex; align-items: center; gap: 4px; padding: 0 6px; }
+.gsheet .score-cell input { flex: 1; min-width: 0; text-align: center; padding: 0 4px; }
+.gsheet .judge { display: inline-flex; gap: 6px; padding: 0 8px; }
+.gsheet .judge-btn {
+  height: 30px; padding: 0 12px; border: 1.5px solid #cdd6df; background: #fff;
+  font-weight: 800; font-size: 13px; border-radius: 0; cursor: pointer; color: #475569; white-space: nowrap;
+}
+.gsheet .judge-btn.ok.on { background: #e6f7ef; border-color: #0e9f6e; color: #0e7a55; }
+.gsheet .judge-btn.ng.on { background: #fdecef; border-color: #e11d48; color: #b21437; }
+.gsheet tr.j-ok > td { background: #f3fbf7; }
+.gsheet tr.j-ng > td { background: #fdf4f6; }

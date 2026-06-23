@@ -48,14 +48,15 @@ export default async function BatchGradingPage() {
     <div>
       <div className="page-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
         <div>
-          <h1>一括採点（添削シート）</h1>
+          <h1>添削シート（まとめて採点）</h1>
           <p>
-            提出済みの答案を列ごとに採点します。得点・合否・コメントを入力し、操作を選んで
-            「まとめて返却」。合格で返却した列は学習進度が自動で1つ進みます。
+            提出された答案を1行ずつ、エクセルのように機械的に採点できます。各行に
+            <b>○合格</b> か <b>×やり直し</b> を付け、得点（任意）とコメントを入れて確定。
+            ○は返却＆進度+1、×は再提出依頼になります。
           </p>
         </div>
         <Link href="/grading" className="db-badge">
-          通常の採点一覧へ →
+          提出一覧へ →
         </Link>
       </div>
 
