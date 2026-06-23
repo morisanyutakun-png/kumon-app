@@ -7,7 +7,6 @@ import { LogoutButton } from "@/components/logout-button";
 import { NavTabs, type NavTabItem } from "@/components/nav-tabs";
 
 const BASE_TABS: NavTabItem[] = [
-  { href: "/dashboard", label: "ダッシュボード" },
   { href: "/grading", label: "採点" },
   { href: "/students", label: "生徒・保護者" },
   { href: "/grades", label: "成績" },
@@ -31,7 +30,7 @@ export default async function OperatorLayout({
       <DemoBanner />
       <header className="appbar">
         <div className="appbar-inner">
-          <Link href="/dashboard" className="brand" aria-label="ノビットスタディ">
+          <Link href="/grading" className="brand" aria-label="ノビットスタディ">
             <Logo className="brand-logo" />
           </Link>
           <NavTabs items={tabs} />

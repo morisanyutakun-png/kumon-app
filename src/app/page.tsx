@@ -6,6 +6,6 @@ import { getPrincipal, isOperator } from "@/lib/access";
 export default async function Home() {
   const p = await getPrincipal();
   if (!p) redirect("/login");
-  if (isOperator(p)) redirect("/dashboard");
+  if (isOperator(p)) redirect("/grading");
   redirect("/home");
 }

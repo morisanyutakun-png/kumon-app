@@ -19,7 +19,7 @@ export default async function StudentLayout({
 }) {
   const p = await getPrincipal();
   if (!p) redirect("/login");
-  if (isOperator(p)) redirect("/dashboard");
+  if (isOperator(p)) redirect("/grading");
 
   return (
     <div className="flex flex-1 flex-col">
