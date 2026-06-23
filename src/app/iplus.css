@@ -1281,14 +1281,17 @@ body {
 .gstudent-grade { margin-left: 8px; font-size: 13px; font-weight: 700; color: #64748b; }
 .gstudent-count { margin-left: 12px; font-size: 12px; font-weight: 800; color: #fff; background: var(--primary); padding: 2px 9px; border-radius: 999px; }
 
-/* まとめて見る答案プレビュー */
-.gstudent-previews { display: flex; gap: 14px; overflow-x: auto; padding: 4px 2px 12px; }
-.gpv { flex: 0 0 auto; max-width: 320px; }
-.gpv-cap { font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gpv-imgs { display: flex; gap: 6px; }
-.gpv-imgs img {
-  height: 130px; width: auto; max-width: 200px; object-fit: contain;
-  border: 1px solid #dde2e7; border-radius: 6px; background: #fff;
+.gstudent.is-ok { border-color: #9ad9bd; }
+.gstudent.is-ng { border-color: #f0a6b6; }
+
+/* 全答案を結合した連続プレビュー(1まとまりの答案として見る) */
+.gstudent-combined {
+  display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 12px;
+  scroll-snap-type: x proximity;
+}
+.gstudent-combined img {
+  height: 150px; width: auto; max-width: 240px; object-fit: contain;
+  border: 1px solid #dde2e7; border-radius: 6px; background: #fff; scroll-snap-align: start;
 }
 
 .gstudent-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
