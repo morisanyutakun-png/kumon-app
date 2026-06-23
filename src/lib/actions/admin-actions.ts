@@ -567,20 +567,17 @@ export async function updateMaterial(
 
 export async function deleteMaterial(materialId: string) {
   const p = await requireOperator();
-  // 割当で使用中の教材は削除不可 (assignments.material_id は restrict)。
-  const [used] = await db
-    .select({ id: assignments.id })
-    .from(assignments)
+  // 教材が課題で使われていても、関連する割当(→提出・採点・画像はCASCADE)を
+  // 先に削除してから教材本体を削除する(units / material_files は教材CASCADE)。
+  // assignments.material_id は RESTRICT のため明示削除が必要。
+  await db
+    .delete(assignments)
     .where(
       and(
         eq(assignments.materialId, materialId),
         eq(assignments.organizationId, p.organizationId),
       ),
-    )
-    .limit(1);
-  if (used) {
-    throw new Error("この教材は課題で使用中のため削除できません。");
-  }
+    );
   await db
     .delete(materials)
     .where(
@@ -590,6 +587,7 @@ export async function deleteMaterial(materialId: string) {
       ),
     );
   revalidatePath("/materials");
+  revalidatePath("/assignments");
 }
 
 /** 教材に課題ファイル(PDF/画像)をアップロードする。 */

@@ -79,6 +79,11 @@ export default async function StudentSubmissionPage({
               先生から再提出の依頼があります。コメントを確認して、もう一度提出してください。
             </p>
           )}
+          {pdfUrl && (
+            <Link href={`/submissions/${submission.id}/write`} className="btn-primary big" style={{ width: "100%", marginBottom: 12 }}>
+              ✏️ 全画面で書き込んで解く
+            </Link>
+          )}
           <SubmitPanel
             submissionId={submission.id}
             resubmit={submission.status === "resubmit_required"}

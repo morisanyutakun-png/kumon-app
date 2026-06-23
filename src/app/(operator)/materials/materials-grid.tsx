@@ -132,7 +132,7 @@ export function MaterialsGrid({ materials }: { materials: MaterialRow[] }) {
               <td className="right">
                 <span style={{ display: "inline-flex", gap: 6, justifyContent: "flex-end" }}>
                   <Link href={`/materials/${m.id}/edit`} className="db-badge">編集</Link>
-                  <ActionButton action={deleteMaterial.bind(null, m.id)} variant="destructive" confirm={`教材「${m.name}」を削除しますか?`} successMessage="削除しました。">削除</ActionButton>
+                  <ActionButton action={deleteMaterial.bind(null, m.id)} variant="destructive" confirm={`教材「${m.name}」を削除しますか?\nこの教材を使った課題・提出・採点もすべて削除されます。`} successMessage="削除しました。">削除</ActionButton>
                 </span>
               </td>
             </tr>

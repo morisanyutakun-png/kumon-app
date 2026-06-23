@@ -17,10 +17,16 @@ export function PdfAnnotator({
   pdfUrl,
   submissionId,
   resubmit,
+  fullBleed = false,
+  redirectTo,
 }: {
   pdfUrl: string;
   submissionId: string;
   resubmit?: boolean;
+  /** 全画面モード: 画面幅いっぱいまでPDFを大きく表示。 */
+  fullBleed?: boolean;
+  /** 提出後にこのURLへ遷移(全画面演習→提出ページへ戻る等)。 */
+  redirectTo?: string;
 }) {
   const router = useRouter();
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -75,7 +81,8 @@ export function PdfAnnotator({
 
     const page = await doc.getPage(pageNum);
     const base = page.getViewport({ scale: 1 });
-    const maxW = Math.min(wrap.clientWidth || 900, 1100);
+    const cap = fullBleed ? 2200 : 1100;
+    const maxW = Math.min(wrap.clientWidth || 900, cap);
     const scale = maxW / base.width;
     const viewport = page.getViewport({ scale });
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -96,7 +103,7 @@ export function PdfAnnotator({
     await page.render({ canvasContext: ctx, viewport }).promise;
 
     redrawInk();
-  }, [pageNum]);
+  }, [pageNum, fullBleed]);
 
   useEffect(() => {
     if (ready) renderPage();
@@ -267,7 +274,8 @@ export function PdfAnnotator({
       for (const f of files) fd.append("images", f);
       await submitAnswer(submissionId, fd);
       toast.success(resubmit ? "再提出しました。" : "提出しました。おつかれさま！");
-      router.refresh();
+      if (redirectTo) router.push(redirectTo);
+      else router.refresh();
     } catch (e) {
       console.error(e);
       toast.error(e instanceof Error ? e.message : "提出に失敗しました。");

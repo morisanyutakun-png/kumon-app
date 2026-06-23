@@ -1172,3 +1172,25 @@ body {
   display: grid; place-items: center; aspect-ratio: 1; border-radius: 12px;
   border: 2px dashed #b9d8ea; background: #f3fafe; color: var(--primary); font-weight: 800; cursor: pointer;
 }
+
+/* ===== 全画面 書き込み演習 ===== */
+.write-screen {
+  position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column;
+  background: #eef2f6;
+}
+.write-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 14px; background: #fff; border-bottom: 1px solid #dbe3ea;
+}
+.write-back {
+  display: inline-flex; align-items: center; min-height: 38px; padding: 0 14px;
+  border: 1.5px solid #cdd6df; border-radius: 10px; background: #fff;
+  font-weight: 800; color: #334155; text-decoration: none; white-space: nowrap;
+}
+.write-title { font-weight: 900; color: var(--ink); text-align: center; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; justify-content: center; }
+.write-range { font-size: 12px; font-weight: 700; color: #64748b; }
+.write-body { flex: 1; overflow: auto; padding: 12px; }
+.write-body .annot-stage { background: #e6ecf2; }
+/* 全画面では操作バーを上部に貼り付けて使いやすく */
+.write-body .annot-toolbar { position: sticky; top: 0; z-index: 5; }
+.write-body .annot-submit .btn-primary { width: 100%; }
