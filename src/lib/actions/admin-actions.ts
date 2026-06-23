@@ -181,6 +181,88 @@ export async function quickAddStudent(
   return { name, loginId, pin };
 }
 
+export interface RosterAddResult {
+  studentName: string;
+  loginId: string;
+  pin: string;
+  guardian?: { name: string; email: string; password: string | null };
+}
+
+/**
+ * 1行で 生徒(+保護者) を追加。保護者の氏名/メールがあれば作成し生徒に紐づける
+ * (既存メールの保護者がいれば再利用して紐づけ)。発行した認証情報を返す。
+ */
+export async function addStudentWithGuardian(
+  fd: FormData,
+): Promise<RosterAddResult> {
+  const p = await requireOperator();
+  const name = str(fd, "name");
+  const grade = str(fd, "grade");
+  if (!name) throw new Error("生徒の氏名を入力してください。");
+
+  const loginId = await ensureUniqueLoginId(str(fd, "loginId"));
+  const pin = str(fd, "pin") || randomPin();
+
+  const gName = str(fd, "gName");
+  const gEmail = str(fd, "gEmail").toLowerCase();
+  if ((gName && !gEmail) || (!gName && gEmail)) {
+    throw new Error("保護者は氏名とメールアドレスの両方を入力してください。");
+  }
+  const gPassword = str(fd, "gPassword") || randomPassword();
+
+  // 生徒を作成
+  const [student] = await db
+    .insert(students)
+    .values({
+      organizationId: p.organizationId,
+      name,
+      grade,
+      loginId,
+      pinHash: await bcrypt.hash(pin, 10),
+      pinPlain: pin,
+      active: true,
+    })
+    .returning();
+
+  let guardianOut: RosterAddResult["guardian"];
+  if (gName && gEmail) {
+    let [parent] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, gEmail))
+      .limit(1);
+    if (parent && parent.role !== "parent") {
+      throw new Error("そのメールアドレスは別の用途で使われています。");
+    }
+    if (!parent) {
+      [parent] = await db
+        .insert(users)
+        .values({
+          organizationId: p.organizationId,
+          name: gName,
+          email: gEmail,
+          role: "parent",
+          passwordHash: await bcrypt.hash(gPassword, 10),
+          pwPlain: gPassword,
+        })
+        .returning();
+      guardianOut = { name: gName, email: gEmail, password: gPassword };
+    } else {
+      // 既存保護者: パスワードは変更しない
+      guardianOut = { name: parent.name, email: parent.email, password: null };
+    }
+    await db.insert(guardianStudents).values({
+      organizationId: p.organizationId,
+      guardianUserId: parent.id,
+      studentId: student.id,
+    });
+  }
+
+  revalidatePath("/students");
+  revalidatePath("/assignments");
+  return { studentName: name, loginId, pin, guardian: guardianOut };
+}
+
 /** 行から保護者を追加。パスワードは未入力なら自動割当。設定値を返す。 */
 export async function quickAddGuardian(
   fd: FormData,
