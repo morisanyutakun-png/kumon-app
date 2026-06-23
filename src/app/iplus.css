@@ -1327,3 +1327,10 @@ body {
   font-size: 16px; font-weight: 900; cursor: pointer; border-radius: 0; line-height: 1;
 }
 .next-grp button:hover { background: #e6f7ef; }
+
+/* 合否チェックボックス(チェック=合格) */
+.pass-check { display: inline-flex; align-items: center; gap: 8px; padding: 0 10px; cursor: pointer; user-select: none; }
+.pass-check input[type="checkbox"] { width: 22px; height: 22px; accent-color: #16a34a; cursor: pointer; margin: 0; }
+.pass-check input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.pass-check .pass-yes { color: #0e7a55; font-weight: 800; }
+.pass-check .pass-no { color: #9aa6b2; font-weight: 700; }
