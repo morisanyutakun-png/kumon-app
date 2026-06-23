@@ -230,39 +230,59 @@ body {
 .btn-danger:hover { background: #fecaca; text-decoration: none; }
 
 /* ===== 表内インライン編集 (生徒・保護者ロスター) ===== */
+/* セルは四角・余白なし。入力欄はセルに溶け込ませ内側の枠を出さない。 */
+.roster td { padding: 0; vertical-align: middle; height: 42px; }
 .roster input,
 .roster select {
   width: 100%;
-  height: 34px;
-  border: 1px solid #cdd4db;
-  border-radius: 6px;
-  padding: 0 9px;
+  height: 42px;
+  border: 0;
+  border-radius: 0;
+  padding: 0 10px;
+  margin: 0;
   font: inherit;
   font-size: 14px;
-  background: #fff;
+  background: transparent;
   color: var(--text);
+  appearance: none;
 }
+.roster select { padding-right: 22px; }
 .roster input:focus,
 .roster select:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(28, 157, 216, 0.18);
+  background: #eef7fd;
+  box-shadow: inset 0 0 0 2px var(--primary);
 }
+.roster input::placeholder { color: #9aa6b2; }
 .roster input.code { font-weight: 700; letter-spacing: 0.04em; }
-/* 入力 + 付随ボタン (自動生成など) */
-.roster .input-with-btn { display: flex; gap: 6px; align-items: center; }
+/* テキスト表示のセル(リンク/補足/非管理者表示)はセル内に余白を持たせる */
+.roster .cell-pad { display: inline-block; padding: 0 10px; }
+/* 入力 + 付随ボタン(自動生成など)を隙間なく横並び */
+.roster .input-with-btn { display: flex; align-items: stretch; height: 42px; }
+.roster .input-with-btn input { flex: 1 1 auto; }
+.roster .input-with-btn .gbtn { height: 42px; border-left: 1px solid var(--line); }
 /* 操作セルのボタン群 — セル高さに合わせて統一 */
-.roster .row-actions { display: inline-flex; gap: 6px; justify-content: flex-end; flex-wrap: nowrap; }
+.roster .row-actions {
+  display: inline-flex;
+  gap: 6px;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap;
+  padding: 0 8px;
+}
 .roster .gbtn {
-  height: 34px;
-  padding: 0 12px;
-  font-size: 13px;
+  height: 30px;
+  padding: 0 11px;
+  font-size: 12px;
   font-weight: 700;
-  border-radius: 6px;
+  border-radius: 0;
   white-space: nowrap;
   box-shadow: none;
 }
 .roster .gbtn:hover { transform: none; box-shadow: none; }
+/* 追加行の全幅ボタンはセルにぴったり */
+.roster .add-btn { width: 100%; height: 42px; border-radius: 0; box-shadow: none; }
+.roster .add-btn:hover { transform: none; box-shadow: none; }
 
 /* ===== ダッシュボードのタイル ===== */
 .dashboard {

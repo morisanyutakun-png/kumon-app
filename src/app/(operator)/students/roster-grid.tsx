@@ -115,7 +115,7 @@ function EditableRow({ s, admin }: { s: RosterRow; admin: boolean }) {
         {admin ? (
           <input value={name} onChange={(e) => setName(e.target.value)} />
         ) : (
-          <Link href={`/students/${s.id}`} style={{ fontWeight: 600 }}>{s.name}</Link>
+          <Link href={`/students/${s.id}`} className="cell-pad" style={{ fontWeight: 600 }}>{s.name}</Link>
         )}
       </td>
       <td>
@@ -126,21 +126,21 @@ function EditableRow({ s, admin }: { s: RosterRow; admin: boolean }) {
             ))}
           </select>
         ) : (
-          s.grade || "—"
+          <span className="cell-pad">{s.grade || "—"}</span>
         )}
       </td>
       <td>
         {admin ? (
           <input value={loginId} onChange={(e) => setLoginId(e.target.value)} />
         ) : (
-          <span className="muted">{s.loginId || "—"}</span>
+          <span className="cell-pad muted">{s.loginId || "—"}</span>
         )}
       </td>
       <td>
         {admin ? (
           <input className="code" value={pin} onChange={(e) => setPin(e.target.value)} inputMode="numeric" />
         ) : (
-          <span className="muted">{s.hasPin ? "設定済" : "未設定"}</span>
+          <span className="cell-pad muted">{s.hasPin ? "設定済" : "未設定"}</span>
         )}
       </td>
       <td className="right">
@@ -170,14 +170,14 @@ function EditableRow({ s, admin }: { s: RosterRow; admin: boolean }) {
             {admin ? (
               <input value={gName} onChange={(e) => setGName(e.target.value)} />
             ) : (
-              <span style={{ fontWeight: 600 }}>{s.guardian.name}</span>
+              <span className="cell-pad" style={{ fontWeight: 600 }}>{s.guardian.name}</span>
             )}
           </td>
           <td>
             {admin ? (
               <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoCapitalize="none" />
             ) : (
-              <span className="muted">{s.guardian.email}</span>
+              <span className="cell-pad muted">{s.guardian.email}</span>
             )}
           </td>
           <td>
@@ -187,7 +187,7 @@ function EditableRow({ s, admin }: { s: RosterRow; admin: boolean }) {
                 <button type="button" className="btn-secondary gbtn" onClick={() => setPw(genPassword())} title="パスワードを生成">自動</button>
               </div>
             ) : (
-              <span className="muted">設定済</span>
+              <span className="cell-pad muted">設定済</span>
             )}
           </td>
           <td className="right">
@@ -210,8 +210,8 @@ function EditableRow({ s, admin }: { s: RosterRow; admin: boolean }) {
           </td>
         </>
       ) : (
-        <td colSpan={4} className="muted" style={{ borderLeft: gBorder }}>
-          （保護者なし）
+        <td colSpan={4} style={{ borderLeft: gBorder }}>
+          <span className="cell-pad muted">（保護者なし）</span>
         </td>
       )}
     </tr>
@@ -332,7 +332,7 @@ export function RosterGrid({ rows, admin }: { rows: RosterRow[]; admin: boolean 
                 <input className="code" value={pin} onChange={(e) => setPin(e.target.value)} onKeyDown={onKeyDown} inputMode="numeric" />
               </td>
               <td className="right">
-                <button type="button" className="btn-secondary gbtn" style={{ width: "100%" }} onClick={() => { setLoginId(genId()); setPin(genPin()); }} title="ID/PINを再生成">
+                <button type="button" className="btn-secondary add-btn" onClick={() => { setLoginId(genId()); setPin(genPin()); }} title="ID/PINを再生成">
                   ID再生成
                 </button>
               </td>
@@ -346,7 +346,7 @@ export function RosterGrid({ rows, admin }: { rows: RosterRow[]; admin: boolean 
                 <input className="code" value={gPassword} onChange={(e) => setGPassword(e.target.value)} onKeyDown={onKeyDown} />
               </td>
               <td className="right">
-                <button type="button" className="btn-primary gbtn" style={{ width: "100%" }} onClick={add} disabled={pending}>
+                <button type="button" className="btn-primary add-btn" onClick={add} disabled={pending}>
                   {pending ? "追加中…" : "＋ 追加"}
                 </button>
               </td>
