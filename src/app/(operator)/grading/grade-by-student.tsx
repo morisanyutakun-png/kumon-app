@@ -200,9 +200,9 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
                         const st = state[a.submissionId];
                         return (
                           <td key={a.submissionId} className={st.pass ? "j-ok" : ""}>
-                            <label className="pass-check" style={{ justifyContent: "center", width: "100%" }}>
+                            <label className="single-check pass" title="チェック=合格 / 空=やり直し">
                               <input type="checkbox" checked={st.pass} data-gx={ci} data-gy={2} data-cell-type="checkbox" onChange={(e) => set(a.submissionId, { pass: e.target.checked })} />
-                              <span className={st.pass ? "pass-yes" : "pass-no"}>{st.pass ? "合格" : "やり直し"}</span>
+                              <span>合格</span>
                             </label>
                           </td>
                         );

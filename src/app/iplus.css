@@ -1329,12 +1329,29 @@ body {
 }
 .next-grp button:hover { background: #e6f7ef; }
 
-/* 合否チェックボックス(チェック=合格) */
-.pass-check { display: inline-flex; align-items: center; gap: 8px; padding: 0 10px; cursor: pointer; user-select: none; }
-.pass-check input[type="checkbox"] { width: 22px; height: 22px; accent-color: #16a34a; cursor: pointer; margin: 0; }
-.pass-check input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-.pass-check .pass-yes { color: #0e7a55; font-weight: 800; }
-.pass-check .pass-no { color: #9aa6b2; font-weight: 700; }
+/* 合否チェック(PHPアプリの single-check に合わせた自作フラットチェック) */
+.single-check {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px;
+  background: #fff; color: #64748b; font-size: 12px; font-weight: 800;
+  cursor: pointer; box-sizing: border-box; white-space: nowrap; user-select: none;
+}
+.single-check input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 15px; height: 15px; margin: 0; flex: 0 0 auto;
+  border: 1.5px solid #b3bac4; border-radius: 4px; background: #fff;
+  position: relative; cursor: pointer; box-sizing: border-box;
+}
+.single-check input[type="checkbox"]:checked { border-color: currentColor; background: currentColor; }
+.single-check input[type="checkbox"]:checked::after {
+  content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
+  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.single-check input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.single-check.pass input { color: #10b981; }
+.single-check.pass:has(input:checked) {
+  border-color: #10b981; background: #ecfdf5; color: #047857; box-shadow: inset 0 0 0 1px #10b981;
+}
 
 /* PHP風 列=教材レイアウト(添削結果入力)。幅は固定し、表だけ横スクロール。 */
 .gsheet-col { width: auto; table-layout: fixed; }
