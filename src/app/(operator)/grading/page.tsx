@@ -156,7 +156,7 @@ export default async function GradingPage({
     <div>
       <GradingHead view="todo" todoCount={groups.length} />
 
-      <GradeByStudent groups={groups} />
+      <GradeByStudent groups={groups} grader={p.name} />
 
       {inProgress.length > 0 && (
         <div style={{ marginTop: 22 }}>

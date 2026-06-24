@@ -148,12 +148,15 @@ async function main() {
 
     // 既存ファイルを消して作り直す(冪等)
     await db.delete(materialFiles).where(eq(materialFiles.materialId, m.id));
-    for (const [path, kind, suffix] of [
-      [qPdf, "assignment", ""],
-      [aPdf, "answer_key", "_kai"],
+    // 利用者が認識しやすいよう、ファイル名は日本語 (例: 小1算数-3.pdf / 小1算数-3-こたえ.pdf)。
+    const jpBase = `小${p.grade}算数-${p.unitNo}`;
+    for (const [path, kind, suffix, jpSuffix] of [
+      [qPdf, "assignment", "", ""],
+      [aPdf, "answer_key", "_kai", "-こたえ"],
     ] as const) {
       const buf = readFileSync(path);
-      const fileName = `${p.id}${suffix}.pdf`;
+      const fileName = `${jpBase}${jpSuffix}.pdf`;
+      // 保存パスはASCIIで安全に (id ベース)。
       const pathname = `${organizationId}/materials/${m.id}/${p.id}${suffix}.pdf`;
       const stored = await saveFile(pathname, buf, "application/pdf");
       await db.insert(materialFiles).values({

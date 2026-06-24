@@ -1376,6 +1376,85 @@ body {
 .gsheet .judge-btn.skip.on { background: #eff6ff; border-color: #2563eb; color: #1d4ed8; }
 .gsheet tr.j-skip > td { background: #f3f7ff; }
 
+/* =====================================================================
+   添削結果入力表 (PHPアプリ entry.php を忠実移植)。列=教材 / 行=項目。
+   ===================================================================== */
+.entry-grade .gstudent { margin-bottom: 22px; }
+.entry-grade .entry-student-toolbar { margin-bottom: 8px; }
+.entry-grade .toolbar-field { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-size: 13px; font-weight: 700; }
+.entry-grade .toolbar-field input { height: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; background: #fff; font: inherit; color: var(--ink); }
+.entry-grade .toolbar-field .stu-name { font-size: 15px; font-weight: 800; color: var(--ink); }
+.entry-grade .instructor-field .stu-name { color: #1d4ed8; }
+.entry-grade .required-mark { color: #dc2626; font-weight: 800; margin-left: 1px; }
+.entry-grade .metric-chip { padding: 3px 9px; border-radius: 999px; background: #eef2ff; color: #3730a3; font-size: 12px; font-weight: 800; }
+.entry-grade .reflect-btn { font-size: 1rem; padding: 10px 26px; font-weight: 800; border-radius: 10px; }
+
+/* シート本体 (CSS Grid) */
+.entry-grade .mastery-sheet-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgba(15,23,42,.05); }
+.entry-grade .mastery-sheet { display: grid; min-width: max-content; }
+.entry-grade .sheet-row-label,
+.entry-grade .sheet-cell { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-height: 0; }
+
+/* 左の行ラベル(固定列) */
+.entry-grade .sheet-row-label {
+  position: sticky; left: 0; z-index: 3; display: flex; align-items: center; justify-content: flex-end;
+  padding: 4px 10px; color: #475569; font-size: 12px; font-weight: 800; background: #f1f5f9;
+  box-shadow: 1px 0 0 var(--line); border-left: 4px solid #cbd5e1;
+}
+.entry-grade .sheet-row-label.row-name { min-height: 70px; background: #0f172a; color: #fff; border-left: 4px solid #0f172a; justify-content: center; }
+/* 行ラベルの系統色 (PHP: 青=範囲/再テスト/次回/課題なし, 赤=未実施/新教材, 緑=合否, 白=得点/満点/備考) */
+.entry-grade .sheet-row-label[data-row-label="review"],
+.entry-grade .sheet-row-label[data-row-label="next1"],
+.entry-grade .sheet-row-label[data-row-label="review-retest"],
+.entry-grade .sheet-row-label[data-row-label="no-assignment"] { background: #cfe6fb; color: #0b4a6f; }
+.entry-grade .sheet-row-label[data-row-label="review-skip"],
+.entry-grade .sheet-row-label[data-row-label="new-material"] { background: #fcdada; color: #991b1b; }
+.entry-grade .sheet-row-label[data-row-label="review-pass"] { background: #bbf7d0; color: #047857; }
+.entry-grade .sheet-row-label[data-row-label="review-score"],
+.entry-grade .sheet-row-label[data-row-label="review-max-score"],
+.entry-grade .sheet-row-label[data-row-label="remark"] { background: #fff; color: #475569; font-weight: 700; }
+
+/* データセル */
+.entry-grade .sheet-cell { display: flex; align-items: center; justify-content: center; min-width: 172px; padding: 4px 8px; background: #fff; font-size: .9rem; }
+.entry-grade .sheet-cell input[type="number"],
+.entry-grade .sheet-cell input[type="text"] { width: 100%; height: 26px; border: 1px solid #d6dee7; border-radius: 6px; padding: 0 7px; font: inherit; text-align: center; background: #fff; }
+.entry-grade .range-cell { background: #e8f3fe; }
+.entry-grade .range-cell input[type="text"], .entry-grade .range-cell .range-text { background: transparent; border: 0; text-align: center; font-weight: 700; color: #0b4a6f; }
+.entry-grade .rate-cell { font-variant-numeric: tabular-nums; }
+.entry-grade .next-preview-cell { background: #e8f3fe; }
+.entry-grade .remark-cell input { border: 0 !important; background: transparent !important; text-align: left; }
+.entry-grade .score-cell.is-required-missing input { border-color: #e11d48 !important; background: #fff1f3; box-shadow: inset 0 0 0 1px #e11d48; }
+.entry-grade .score-cell input.need-fill { border-color: #e11d48 !important; background: #fff1f3; }
+
+/* チェックセル: チェックで系統色に塗る (PHP :has(input:checked) 相当) */
+.entry-grade .check-cell { background: #fff; }
+.entry-grade .check-cell[data-sheet-row="review-pass"][data-on="true"] { background: #bbf7d0; }
+.entry-grade .check-cell[data-sheet-row="review-skip"][data-on="true"],
+.entry-grade .check-cell[data-sheet-row="new-material"][data-on="true"] { background: #fbd5d5; }
+.entry-grade .check-cell[data-sheet-row="review-retest"][data-on="true"],
+.entry-grade .check-cell[data-sheet-row="no-assignment"][data-on="true"] { background: #cfe6fb; }
+.entry-grade .single-check { display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; color: #334155; font-size: .82rem; font-weight: 700; cursor: pointer; }
+.entry-grade .single-check input[type="checkbox"] { width: 16px; height: 16px; accent-color: #0e9f6e; cursor: pointer; }
+
+/* 教材ヘッダーカード */
+.entry-grade .material-head { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 3px; padding: 6px 8px; background: #f8fafc; overflow: hidden; }
+.entry-grade .material-head-top { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.entry-grade .subject-pill { display: inline-flex; align-items: center; height: 16px; padding: 0 7px; border-radius: 999px; font-size: 9.5px; font-weight: 800; letter-spacing: .02em; }
+.entry-grade .material-name { font-size: 12.5px; line-height: 1.3; font-weight: 800; color: #0f172a; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.entry-grade .material-meta-line { display: flex; align-items: center; gap: 5px; }
+.entry-grade .track-chip { display: inline-flex; align-items: center; height: 15px; padding: 0 6px; border-radius: 4px; background: #e2e8f0; color: #334155; font-size: 9.5px; font-weight: 800; }
+.entry-grade .material-pace-current { display: inline-block; padding: 1px 5px; border-radius: 3px; background: rgba(15,23,42,.05); color: #475569; font-size: 9.5px; }
+
+/* 次回範囲セル内のステッパー */
+.entry-grade .next-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 2px; width: 100%; }
+.entry-grade .next-cell.is-off { opacity: .4; }
+.entry-grade .next-cell .next-val { min-width: 60px; padding: 2px 6px; background: #fff; border: 1px solid #cdd6df; font-weight: 800; color: #0b4a6f; text-align: center; }
+.entry-grade .next-cell .next-manual { width: 100%; height: 26px; padding: 0 6px; border: 1px solid #cdd6df; font: inherit; background: #fff; }
+.entry-grade .next-cell .next-steps { display: inline-flex; gap: 6px; }
+.entry-grade .next-cell .next-grp { display: inline-flex; align-items: center; gap: 2px; font-size: 10px; font-weight: 800; color: #475569; }
+.entry-grade .next-cell .next-grp button { width: 22px; height: 22px; border: 1.5px solid #b9d8c6; background: #fff; color: #0e7a55; font-size: 13px; font-weight: 900; cursor: pointer; line-height: 1; border-radius: 4px; }
+.entry-grade .next-cell .next-grp button:hover { background: #e6f7ef; }
+
 /* PHP風 列=教材レイアウト(添削結果入力)。幅は固定し、表だけ横スクロール。 */
 .gsheet-col { width: auto; table-layout: fixed; }
 .gsheet-col .rowlab {

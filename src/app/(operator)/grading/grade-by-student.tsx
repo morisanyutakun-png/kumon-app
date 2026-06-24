@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -24,22 +23,60 @@ export interface StudentGroup {
 }
 
 /**
- * 1 答案ぶんの採点状態。判定は PHP 添削結果入力表の導出ロジックを踏襲し、
- * チェックの組み合わせから OK/NG/SKIP を導く:
- *   未実施(skip) チェック → SKIP
- *   合格(pass)  チェック → OK
- *   どちらも無し          → NG (やり直し)
+ * 1 答案ぶんの採点状態。判定は PHP 添削結果入力表の導出を踏襲:
+ *   未実施/課題なし → SKIP(進度を進めない) / 合格 → OK / それ以外(再テスト含む) → NG(やり直し)
  */
-interface CellState { score: string; maxScore: string; pass: boolean; skip: boolean; comment: string }
-const empty: CellState = { score: "", maxScore: "", pass: false, skip: false, comment: "" };
+interface Cell {
+  range: string;
+  skip: boolean;
+  score: string;
+  maxScore: string;
+  pass: boolean;
+  retest: boolean;
+  noAssign: boolean;
+  newMat: boolean;
+  remark: string;
+}
+const emptyCell: Cell = {
+  range: "",
+  skip: false,
+  score: "",
+  maxScore: "",
+  pass: false,
+  retest: false,
+  noAssign: false,
+  newMat: false,
+  remark: "",
+};
 interface NextState { startIdx: number; count: number; manual: string }
 
 type Judge = "ok" | "ng" | "skip";
-function judgeOf(st: CellState): Judge {
-  return st.skip ? "skip" : st.pass ? "ok" : "ng";
+function judgeOf(c: Cell): Judge {
+  if (c.skip || c.noAssign) return "skip";
+  if (c.pass) return "ok";
+  return "ng";
 }
 
-/** 正答率(%)。算出できなければ null。 */
+/** 教科 → アクセント色 (PHPの subject-accent と同値)。 */
+const SUBJECT_ACCENT: Record<string, string> = {
+  英語: "#ec4899",
+  数学: "#2563eb",
+  算数: "#2563eb",
+  国語: "#ef4444",
+  理科: "#16a34a",
+  社会: "#eab308",
+  情報: "#7c3aed",
+  プログラミング: "#7c3aed",
+};
+const subjectAccent = (s: string) => SUBJECT_ACCENT[s] ?? "#64748b";
+
+function trackBadge(w: NextWindow | null): string {
+  if (!w) return "手入力";
+  if (w.track === "number") return "番号";
+  if (w.track === "manual") return "手入力";
+  return "章";
+}
+
 function accuracyPct(score: string, maxScore: string): number | null {
   const s = Number(score.trim());
   const m = Number(maxScore.trim());
@@ -47,12 +84,10 @@ function accuracyPct(score: string, maxScore: string): number | null {
   if (!Number.isFinite(s) || !Number.isFinite(m) || m <= 0) return null;
   return Math.round((s / m) * 1000) / 10;
 }
-
-/** 入力エラー(得点を入れたら満点必須・得点≤満点・満点>0)。未実施は対象外。 */
-function rowError(st: CellState): string | null {
-  if (st.skip) return null;
-  const s = st.score.trim();
-  const m = st.maxScore.trim();
+function rowError(c: Cell): string | null {
+  if (c.skip || c.noAssign) return null;
+  const s = c.score.trim();
+  const m = c.maxScore.trim();
   if (s === "" && m === "") return null;
   if (s !== "" && m === "") return "満点も入力してください";
   if (m !== "" && !(Number(m) > 0)) return "満点は0より大きく";
@@ -74,11 +109,21 @@ function renderRange(w: NextWindow, startIdx: number, count: number): string {
   return count <= 1 ? labelAt(w, startIdx) : joinLabel(labelAt(w, startIdx), labelAt(w, startIdx + count - 1));
 }
 
-export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
-  // 答案(submissionId)ごとに採点状態を持つ(PHPの列=教材に対応)
-  const [state, setState] = useState<Record<string, CellState>>(() => {
-    const init: Record<string, CellState> = {};
-    for (const g of groups) for (const a of g.answers) init[a.submissionId] = { ...empty };
+/** 入力日(今日) / 次回テスト日(翌営業日・日曜スキップ)。 */
+function todayStr(): string {
+  return new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD
+}
+function nextBusinessDay(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  if (d.getDay() === 0) d.setDate(d.getDate() + 1); // 日曜はスキップ
+  return d.toLocaleDateString("sv-SE");
+}
+
+export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; grader: string }) {
+  const [state, setState] = useState<Record<string, Cell>>(() => {
+    const init: Record<string, Cell> = {};
+    for (const g of groups) for (const a of g.answers) init[a.submissionId] = { ...emptyCell, range: a.rangeText };
     return init;
   });
   const [nextState, setNextState] = useState<Record<string, NextState>>(() => {
@@ -97,7 +142,7 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
     return <p className="empty">採点できる生徒はいません（1日分の課題がそろうと表示されます）。</p>;
   }
 
-  const set = (id: string, patch: Partial<CellState>) => setState((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
+  const set = (id: string, patch: Partial<Cell>) => setState((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
   const setNext = (subId: string, patch: Partial<NextState>) => setNextState((s) => ({ ...s, [subId]: { ...s[subId], ...patch } }));
 
   function stepRange(subId: string, w: NextWindow, target: "start" | "end", delta: number) {
@@ -116,24 +161,38 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
     });
   }
 
-  function confirmStudent(g: StudentGroup) {
-    const badRow = g.answers.find((a) => rowError(state[a.submissionId]));
-    if (badRow) {
-      toast.error(`「${badRow.materialName}」の得点・満点を見直してください（${rowError(state[badRow.submissionId])}）。`);
+  function clearDraft(g: StudentGroup) {
+    setState((s) => {
+      const next = { ...s };
+      for (const a of g.answers) next[a.submissionId] = { ...emptyCell, range: a.rangeText };
+      return next;
+    });
+    toast.info("下書きをクリアしました。");
+  }
+
+  function reflect(g: StudentGroup) {
+    const bad = g.answers.find((a) => rowError(state[a.submissionId]));
+    if (bad) {
+      toast.error(`「${bad.materialName}」: ${rowError(state[bad.submissionId])}`);
       return;
     }
     const items: BatchGradeItem[] = g.answers.map((a) => {
-      const st = state[a.submissionId];
-      const judge = judgeOf(st);
+      const c = state[a.submissionId];
+      const judge = judgeOf(c);
+      const notes = [
+        c.remark.trim(),
+        c.noAssign ? "※課題なし" : "",
+        c.newMat ? "※新教材" : "",
+        c.retest && judge === "ng" ? "※再テスト" : "",
+      ].filter(Boolean).join(" ");
       const item: BatchGradeItem = {
         submissionId: a.submissionId,
-        score: st.score,
-        maxScore: st.maxScore,
+        score: c.score,
+        maxScore: c.maxScore,
         result: judge,
-        comment: st.comment,
+        comment: notes,
         mode: judge === "ng" ? "resubmit" : "return",
       };
-      // 合格時のみ次回範囲を指定(未実施・やり直しは前進しない)。
       if (judge === "ok" && a.next && !a.next.fixed) {
         const ns = nextState[a.submissionId];
         item.next = a.next.track === "manual" ? { label: ns.manual } : { startIdx: ns.startIdx, count: ns.count };
@@ -145,16 +204,16 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
       try {
         const res = await batchGrade(items);
         setSent((s) => ({ ...s, [g.studentId]: true }));
-        toast.success(`${g.studentName}さんに結果を返しました（${res.processed}件・生徒に届きました）。`);
+        toast.success(`${g.studentName}さんに反映しました（${res.processed}件）。`);
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "保存に失敗しました。");
+        toast.error(e instanceof Error ? e.message : "反映に失敗しました。");
       } finally {
         setPendingId(null);
       }
     });
   }
 
-  // 矢印キーでセル移動(表計算風)。data-gx=列(答案), data-gy=行(項目)。section内に限定。
+  // 矢印キーでセル移動。data-gx=列, data-gy=行。
   function onGridKey(e: React.KeyboardEvent<HTMLElement>) {
     const t = e.target as HTMLElement;
     const gx = t.getAttribute?.("data-gx");
@@ -173,177 +232,251 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
     };
     if (e.key === "ArrowUp") focusAt(x, y - 1);
     else if (e.key === "ArrowDown" || e.key === "Enter") focusAt(x, y + 1);
-    else if (e.key === "ArrowLeft" && isCb) focusAt(x - 1, y);
-    else if (e.key === "ArrowRight" && isCb) focusAt(x + 1, y);
+    else if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && isCb) focusAt(x + (e.key === "ArrowRight" ? 1 : -1), y);
   }
 
   return (
-    <div className="gstudents">
+    <div className="gstudents entry-grade">
       <p className="hint" style={{ marginBottom: 12 }}>
-        生徒を1人ずつ採点します（採点可能 {groups.length} 名）。各教材に <b>合格</b>(スペース可) か <b>未実施</b> をチェック、無ければ<b>やり直し</b>。得点を入れると<b>正答率</b>を自動計算します（得点を入れたら満点も必須）。<b>「結果を返す」</b>で生徒に届きます。矢印キーでセル移動。
+        生徒ごとに「添削結果入力表」で採点します（採点可能 {groups.length} 名）。各教材に <b>合格</b> / <b>未実施</b> / <b>再テスト</b> をチェック（スペース可）、得点を入れると<b>正答率</b>を自動計算。<b>「結果を反映」</b>で生徒に届きます。矢印キーでセル移動。
       </p>
 
       {groups.map((g) => {
         const busy = pendingId === g.studentId;
         const isSent = !!sent[g.studentId];
-        const passN = g.answers.filter((a) => judgeOf(state[a.submissionId]) === "ok").length;
-        const skipN = g.answers.filter((a) => state[a.submissionId]?.skip).length;
+        const n = g.answers.length;
         const errN = g.answers.filter((a) => rowError(state[a.submissionId])).length;
+        const gridStyle = { gridTemplateColumns: `108px repeat(${n}, minmax(172px, 1fr))` } as React.CSSProperties;
+
+        // 行を順に描く: 各行 = ラベル + 列セル
         return (
           <section key={g.studentId} className={`gstudent${isSent ? " is-sent" : ""}`} onKeyDown={onGridKey}>
-            <div className="gstudent-head">
-              <div>
-                <span className="gstudent-name">{g.studentName}</span>
-                <span className="gstudent-grade">{g.studentGrade}</span>
-                <span className={`status-chip ${isSent ? "done" : "ok"}`}>{isSent ? "● 返却済み" : "● 採点可能"}</span>
-                <span className="gstudent-count">答案 {g.answers.length} 件</span>
+            {/* ===== ツールバー(PHP entry-student-toolbar 相当) ===== */}
+            <div className="mastery-toolbar entry-student-toolbar">
+              <div className="toolbar-left">
+                <span className="toolbar-field">生徒
+                  <span className="stu-name">{g.studentName}{g.studentGrade ? ` / ${g.studentGrade}` : ""}</span>
+                </span>
+                <span className="metric-chip">{n} 教材</span>
+                <span className="toolbar-field">入力日
+                  <input type="date" value={todayStr()} readOnly />
+                </span>
+                <span className="toolbar-field">次回テスト日
+                  <input type="date" value={nextBusinessDay()} readOnly title="入力日の翌営業日(日曜はスキップ)" />
+                </span>
+                <span className="toolbar-field instructor-field">添削者<span className="required-mark">*</span>
+                  <span className="stu-name">{grader}</span>
+                </span>
               </div>
-              <div style={{ display: "inline-flex", gap: 8 }}>
-                <Link href={`/grading/write/${g.studentId}`} className="btn-secondary" style={{ padding: "8px 14px", fontSize: 13 }}>✏️ PDFを開いて添削</Link>
-                <a href={`/api/files/student-answers/${g.studentId}?dl=1`} className="btn-secondary" style={{ padding: "8px 12px", fontSize: 13 }}>⬇ ダウンロード</a>
+              <div className="toolbar-right" style={{ gap: 8 }}>
+                <span className={`status-chip ${isSent ? "done" : "ok"}`}>{isSent ? "● 反映済み" : "● 未反映"}</span>
+                {isSent ? (
+                  <span className="btn-sent">✓ 反映済み</span>
+                ) : (
+                  <>
+                    <button type="button" className="btn-primary reflect-btn" onClick={() => reflect(g)} disabled={pendingId !== null || errN > 0}>
+                      {busy ? "反映中…" : "結果を反映"}
+                    </button>
+                    <button type="button" className="btn-secondary" onClick={() => clearDraft(g)}>下書きをクリア</button>
+                  </>
+                )}
               </div>
             </div>
 
-            {/* PHP風: 列=教材, 行=項目 の添削結果入力 */}
-            <div className="roster gsheet">
-              <div className="grid-scroll" style={{ border: "1px solid #dde2e7" }}>
-                <table className="record-table gsheet-col">
-                  <thead>
-                    <tr>
-                      <th className="rowlab">教材</th>
-                      {g.answers.map((a) => (
-                        <th key={a.submissionId} className="matcol">
-                          {a.materialName}
-                          <div className="muted" style={{ fontWeight: 400, fontSize: 11 }}>{a.subject}{a.attemptCount > 1 ? ` ・ 再提出${a.attemptCount - 1}` : ""}</div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="rowlab">範囲</td>
-                      {g.answers.map((a) => <td key={a.submissionId}><span className="cell-pad">{a.rangeText || "範囲なし"}</span></td>)}
-                    </tr>
-                    <tr>
-                      <td className="rowlab">得点</td>
-                      {g.answers.map((a, ci) => {
-                        const st = state[a.submissionId];
-                        return (
-                          <td key={a.submissionId} className={rowError(st) ? "is-required-missing" : ""}>
-                            <input type="number" step="0.5" inputMode="decimal" value={st.score} placeholder="点" disabled={st.skip} style={{ textAlign: "center" }} data-gx={ci} data-gy={0} onChange={(e) => set(a.submissionId, { score: e.target.value })} />
-                          </td>
-                        );
-                      })}
-                    </tr>
-                    <tr>
-                      <td className="rowlab">満点</td>
-                      {g.answers.map((a, ci) => {
-                        const st = state[a.submissionId];
-                        const needMax = !st.skip && st.score.trim() !== "" && st.maxScore.trim() === "";
-                        return (
-                          <td key={a.submissionId} className={rowError(st) ? "is-required-missing" : ""}>
-                            <input type="number" step="0.5" inputMode="decimal" value={st.maxScore} placeholder="満点" disabled={st.skip} className={needMax ? "need-fill" : ""} style={{ textAlign: "center" }} data-gx={ci} data-gy={1} onChange={(e) => set(a.submissionId, { maxScore: e.target.value })} />
-                          </td>
-                        );
-                      })}
-                    </tr>
-                    <tr>
-                      <td className="rowlab">正答率</td>
-                      {g.answers.map((a) => {
-                        const st = state[a.submissionId];
-                        const acc = accuracyPct(st.score, st.maxScore);
-                        return (
-                          <td key={a.submissionId} className="num">
-                            {st.skip ? <span className="muted">—</span> : acc === null ? <span className="muted">—</span> : (
-                              <b style={{ color: acc >= 80 ? "#0e9f6e" : acc >= 60 ? "#b45309" : "#e11d48" }}>{acc}%</b>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                    <tr>
-                      <td className="rowlab">判定</td>
-                      {g.answers.map((a, ci) => {
-                        const st = state[a.submissionId];
-                        const j = judgeOf(st);
-                        return (
-                          <td key={a.submissionId} className={j === "ok" ? "j-ok" : j === "skip" ? "j-skip" : "j-ng"}>
-                            <span className="judge-checks">
-                              <label className="single-check pass" title="チェック=合格">
-                                <input type="checkbox" checked={st.pass} disabled={st.skip} data-gx={ci} data-gy={2} data-cell-type="checkbox" onChange={(e) => set(a.submissionId, { pass: e.target.checked, skip: false })} />
-                                <span>合格</span>
-                              </label>
-                              <label className="single-check skip" title="チェック=未実施(進度は進めません)">
-                                <input type="checkbox" checked={st.skip} data-gx={ci} data-gy={3} data-cell-type="checkbox" onChange={(e) => set(a.submissionId, { skip: e.target.checked, pass: false })} />
-                                <span>未実施</span>
-                              </label>
+            {/* ===== 添削結果入力表(列=教材 / 行=項目) ===== */}
+            <div className="mastery-sheet-wrap">
+              <div className="mastery-sheet" style={gridStyle}>
+                {/* 教材ヘッダー */}
+                <div className="sheet-row-label row-name">教材</div>
+                {g.answers.map((a) => {
+                  const accent = subjectAccent(a.subject);
+                  return (
+                    <div key={a.submissionId} className="sheet-cell material-head" style={{ borderTop: `3px solid ${accent}` }}>
+                      <div className="material-head-top">
+                        <span className="subject-pill" style={{ background: accent, color: "#fff" }}>{a.subject || "教科"}</span>
+                      </div>
+                      <div className="material-name" title={a.materialName}>{a.materialName}</div>
+                      <div className="material-meta-line">
+                        <span className="track-chip">{trackBadge(a.next)}</span>
+                        <small className="muted">{a.sessionNo}回目{a.attemptCount > 1 ? ` ・再提出${a.attemptCount - 1}` : ""}</small>
+                      </div>
+                      <div className="material-pace">
+                        <small className="material-pace-current">
+                          {a.next && a.next.track !== "manual" ? `ペース ${a.next.count}${a.next.track === "number" ? "番" : "章"}ずつ` : "手入力"}
+                        </small>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* 範囲1 */}
+                <div className="sheet-row-label" data-row-label="review">範囲1</div>
+                {g.answers.map((a) => {
+                  const c = state[a.submissionId];
+                  const editable = a.next?.track === "manual";
+                  return (
+                    <div key={a.submissionId} className="sheet-cell range-cell" data-sheet-row="review">
+                      {editable ? (
+                        <input type="text" value={c.range} placeholder="範囲" onChange={(e) => set(a.submissionId, { range: e.target.value })} />
+                      ) : (
+                        <span className="range-text">{c.range || "範囲なし"}</span>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* 範囲1 未実施 */}
+                <div className="sheet-row-label" data-row-label="review-skip">範囲1 未実施</div>
+                {g.answers.map((a, ci) => {
+                  const c = state[a.submissionId];
+                  return (
+                    <div key={a.submissionId} className="sheet-cell check-cell" data-sheet-row="review-skip" data-on={c.skip}>
+                      <label className="single-check">
+                        <input type="checkbox" checked={c.skip} data-gx={ci} data-gy={5} data-cell-type="checkbox" onChange={(e) => set(a.submissionId, { skip: e.target.checked, pass: false, retest: false })} />
+                        <span>未実施</span>
+                      </label>
+                    </div>
+                  );
+                })}
+
+                {/* 範囲1 得点 */}
+                <div className="sheet-row-label" data-row-label="review-score">範囲1 得点</div>
+                {g.answers.map((a, ci) => {
+                  const c = state[a.submissionId];
+                  return (
+                    <div key={a.submissionId} className={`sheet-cell score-cell${rowError(c) ? " is-required-missing" : ""}`} data-sheet-row="review-score">
+                      <input type="number" step="0.5" inputMode="decimal" value={c.score} placeholder="点" disabled={c.skip || c.noAssign} data-gx={ci} data-gy={1} onChange={(e) => set(a.submissionId, { score: e.target.value })} />
+                    </div>
+                  );
+                })}
+
+                {/* 範囲1 満点 */}
+                <div className="sheet-row-label" data-row-label="review-max-score">範囲1 満点</div>
+                {g.answers.map((a, ci) => {
+                  const c = state[a.submissionId];
+                  const needMax = !c.skip && !c.noAssign && c.score.trim() !== "" && c.maxScore.trim() === "";
+                  return (
+                    <div key={a.submissionId} className={`sheet-cell score-cell${rowError(c) ? " is-required-missing" : ""}`} data-sheet-row="review-max-score">
+                      <input type="number" step="0.5" inputMode="decimal" value={c.maxScore} placeholder="満点" disabled={c.skip || c.noAssign} className={needMax ? "need-fill" : ""} data-gx={ci} data-gy={2} onChange={(e) => set(a.submissionId, { maxScore: e.target.value })} />
+                    </div>
+                  );
+                })}
+
+                {/* 範囲1 正答率(読み取り) */}
+                <div className="sheet-row-label" data-row-label="review-max-score">正答率</div>
+                {g.answers.map((a) => {
+                  const c = state[a.submissionId];
+                  const acc = accuracyPct(c.score, c.maxScore);
+                  return (
+                    <div key={a.submissionId} className="sheet-cell rate-cell" data-sheet-row="review-score">
+                      {c.skip || c.noAssign || acc === null ? <span className="muted">—</span> : (
+                        <b style={{ color: acc >= 80 ? "#0e9f6e" : acc >= 60 ? "#b45309" : "#e11d48" }}>{acc}%</b>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* 範囲1 合否 */}
+                <div className="sheet-row-label" data-row-label="review-pass">範囲1 合否</div>
+                {g.answers.map((a, ci) => {
+                  const c = state[a.submissionId];
+                  return (
+                    <div key={a.submissionId} className="sheet-cell check-cell" data-sheet-row="review-pass" data-on={c.pass}>
+                      <label className="single-check">
+                        <input type="checkbox" checked={c.pass} disabled={c.skip || c.noAssign} data-gx={ci} data-gy={3} data-cell-type="checkbox" onChange={(e) => set(a.submissionId, { pass: e.target.checked, retest: false, skip: false })} />
+                        <span>合格</span>
+                      </label>
+                    </div>
+                  );
+                })}
+
+                {/* 範囲1 再テスト */}
+                <div className="sheet-row-label" data-row-label="review-retest">範囲1 再テスト</div>
+                {g.answers.map((a, ci) => {
+                  const c = state[a.submissionId];
+                  return (
+                    <div key={a.submissionId} className="sheet-cell check-cell" data-sheet-row="review-retest" data-on={c.retest}>
+                      <label className="single-check">
+                        <input type="checkbox" checked={c.retest} disabled={c.skip || c.noAssign} data-gx={ci} data-gy={4} data-cell-type="checkbox" onChange={(e) => set(a.submissionId, { retest: e.target.checked, pass: false })} />
+                        <span>再テスト</span>
+                      </label>
+                    </div>
+                  );
+                })}
+
+                {/* 次回範囲1 */}
+                <div className="sheet-row-label" data-row-label="next1">次回範囲1</div>
+                {g.answers.map((a) => {
+                  const w = a.next;
+                  const c = state[a.submissionId];
+                  const isPass = judgeOf(c) === "ok";
+                  if (!w) return <div key={a.submissionId} className="sheet-cell next-preview-cell"><span className="muted">—</span></div>;
+                  const ns = nextState[a.submissionId];
+                  return (
+                    <div key={a.submissionId} className="sheet-cell next-preview-cell" data-sheet-row="next1">
+                      <div className={`next-cell${isPass ? "" : " is-off"}`}>
+                        {w.fixed ? (
+                          <b className="next-val">{w.label}</b>
+                        ) : w.track === "manual" ? (
+                          <input className="next-manual" value={ns.manual} placeholder="次回の範囲" onChange={(e) => setNext(a.submissionId, { manual: e.target.value })} />
+                        ) : (
+                          <>
+                            <b className="next-val">{renderRange(w, ns.startIdx, ns.count)}</b>
+                            <span className="next-steps">
+                              <span className="next-grp">始<button type="button" onClick={() => stepRange(a.submissionId, w, "start", -1)}>−</button><button type="button" onClick={() => stepRange(a.submissionId, w, "start", 1)}>＋</button></span>
+                              <span className="next-grp">終<button type="button" onClick={() => stepRange(a.submissionId, w, "end", -1)}>−</button><button type="button" onClick={() => stepRange(a.submissionId, w, "end", 1)}>＋</button></span>
                             </span>
-                            <div className="muted" style={{ fontSize: 11, textAlign: "center" }}>
-                              {j === "ok" ? "合格→進む" : j === "skip" ? "未実施" : "やり直し"}
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                    <tr>
-                      <td className="rowlab">コメント</td>
-                      {g.answers.map((a, ci) => (
-                        <td key={a.submissionId}><input type="text" value={state[a.submissionId].comment} placeholder="任意" data-gx={ci} data-gy={4} onChange={(e) => set(a.submissionId, { comment: e.target.value })} /></td>
-                      ))}
-                    </tr>
-                    <tr>
-                      <td className="rowlab">次回</td>
-                      {g.answers.map((a) => {
-                        const w = a.next;
-                        const st = state[a.submissionId];
-                        const isPass = judgeOf(st) === "ok";
-                        if (!w) return <td key={a.submissionId}><span className="muted cell-pad">—</span></td>;
-                        const ns = nextState[a.submissionId];
-                        return (
-                          <td key={a.submissionId}>
-                            <div className={`next-cell${isPass ? "" : " is-off"}`}>
-                              {w.fixed ? (
-                                <b className="next-fixed">{w.label}</b>
-                              ) : w.track === "manual" ? (
-                                <input className="next-manual" value={ns.manual} placeholder="次回の範囲" onChange={(e) => setNext(a.submissionId, { manual: e.target.value })} />
-                              ) : (
-                                <>
-                                  <b className="next-val">{renderRange(w, ns.startIdx, ns.count)}</b>
-                                  <span className="next-steps">
-                                    <span className="next-grp">始
-                                      <button type="button" onClick={() => stepRange(a.submissionId, w, "start", -1)}>−</button>
-                                      <button type="button" onClick={() => stepRange(a.submissionId, w, "start", 1)}>＋</button>
-                                    </span>
-                                    <span className="next-grp">終
-                                      <button type="button" onClick={() => stepRange(a.submissionId, w, "end", -1)}>−</button>
-                                      <button type="button" onClick={() => stepRange(a.submissionId, w, "end", 1)}>＋</button>
-                                    </span>
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  </tbody>
-                </table>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* 課題なし */}
+                <div className="sheet-row-label" data-row-label="no-assignment">課題なし</div>
+                {g.answers.map((a, ci) => {
+                  const c = state[a.submissionId];
+                  return (
+                    <div key={a.submissionId} className="sheet-cell check-cell" data-sheet-row="no-assignment" data-on={c.noAssign}>
+                      <label className="single-check">
+                        <input type="checkbox" checked={c.noAssign} data-gx={ci} data-gy={6} data-cell-type="checkbox" onChange={(e) => set(a.submissionId, { noAssign: e.target.checked, pass: false, retest: false })} />
+                        <span>課題なし</span>
+                      </label>
+                    </div>
+                  );
+                })}
+
+                {/* 新教材 */}
+                <div className="sheet-row-label" data-row-label="new-material">新教材</div>
+                {g.answers.map((a, ci) => {
+                  const c = state[a.submissionId];
+                  return (
+                    <div key={a.submissionId} className="sheet-cell check-cell" data-sheet-row="new-material" data-on={c.newMat}>
+                      <label className="single-check">
+                        <input type="checkbox" checked={c.newMat} data-gx={ci} data-gy={7} data-cell-type="checkbox" onChange={(e) => set(a.submissionId, { newMat: e.target.checked })} />
+                        <span>新教材</span>
+                      </label>
+                    </div>
+                  );
+                })}
+
+                {/* 備考 */}
+                <div className="sheet-row-label" data-row-label="remark">備考</div>
+                {g.answers.map((a, ci) => {
+                  const c = state[a.submissionId];
+                  return (
+                    <div key={a.submissionId} className="sheet-cell remark-cell" data-sheet-row="remark">
+                      <input type="text" value={c.remark} placeholder="備考(次回課題に ※追記)" data-gx={ci} data-gy={8} onChange={(e) => set(a.submissionId, { remark: e.target.value })} />
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="gstudent-foot">
-              <span className="hint">
-                合格 {passN} / {g.answers.length} 件{skipN > 0 ? ` ・ 未実施 ${skipN}` : ""}
-                {errN > 0 ? <b style={{ color: "#e11d48" }}> ・ 入力エラー {errN}</b> : ""} ・ 「結果を返す」で生徒に届きます（チェック無し＝やり直し）。
-              </span>
-              {isSent ? (
-                <span className="btn-sent">✓ 返却済み（生徒に届きました）</span>
-              ) : (
-                <button type="button" className="btn-send big" onClick={() => confirmStudent(g)} disabled={pendingId !== null || errN > 0}>
-                  {busy ? "返しています…" : `📨 ${g.studentName}さんに結果を返す`}
-                </button>
-              )}
-            </div>
+            {errN > 0 && (
+              <p className="hint" style={{ marginTop: 6 }}><b style={{ color: "#e11d48" }}>入力エラー {errN} 件</b>: 得点・満点を見直してください。</p>
+            )}
           </section>
         );
       })}

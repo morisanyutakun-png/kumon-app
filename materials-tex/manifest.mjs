@@ -198,7 +198,7 @@ function buildG1() {
       const rng = rngFromString("g1-04");
       return [
         "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(genAdd(rng, 21, { maxSum: 10 })), 3),
+        grid(calcItems(genAdd(rng, 27, { maxSum: 10 })), 3),
       ].join("\n");
     })(),
   });
@@ -215,7 +215,7 @@ function buildG1() {
       const rng = rngFromString("g1-05");
       return [
         "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(genSub(rng, 21, { max: 10 })), 3),
+        grid(calcItems(genSub(rng, 27, { max: 10 })), 3),
       ].join("\n");
     })(),
   });
@@ -230,7 +230,7 @@ function buildG1() {
     goal: "2 つの数のちがいを求めるひき算。0 のひき算もふくめて反復します。",
     body: (() => {
       const rng = rngFromString("g1-06");
-      const probs = genSub(rng, 18, { max: 10 });
+      const probs = genSub(rng, 21, { max: 10 });
       // 0のひき算を少し混ぜる
       probs.push({ expr: "6-0=", ans: 6 }, { expr: "9-9=", ans: 0 }, { expr: "8-0=", ans: 8 });
       return [
@@ -372,7 +372,7 @@ function buildG1() {
       const rng = rngFromString("g1-11");
       return [
         "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(genAddCarry(rng, 21, { maxSum: 14 })), 3),
+        grid(calcItems(genAddCarry(rng, 24, { maxSum: 14 })), 3),
       ].join("\n");
     })(),
   });
@@ -389,7 +389,7 @@ function buildG1() {
       const rng = rngFromString("g1-12");
       return [
         "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(genAddCarry(rng, 21, { maxSum: 18 })), 3),
+        grid(calcItems(genAddCarry(rng, 27, { maxSum: 18 })), 3),
       ].join("\n");
     })(),
   });
@@ -406,7 +406,7 @@ function buildG1() {
       const rng = rngFromString("g1-13");
       return [
         "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(genSubBorrow(rng, 21, { max: 14 })), 3),
+        grid(calcItems(genSubBorrow(rng, 24, { max: 14 })), 3),
       ].join("\n");
     })(),
   });
@@ -423,7 +423,7 @@ function buildG1() {
       const rng = rngFromString("g1-14");
       return [
         "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(genSubBorrow(rng, 21, { max: 18 })), 3),
+        grid(calcItems(genSubBorrow(rng, 27, { max: 18 })), 3),
       ].join("\n");
     })(),
   });
