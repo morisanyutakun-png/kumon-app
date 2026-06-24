@@ -1,10 +1,11 @@
 %% kumonprint.sty
 %% 反復学習プリント用の共通スタイル (uplatex + jsarticle 前提)。
-%% 小学生向け: 大きな文字・やさしい配色・なまえ/ひづけ欄・問題グリッド。
+%% 小学1年生向け: 大きな文字・まるい角・やさしい配色・★・なまえ/てんすう欄・絵。
 %%
 %% 解答版は  \def\ANSWER{1}  を定義してからコンパイルすると赤字で答えが出る。
+%% ※ \documentclass の options に dvipdfmx を必ず入れること(tikz のパスが出るように)。
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{kumonprint}[2026/06/25 Kumon-style worksheet]
+\ProvidesPackage{kumonprint}[2026/06/26 Kumon-style worksheet v2]
 
 \RequirePackage{amsmath}
 \RequirePackage{amssymb}
@@ -13,102 +14,109 @@
 \RequirePackage{tikz}
 \RequirePackage{array}
 \RequirePackage{enumitem}
-\RequirePackage[hmargin=16mm,vmargin=16mm]{geometry}
+\RequirePackage[hmargin=15mm,vmargin=14mm]{geometry}
 
 \definecolor{kpblue}{HTML}{2563EB}
+\definecolor{kpblued}{HTML}{1D4ED8}
 \definecolor{kpgreen}{HTML}{0E9F6E}
 \definecolor{kpink}{HTML}{E11D48}
-\definecolor{kpink2}{HTML}{FDE7EC}
 \definecolor{kpgray}{HTML}{475569}
 \definecolor{kpline}{HTML}{C7CED6}
 \definecolor{kpbox}{HTML}{8A97A6}
-\definecolor{kpheadbg}{HTML}{EEF3FB}
-\definecolor{kpgoalbg}{HTML}{ECFDF5}
-\definecolor{kpfinbg}{HTML}{FFF1F5}
-\definecolor{kpsecbg}{HTML}{EAF1FE}
-\definecolor{kpbg}{HTML}{EEF3F7}
+\definecolor{kpstar}{HTML}{F59E0B}
+\definecolor{kpheadbg}{HTML}{EEF5FF}
+\definecolor{kpgoalbg}{HTML}{FFF7E6}
+\definecolor{kpgoalbd}{HTML}{F4C77E}
+\definecolor{kpgoalink}{HTML}{B45309}
+\definecolor{kpsecbg}{HTML}{E7F0FF}
+\definecolor{kpfinbg}{HTML}{FFF3F7}
+\definecolor{kpcubef}{HTML}{DBEAFE}
+\definecolor{kpcubet}{HTML}{93C5FD}
+\definecolor{kpcuber}{HTML}{BFDBFE}
 
 %% 解答モード判定
 \newif\ifkpans
 \ifdefined\ANSWER\kpanstrue\else\kpansfalse\fi
 
-%% ページ番号は出さない
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
 
-%% ------- ヘッダー (学年・タイトル・なまえ/ひづけ) -------
-%% \kpheader{学年ラベル}{タイトル}{ねらい(サブ)}
+%% ===== ヘッダー =====
+%% \kpheader{学年ラベル}{タイトル}{ひとこと}
 \newcommand{\kpheader}[3]{%
-  % 教科アクセントの帯 (学年ピル + タイトル + サブ)
-  \setlength{\fboxsep}{9pt}%
-  \noindent\colorbox{kpblue}{\parbox{\dimexpr\linewidth-18pt}{%
-    {\sffamily\bfseries\colorbox{white}{\textcolor{kpblue}{\,#1\,}}}\hfill
-    \ifkpans\colorbox{kpink}{\textcolor{white}{\sffamily\bfseries\,かいとう\,}}\fi
-    \par\vspace{1.6mm}
-    {\sffamily\bfseries\Huge\textcolor{white}{#2}}\par\vspace{0.6mm}
-    {\sffamily\textcolor{white}{#3}}%
-  }}\par
-  \vspace{2.6mm}
+  \noindent\begin{tikzpicture}
+    \node[fill=kpblue, rounded corners=10pt, inner xsep=12pt, inner ysep=9pt,
+          text width=\dimexpr\linewidth-24pt\relax, anchor=north west, text=white] (h) at (0,0) {%
+      {\sffamily\bfseries\colorbox{white}{\textcolor{kpblue}{\,#1\,}}}\hfill
+      {\large\textcolor{kpstar}{★}}\ \ifkpans\colorbox{kpink}{\textcolor{white}{\sffamily\bfseries\,こたえ\,}}\else\textcolor{white}{\sffamily\small がんばろう！}\fi\\[1.4mm]
+      {\sffamily\bfseries\Huge #2}\\[0.4mm]
+      {\sffamily\normalsize #3}%
+    };
+  \end{tikzpicture}\par\vspace{2.4mm}
   % なまえ / ひづけ / てんすう
-  \setlength{\fboxsep}{6pt}%
-  \noindent\fcolorbox{kpline}{kpheadbg}{\parbox{\dimexpr\linewidth-14pt}{%
-    {\sffamily\large
-      なまえ \fbox{\rule{0pt}{6mm}\hspace{50mm}}\hfill
-      ひづけ \rule{10mm}{0.4pt}\,がつ\,\rule{10mm}{0.4pt}\,にち \hfill
-      てんすう \fbox{\rule{0pt}{6mm}\hspace{14mm}}%
-    }%
-  }}\par
-  \vspace{3.4mm}
+  \noindent\begin{tikzpicture}
+    \node[fill=kpheadbg, draw=kpline, rounded corners=8pt, inner sep=7pt,
+          text width=\dimexpr\linewidth-16pt\relax, anchor=north west] at (0,0) {%
+      {\sffamily\large
+        なまえ \tikz[baseline=-2.4mm]{\node[draw=kpline,fill=white,rounded corners=3pt,minimum width=50mm,minimum height=8mm]{};}\hfill
+        ひづけ \rule{9mm}{0.4pt}\,がつ\,\rule{9mm}{0.4pt}\,にち \hfill
+        てんすう \tikz[baseline=-2.4mm]{\node[draw=kpstar,fill=white,line width=1pt,rounded corners=3pt,minimum width=16mm,minimum height=8mm]{};}%
+      }%
+    };
+  \end{tikzpicture}\par\vspace{3.2mm}
 }
 
-%% ------- もくひょう(ねらい)ボックス -------
+%% ===== きょうの めあて(もくひょう) =====
 \newcommand{\kpgoal}[1]{%
-  \setlength{\fboxsep}{5pt}%
-  \noindent\fcolorbox{kpgreen}{kpgoalbg}{\parbox{\dimexpr\linewidth-12pt}{%
-    \sffamily\small\textcolor{kpgreen}{\bfseries もくひょう}\ \,#1}}\par
-  \vspace{3mm}
+  \noindent\begin{tikzpicture}
+    \node[fill=kpgoalbg, draw=kpgoalbd, line width=1pt, rounded corners=8pt, inner sep=6pt,
+          text width=\dimexpr\linewidth-16pt\relax, anchor=north west] at (0,0) {%
+      \sffamily {\large\textcolor{kpstar}{★}}\ \textcolor{kpgoalink}{\bfseries きょうの めあて}\quad\textcolor{kpgray}{#1}%
+    };
+  \end{tikzpicture}\par\vspace{3mm}
 }
 
-%% ------- はなまる応援フッター -------
-\newcommand{\kpfinish}{%
-  \vspace{3mm}\par
-  \setlength{\fboxsep}{6pt}%
-  \noindent\fcolorbox{kpink}{kpfinbg}{\parbox{\dimexpr\linewidth-14pt}{%
-    \centering\sffamily\bfseries\textcolor{kpink}{★ ぜんもん できたら はなまる！ よく がんばりました ★}}}\par
-}
-
-%% ------- セクション見出し -------
+%% ===== セクション見出し =====
 \newcommand{\kpsection}[1]{%
-  \vspace{1.5mm}\par
-  \setlength{\fboxsep}{4pt}%
-  \noindent\colorbox{kpsecbg}{\parbox{\dimexpr\linewidth-8pt}{%
-    \sffamily\bfseries\large\textcolor{kpblue}{\rule[-0.4mm]{3mm}{3.6mm}}\ #1}}\par
-  \vspace{2mm}
+  \vspace{1.4mm}\par
+  \noindent\begin{tikzpicture}
+    \node[fill=kpsecbg, rounded corners=7pt, inner xsep=8pt, inner ysep=5pt,
+          text width=\dimexpr\linewidth-16pt\relax, anchor=north west] at (0,0) {%
+      \sffamily\bfseries\large\textcolor{kpblued}{★\ #1}%
+    };
+  \end{tikzpicture}\par\vspace{2mm}
 }
 
-%% ------- 解答の表示切り替え -------
-%% 問題モードでは空欄(下線/箱)、解答モードでは赤字で答え。
+%% ===== はなまる応援フッター(☆は いろを ぬろう) =====
+\newcommand{\kpfinish}{%
+  \vspace{2.5mm}\par
+  \noindent\begin{tikzpicture}
+    \node[fill=kpfinbg, draw=kpink, line width=1pt, rounded corners=9pt, inner sep=7pt,
+          text width=\dimexpr\linewidth-16pt\relax, anchor=north west] at (0,0) {%
+      \centering\sffamily\bfseries\textcolor{kpink}{\large よく できました！}\quad
+      \textcolor{kpstar}{\Large ☆\,☆\,☆}\quad
+      \textcolor{kpgray}{\small ＼ できた かずだけ いろを ぬろう ／}%
+    };
+  \end{tikzpicture}\par
+}
+
+%% ===== 解答の表示切り替え =====
 \newcommand{\kpblank}[1]{%
   \ifkpans{\textcolor{kpink}{\bfseries #1}}\else\underline{\hspace{9mm}}\fi
 }
-%% 大きめの答え枠 (子どもが答えを書く欄)。fcolorbox で確実に枠を描く。
+%% まるい答え枠 (子どもが答えを書く)
 \newcommand{\kpbox}[1]{%
-  \setlength{\fboxrule}{1pt}\setlength{\fboxsep}{1pt}%
   \ifkpans
-    \fcolorbox{kpink}{white}{\rule[-2.6mm]{0pt}{8.6mm}\makebox[11mm]{\bfseries\large\textcolor{kpink}{#1}}}%
+    \tikz[baseline=-2.4mm]{\node[draw=kpink,fill=white,rounded corners=3pt,line width=1.1pt,minimum width=12mm,minimum height=8.6mm,inner sep=1pt]{\bfseries\large\textcolor{kpink}{#1}};}%
   \else
-    \fcolorbox{kpbox}{white}{\rule[-2.6mm]{0pt}{8.6mm}\makebox[11mm]{}}%
+    \tikz[baseline=-2.4mm]{\node[draw=kpbox,fill=white,rounded corners=3pt,line width=1.1pt,minimum width=12mm,minimum height=8.6mm,inner sep=1pt]{};}%
   \fi
 }
 
-%% ------- 計算問題 -------
-%% \kpcalc{(1)}{$3+4=$}{7}  -> 番号・式・答え
+%% ===== 計算問題 =====
 \newcommand{\kpcalc}[3]{%
   {\sffamily\large\textcolor{kpgray}#1}\ \ {\Large #2}\,\kpbox{#3}%
 }
-
-%% 計算問題をグリッドで並べる環境 (列数を引数で)
-%% \begin{kpgrid}{2} ... \kpitem ... \end{kpgrid}
 \newenvironment{kpgrid}[1]{%
   \begin{multicols}{#1}
   \setlength{\columnsep}{6mm}
@@ -116,20 +124,16 @@
 }{%
   \end{multicols}
 }
-%% 1問ぶん(縦に余白)
 \newcommand{\kpitem}[3]{\kpcalc{#1}{#2}{#3}\par\vspace{5.4mm}}
-%% 答え箱を付けない項目(本文中に \kpbox を自分で置く用)
 \newcommand{\kpitemx}[2]{{\sffamily\large\textcolor{kpgray}#1}\ \ {\large #2}\par\vspace{6mm}}
-%% 全幅の縦並び設問(文章題・順序数など。multicols を使わない)
 \newcommand{\kpqfull}[2]{%
   \noindent{\sffamily\large\textcolor{kpgray}#1}\ \begin{minipage}[t]{0.92\linewidth}\large #2\end{minipage}\par\vspace{5mm}%
 }
 
-%% ------- とけい (なんじ・なんじはん) -------
-%% \kpclock{じ}{ふん}
+%% ===== とけい =====
 \newcommand{\kpclock}[2]{%
   \begin{tikzpicture}
-    \draw[line width=1.2pt] (0,0) circle (1cm);
+    \draw[fill=white,line width=1.2pt] (0,0) circle (1cm);
     \foreach \i in {1,...,12}{%
       \node[font=\sffamily\scriptsize] at ({90-30*\i}:0.78cm) {\i};%
       \draw[line width=0.6pt] ({90-30*\i}:0.92cm) -- ({90-30*\i}:1cm);%
@@ -140,14 +144,41 @@
   \end{tikzpicture}%
 }
 
-%% ------- 筆算用マス (任意) -------
-\newcommand{\kpgridcell}{\tikz{\draw[kpline] (0,0) rectangle (8mm,8mm);}}
+%% ===== 絵 (かぞえる用) — tikzpicture 内で使う =====
+%% 積み木(立方体) \kpcube{x}{y}  (単位1)
+\newcommand{\kpcube}[2]{%
+  \begin{scope}[shift={(#1,#2)}]
+    \fill[kpcubef] (0,0) rectangle (1,1);
+    \fill[kpcubet] (0,1) -- (0.32,1.32) -- (1.32,1.32) -- (1,1) -- cycle;
+    \fill[kpcuber] (1,0) -- (1.32,0.32) -- (1.32,1.32) -- (1,1) -- cycle;
+    \draw[kpblue,line width=1pt] (0,0) rectangle (1,1);
+    \draw[kpblue,line width=1pt] (0,1) -- (0.32,1.32) -- (1.32,1.32) -- (1,1);
+    \draw[kpblue,line width=1pt] (1,0) -- (1.32,0.32) -- (1.32,1.32);
+  \end{scope}%
+}
+%% ボール \kpball{x}{y}{color}
+\newcommand{\kpball}[3]{%
+  \colorlet{kpballc}{#3}%
+  \fill[kpballc] (#1,#2) circle (0.42);
+  \draw[kpballc!55!black,line width=0.9pt] (#1,#2) circle (0.42);
+  \fill[white,opacity=0.55] (#1-0.13,#2+0.14) circle (0.09);%
+}
+%% りんご \kpapple{x}{y}
+\newcommand{\kpapple}[2]{%
+  \fill[red!72] (#1,#2) circle (0.4);
+  \draw[red!50!black,line width=0.9pt] (#1,#2) circle (0.4);
+  \fill[white,opacity=0.5] (#1-0.13,#2+0.12) circle (0.08);
+  \draw[brown!70!black,line width=1.3pt] (#1,#2+0.36) -- (#1+0.04,#2+0.62);
+  \fill[green!55!black] (#1+0.07,#2+0.6) ellipse (0.13 and 0.07);%
+}
+%% 絵をならべる土台 (中央寄せの tikzpicture)
+\newenvironment{kppic}[1][0.6]{\begin{center}\begin{tikzpicture}[scale=#1]}{\end{tikzpicture}\end{center}}
 
-%% ------- フッター -------
+%% ===== フッター =====
 \newcommand{\kpfooter}[1]{%
   \vfill
-  \noindent\begin{tikzpicture}\draw[kpline, line width=0.6pt] (0,0) -- (\linewidth,0);\end{tikzpicture}\par
+  \noindent\textcolor{kpline}{\rule{\linewidth}{0.6pt}}\par
   \vspace{1mm}
-  {\sffamily\footnotesize\color{kpgray} #1 \hfill ｜ はんぷくがくしゅうプリント}
+  {\sffamily\footnotesize\color{kpgray} #1 \hfill ｜ はんぷく がくしゅう プリント}
 }
 \endinput

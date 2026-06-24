@@ -66,6 +66,7 @@ async function main() {
       title: string;
       subtitle: string;
       goal: string;
+      desc?: string;
     }>;
   };
 
@@ -104,7 +105,7 @@ async function main() {
           organizationId,
           subject: p.subject,
           name: p.name,
-          description: p.goal,
+          description: p.desc ?? p.goal,
           progressType: "manual",
           completionAction: "delete",
           sortOrder,
@@ -115,7 +116,7 @@ async function main() {
       if (!DRY) {
         await db
           .update(materials)
-          .set({ subject: p.subject, description: p.goal, sortOrder })
+          .set({ subject: p.subject, description: p.desc ?? p.goal, sortOrder })
           .where(eq(materials.id, m.id));
       }
       updated++;

@@ -107,7 +107,8 @@ function buildG1() {
     name: "算数1年① 10までの かず",
     title: "10までの かず",
     subtitle: "かずを かぞえて すうじで かこう",
-    goal: "1〜10 の数を、ものの個数と対応させて数え、数字で書けるようにします。",
+    goal: "1から 10までの かずを かぞえて、すうじで かいて みよう！",
+    desc: "1〜10 の数を、ものの個数と対応させて数え、数字で書けるようにします。",
     body: (() => {
       const rng = rngFromString("g1-01");
       const dotsRow = (n) =>
@@ -139,7 +140,8 @@ function buildG1() {
     name: "算数1年② いくつと いくつ",
     title: "いくつと いくつ",
     subtitle: "5〜10 の かずを 2つに わける",
-    goal: "10 までの数の合成・分解(いくつといくつ)を身につけ、たし算・ひき算の素地をつくります。",
+    goal: "かずを 2つに わけて、「いくつと いくつ」を かんがえよう！",
+    desc: "10 までの数の合成・分解(いくつといくつ)を身につけ、たし算・ひき算の素地をつくります。",
     body: (() => {
       const rng = rngFromString("g1-02");
       // 「N は A と □」型
@@ -176,7 +178,8 @@ function buildG1() {
     name: "算数1年③ あわせて いくつ (たしざん 1)",
     title: "たしざん (1)",
     subtitle: "わが 6 までの たしざん",
-    goal: "合併・増加の場面のたし算。和が 6 までの 1 桁どうしのたし算を確実にします。",
+    goal: "あわせると いくつ？ 6までの たしざんを やってみよう！",
+    desc: "合併・増加の場面のたし算。和が 6 までの 1 桁どうしのたし算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-03");
       return [
@@ -193,7 +196,8 @@ function buildG1() {
     name: "算数1年④ ふえると いくつ (たしざん 2)",
     title: "たしざん (2)",
     subtitle: "わが 10 までの たしざん",
-    goal: "和が 10 までのたし算。くり上がりのない 1 桁どうしを反復します。",
+    goal: "あわせて 10までの たしざんを たくさん れんしゅうしよう！",
+    desc: "和が 10 までのたし算。くり上がりのない 1 桁どうしを反復します。",
     body: (() => {
       const rng = rngFromString("g1-04");
       return [
@@ -210,7 +214,8 @@ function buildG1() {
     name: "算数1年⑤ のこりは いくつ (ひきざん 1)",
     title: "ひきざん (1)",
     subtitle: "10 までの ひきざん",
-    goal: "求残・求差のひき算。10 までの数からのくり下がりのないひき算を確実にします。",
+    goal: "のこりは いくつ？ 10までの ひきざんを やってみよう！",
+    desc: "求残・求差のひき算。10 までの数からのくり下がりのないひき算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-05");
       return [
@@ -227,7 +232,8 @@ function buildG1() {
     name: "算数1年⑥ ちがいは いくつ (ひきざん 2)",
     title: "ひきざん (2)",
     subtitle: "10 までの ひきざん (ちがい)",
-    goal: "2 つの数のちがいを求めるひき算。0 のひき算もふくめて反復します。",
+    goal: "ちがいは いくつ？ ひきざんを たくさん れんしゅうしよう！",
+    desc: "2 つの数のちがいを求めるひき算。0 のひき算もふくめて反復します。",
     body: (() => {
       const rng = rngFromString("g1-06");
       const probs = genSub(rng, 21, { max: 10 });
@@ -247,7 +253,8 @@ function buildG1() {
     name: "算数1年⑦ なんばんめ",
     title: "なんばんめ",
     subtitle: "じゅんばんと かず",
-    goal: "順序数(なんばんめ)と集合数(なんこ)のちがいを理解します。前後・左右の位置の表し方を学びます。",
+    goal: "まえから なんばんめ？ じゅんばんを かんがえよう！",
+    desc: "順序数(なんばんめ)と集合数(なんこ)のちがいを理解します。前後・左右の位置の表し方を学びます。",
     body: (() => {
       const animals = "$\\bigstar\\ \\bigstar\\ \\bigstar\\ \\bigstar\\ \\bigstar\\ \\bigstar\\ \\bigstar$";
       return [
@@ -269,7 +276,8 @@ function buildG1() {
     name: "算数1年⑧ 20までの かず",
     title: "20までの かず",
     subtitle: "くり上がりの ない たし・ひき",
-    goal: "20 までの数の構成(10 と いくつ)。10+□、1□+□、1□−□ のくり上がり・くり下がりのない計算を反復します。",
+    goal: "20までの かずで、たしざんと ひきざんを やってみよう！",
+    desc: "20 までの数の構成(10 と いくつ)。10+□、1□+□、1□−□ のくり上がり・くり下がりのない計算を反復します。",
     body: (() => {
       const rng = rngFromString("g1-08");
       const t10 = uniqueProbs(rng, 6, () => {
@@ -302,7 +310,8 @@ function buildG1() {
     name: "算数1年⑨ とけい (なんじ・なんじはん)",
     title: "とけい",
     subtitle: "なんじ・なんじはん",
-    goal: "「何時」「何時半」の時計を読みます。日常生活と時刻を結びつけます。",
+    goal: "とけいを よんで、「なんじ」「なんじはん」を いえるように なろう！",
+    desc: "「何時」「何時半」の時計を読みます。日常生活と時刻を結びつけます。",
     body: (() => {
       const clocks = [
         [3, 0, "3じ"],
@@ -335,7 +344,8 @@ function buildG1() {
     name: "算数1年⑩ 3つの かずの けいさん",
     title: "3つの かずの けいさん",
     subtitle: "たしたり ひいたり",
-    goal: "3 口の加減(増えてから減る、続けて増える等)を、前から順に計算します。",
+    goal: "3つの かずを、まえから じゅんに けいさんしよう！",
+    desc: "3 口の加減(増えてから減る、続けて増える等)を、前から順に計算します。",
     body: (() => {
       const rng = rngFromString("g1-10");
       const addadd = uniqueProbs(rng, 6, () => {
@@ -367,7 +377,8 @@ function buildG1() {
     name: "算数1年⑪ くりあがりの たしざん (1)",
     title: "くりあがりの たしざん (1)",
     subtitle: "わが 11〜14 の たしざん",
-    goal: "くり上がりのある(1位数)+(1位数)。10 のまとまりをつくる考え方(さくらんぼ計算)を反復します。",
+    goal: "くりあがりの たしざんに ちょうせん！ 10の まとまりを つくろう！",
+    desc: "くり上がりのある(1位数)+(1位数)。10 のまとまりをつくる考え方(さくらんぼ計算)を反復します。",
     body: (() => {
       const rng = rngFromString("g1-11");
       return [
@@ -384,7 +395,8 @@ function buildG1() {
     name: "算数1年⑫ くりあがりの たしざん (2)",
     title: "くりあがりの たしざん (2)",
     subtitle: "わが 11〜18 の たしざん",
-    goal: "くり上がりのあるたし算のしあげ。和が 18 までの 1 桁どうしを確実に計算します。",
+    goal: "くりあがりの たしざんを すらすら できるように なろう！",
+    desc: "くり上がりのあるたし算のしあげ。和が 18 までの 1 桁どうしを確実に計算します。",
     body: (() => {
       const rng = rngFromString("g1-12");
       return [
@@ -401,7 +413,8 @@ function buildG1() {
     name: "算数1年⑬ くりさがりの ひきざん (1)",
     title: "くりさがりの ひきざん (1)",
     subtitle: "11〜14 からの ひきざん",
-    goal: "くり下がりのある(十何)−(1位数)。10 から引いてたす考え方(減加法)を反復します。",
+    goal: "くりさがりの ひきざんに ちょうせん！",
+    desc: "くり下がりのある(十何)−(1位数)。10 から引いてたす考え方(減加法)を反復します。",
     body: (() => {
       const rng = rngFromString("g1-13");
       return [
@@ -418,7 +431,8 @@ function buildG1() {
     name: "算数1年⑭ くりさがりの ひきざん (2)",
     title: "くりさがりの ひきざん (2)",
     subtitle: "11〜18 からの ひきざん",
-    goal: "くり下がりのあるひき算のしあげ。18 までの数からのひき算を確実にします。",
+    goal: "くりさがりの ひきざんを すらすら できるように なろう！",
+    desc: "くり下がりのあるひき算のしあげ。18 までの数からのひき算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-14");
       return [
@@ -435,7 +449,8 @@ function buildG1() {
     name: "算数1年⑮ 大きい かず (100まで)",
     title: "大きい かず (100まで)",
     subtitle: "なんじゅうの たし・ひき",
-    goal: "100 までの数の構成。何十±何十、(2位数)+(1位数) のくり上がりのない計算を反復します。",
+    goal: "100までの おおきい かずで けいさんして みよう！",
+    desc: "100 までの数の構成。何十±何十、(2位数)+(1位数) のくり上がりのない計算を反復します。",
     body: (() => {
       const rng = rngFromString("g1-15");
       const tens = uniqueProbs(rng, 6, () => {
@@ -469,7 +484,8 @@ function buildG1() {
     name: "算数1年⑯ ぶんしょうだい (たし・ひき)",
     title: "ぶんしょうだい",
     subtitle: "たすのかな ひくのかな",
-    goal: "場面を読み取り、たし算かひき算かを自分で決めて(演算決定)、式と答えを書きます。",
+    goal: "おはなしを よんで、たしざんか ひきざんか かんがえよう！",
+    desc: "場面を読み取り、たし算かひき算かを自分で決めて(演算決定)、式と答えを書きます。",
     body: (() => {
       const Q = (no, text, eq, ans, unit) =>
         `\\kpqfull{(${no})}{${text}\\par\\vspace{2.5mm}しき \\ \\kpblank{${eq}} \\qquad こたえ \\ \\kpbox{${ans}}\\,${unit}}`;
@@ -490,7 +506,8 @@ function buildG1() {
     name: "算数1年⑰ かたち",
     title: "かたち",
     subtitle: "まる・さんかく・しかく",
-    goal: "身のまわりの形を、まる・さんかく・しかくの仲間に分けます。立体・平面図形の特徴に親しみます。",
+    goal: "まる・さんかく・しかくの かたちを みつけよう！",
+    desc: "身のまわりの形を、まる・さんかく・しかくの仲間に分けます。立体・平面図形の特徴に親しみます。",
     body: (() => {
       const shapeRow =
         "\\begin{tikzpicture}[scale=0.7]" +
@@ -520,7 +537,8 @@ function buildG1() {
     name: "算数1年⑱ 1年の まとめ",
     title: "1年の まとめ",
     subtitle: "たし算・ひき算の しあげ",
-    goal: "1 年で学んだたし算・ひき算(くり上がり・くり下がりを含む)を総合的に復習します。",
+    goal: "1ねんかんの たしざん・ひきざんの しあげ！ ぜんぶ できるかな？",
+    desc: "1 年で学んだたし算・ひき算(くり上がり・くり下がりを含む)を総合的に復習します。",
     body: (() => {
       const rng = rngFromString("g1-18");
       const mix = [
@@ -532,6 +550,62 @@ function buildG1() {
       return [
         "\\kpsection{つぎの けいさんを しましょう}",
         grid(calcItems(mix), 3),
+      ].join("\n");
+    })(),
+  });
+
+  // ⑲ つみきを かぞえる -----------------------------------------------------
+  add({
+    id: "g1-19",
+    unitNo: 19,
+    name: "算数1年⑲ つみきは いくつ",
+    title: "つみきは いくつ",
+    subtitle: "つみきを かぞえよう",
+    goal: "つみきが ぜんぶで いくつ あるか かぞえて、すうじで かこう！",
+    desc: "具体物(立体)を数えて数量をとらえる。10〜15程度までの計数。",
+    body: (() => {
+      const pile = (cols, scale = 0.42) => {
+        let tk = "";
+        cols.forEach((h, c) => { for (let y = 0; y < h; y++) tk += `\\kpcube{${c}}{${y}}`; });
+        return `\\begin{tikzpicture}[scale=${scale}]${tk}\\end{tikzpicture}`;
+      };
+      const cell = (cols, i) => {
+        const total = cols.reduce((a, b) => a + b, 0);
+        return `\\begin{minipage}[b]{0.22\\linewidth}\\centering (${i + 1})\\par\\vspace{1mm}${pile(cols)}\\par\\vspace{1.5mm}\\kpbox{${total}} こ\\end{minipage}`;
+      };
+      const a = [[3], [2, 2], [1, 2], [2, 1, 2]];
+      const b = [[3, 2], [2, 3, 1], [3, 3], [2, 2, 2, 1]];
+      return [
+        "\\kpsection{つみきは いくつ ありますか}",
+        "\\begin{center}", a.map(cell).join("\\hfill"), "\\end{center}",
+        "\\vspace{4mm}",
+        "\\kpsection{おおきい やまも かぞえて みよう}",
+        "\\begin{center}", b.map((c, i) => cell(c, i + 4)).join("\\hfill"), "\\end{center}",
+      ].join("\n");
+    })(),
+  });
+
+  // ⑳ えで かぞえよう -------------------------------------------------------
+  add({
+    id: "g1-20",
+    unitNo: 20,
+    name: "算数1年⑳ えで かぞえよう",
+    title: "えで かぞえよう",
+    subtitle: "りんご・ボールを かぞえる",
+    goal: "くだものや ボールが いくつ あるか、かぞえて すうじで かこう！",
+    desc: "具体物(半具体物)を数えて数量をとらえる。並んだ絵の計数。",
+    body: (() => {
+      const apples = (n) => { let s = ""; for (let i = 0; i < n; i++) s += `\\kpapple{${i * 1.05}}{0}`; return s; };
+      const balls = (n, col) => { let s = ""; for (let i = 0; i < n; i++) s += `\\kpball{${i * 1.05}}{0}{${col}}`; return s; };
+      const q = (no, tk, ans) =>
+        `\\kpqfull{(${no})}{\\raisebox{-3mm}{\\begin{tikzpicture}[scale=0.52]${tk}\\end{tikzpicture}}\\quad こたえ \\kpbox{${ans}} こ}`;
+      return [
+        "\\kpsection{いくつ ありますか。かぞえて かきましょう}",
+        q(1, apples(5), 5),
+        q(2, balls(7, "kpblue"), 7),
+        q(3, apples(8), 8),
+        q(4, balls(6, "red!70"), 6),
+        q(5, apples(9), 9),
       ].join("\n");
     })(),
   });
