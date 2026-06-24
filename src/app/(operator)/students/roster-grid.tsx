@@ -5,12 +5,21 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
+  addGuardianToStudent,
   addStudentWithGuardian,
   deleteGuardian,
   deleteStudent,
   inlineUpdateGuardian,
   inlineUpdateStudent,
 } from "@/lib/actions/admin-actions";
+
+/**
+ * IME変換確定のEnterでは送信しない(「文字確定」と「登録」のEnterを分ける)。
+ * 変換中(composing)や keyCode 229 のときは何もしない。
+ */
+function isImeEnter(e: React.KeyboardEvent): boolean {
+  return e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229;
+}
 import { ActionButton } from "@/components/action-button";
 
 export const GRADES = ["小1", "小2", "小3", "小4", "小5", "小6", "中1", "中2", "中3"];
@@ -58,7 +67,7 @@ function EditableRow({ s, admin }: { s: RosterRow; admin: boolean }) {
   const [pin, setPin] = useState(s.pin ?? "");
   const [gName, setGName] = useState(s.guardian?.name ?? "");
   const [email, setEmail] = useState(s.guardian?.email ?? "");
-  const [pw, setPw] = useState(s.guardian?.pw ?? "");
+  const [pw, setPw] = useState(s.guardian ? (s.guardian.pw ?? "") : genPassword());
   const [savingS, startS] = useTransition();
   const [savingG, startG] = useTransition();
 
@@ -104,6 +113,28 @@ function EditableRow({ s, admin }: { s: RosterRow; admin: boolean }) {
         toast.success(`保存：${gName.trim() || s.guardian!.name}`);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "保存に失敗しました。");
+      }
+    });
+  }
+  /** 保護者なしの生徒に、後から保護者を追加して紐づける。 */
+  function addGuardian() {
+    if (!gName.trim() || !email.trim()) {
+      toast.warning("保護者は氏名とメールアドレスの両方を入力してください。");
+      return;
+    }
+    const fd = new FormData();
+    fd.set("name", gName.trim());
+    fd.set("email", email.trim());
+    fd.set("password", pw.trim());
+    startG(async () => {
+      try {
+        const res = await addGuardianToStudent(s.id, fd);
+        toast.success(
+          `保護者を追加：${res.name}（${res.email}）` +
+            (res.password ? ` / 初期PW ${res.password}` : "（既存アカウントに紐づけ）"),
+        );
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "追加に失敗しました。");
       }
     });
   }
@@ -209,6 +240,27 @@ function EditableRow({ s, admin }: { s: RosterRow; admin: boolean }) {
             </span>
           </td>
         </>
+      ) : admin ? (
+        <>
+          {/* 保護者なし: 後から追加できる入力欄 */}
+          <td style={{ borderLeft: gBorder }}>
+            <input value={gName} onChange={(e) => setGName(e.target.value)} placeholder="保護者 氏名" />
+          </td>
+          <td>
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="parent@example.com" type="email" autoCapitalize="none" />
+          </td>
+          <td>
+            <div className="input-with-btn">
+              <input className="code" value={pw} onChange={(e) => setPw(e.target.value)} />
+              <button type="button" className="btn-secondary gbtn" onClick={() => setPw(genPassword())} title="パスワードを生成">自動</button>
+            </div>
+          </td>
+          <td className="right">
+            <button type="button" className="btn-primary gbtn" disabled={savingG || !gName.trim() || !email.trim()} onClick={addGuardian}>
+              {savingG ? "追加中" : "＋ 保護者を追加"}
+            </button>
+          </td>
+        </>
       ) : (
         <td colSpan={4} style={{ borderLeft: gBorder }}>
           <span className="cell-pad muted">（保護者なし）</span>
@@ -281,10 +333,10 @@ export function RosterGrid({ rows, admin }: { rows: RosterRow[]; admin: boolean 
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      add();
-    }
+    if (e.key !== "Enter") return;
+    if (isImeEnter(e)) return; // 変換確定のEnterでは登録しない
+    e.preventDefault();
+    add();
   }
 
   return (

@@ -383,6 +383,77 @@ export async function quickAddGuardian(
   return { name, email, password };
 }
 
+/**
+ * 既存の生徒に保護者を後から追加して紐づける。
+ * 既存メールの保護者がいれば再利用し、いなければ作成(パスワード未入力なら自動割当)。
+ * 返り値の password は新規作成時のみ。既存再利用時は null。
+ */
+export async function addGuardianToStudent(
+  studentId: string,
+  fd: FormData,
+): Promise<{ name: string; email: string; password: string | null }> {
+  const p = await requireOperator();
+  const name = str(fd, "name");
+  const email = str(fd, "email").toLowerCase();
+  if (!name || !email) {
+    throw new Error("保護者は氏名とメールアドレスの両方を入力してください。");
+  }
+
+  // 対象の生徒が自組織のものか確認
+  const [student] = await db
+    .select({ id: students.id })
+    .from(students)
+    .where(and(eq(students.id, studentId), eq(students.organizationId, p.organizationId)))
+    .limit(1);
+  if (!student) throw new Error("生徒が見つかりません。");
+
+  const password = str(fd, "password") || randomPassword();
+  let out: { name: string; email: string; password: string | null };
+
+  let [parent] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (parent && parent.role !== "parent") {
+    throw new Error("そのメールアドレスは別の用途で使われています。");
+  }
+  if (!parent) {
+    [parent] = await db
+      .insert(users)
+      .values({
+        organizationId: p.organizationId,
+        name,
+        email,
+        role: "parent",
+        passwordHash: await bcrypt.hash(password, 10),
+        pwPlain: password,
+      })
+      .returning();
+    out = { name, email, password };
+  } else {
+    out = { name: parent.name, email: parent.email, password: null };
+  }
+
+  // 既に紐づいていなければ紐づける
+  const [link] = await db
+    .select({ id: guardianStudents.id })
+    .from(guardianStudents)
+    .where(
+      and(
+        eq(guardianStudents.guardianUserId, parent.id),
+        eq(guardianStudents.studentId, studentId),
+      ),
+    )
+    .limit(1);
+  if (!link) {
+    await db.insert(guardianStudents).values({
+      organizationId: p.organizationId,
+      guardianUserId: parent.id,
+      studentId,
+    });
+  }
+
+  revalidatePath("/students");
+  return out;
+}
+
 /** 行から教材を追加 (教科/教材名/進め方)。番号範囲や単元は編集で設定。 */
 export async function quickAddMaterial(fd: FormData): Promise<{ name: string }> {
   const p = await requireOperator();
