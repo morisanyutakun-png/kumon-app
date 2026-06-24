@@ -1352,6 +1352,29 @@ body {
 .single-check.pass:has(input:checked) {
   border-color: #10b981; background: #ecfdf5; color: #047857; box-shadow: inset 0 0 0 1px #10b981;
 }
+/* 未実施(SKIP): PHPアプリでは青系。 */
+.single-check.skip input { color: #2563eb; }
+.single-check.skip:has(input:checked) {
+  border-color: #2563eb; background: #eff6ff; color: #1d4ed8; box-shadow: inset 0 0 0 1px #2563eb;
+}
+.judge-checks { display: inline-flex; gap: 6px; justify-content: center; }
+
+/* 判定行の色分け(合格=緑 / 未実施=青 / やり直し=やや赤)。PHP添削結果入力表の配色を踏襲。 */
+.gsheet tr.j-skip > td { background: #eff5ff; }
+.gsheet-col td.j-ok { background: #f3fbf7; }
+.gsheet-col td.j-skip { background: #eff5ff; }
+.gsheet-col td.j-ng { background: #fdf4f6; }
+
+/* 得点/満点の入力エラー(得点を入れたら満点必須など)を赤で強調。 */
+.is-required-missing input,
+.gsheet input.need-fill {
+  border-color: #e11d48 !important; background: #fff1f3; box-shadow: inset 0 0 0 1px #e11d48;
+}
+.score-cell.is-required-missing { box-shadow: inset 0 0 0 1px #e11d48; }
+
+/* 一括採点表(batch-table)の3値判定ボタン: 未実施。 */
+.gsheet .judge-btn.skip.on { background: #eff6ff; border-color: #2563eb; color: #1d4ed8; }
+.gsheet tr.j-skip > td { background: #f3f7ff; }
 
 /* PHP風 列=教材レイアウト(添削結果入力)。幅は固定し、表だけ横スクロール。 */
 .gsheet-col { width: auto; table-layout: fixed; }

@@ -214,7 +214,7 @@ export interface HistoryRow {
   createdAt: Date;
   score: string | null;
   maxScore: string | null;
-  result: "ok" | "ng" | null;
+  result: "ok" | "ng" | "skip" | null;
   comment: string;
   requiresResubmit: boolean;
   attemptNo: number;

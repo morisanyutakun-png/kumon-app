@@ -18,7 +18,7 @@ export interface SubjectStat {
 export interface TrendPoint {
   date: Date;
   pct: number | null;
-  result: "ok" | "ng" | null;
+  result: "ok" | "ng" | "skip" | null;
   label: string;
 }
 export interface GradeStats {
@@ -51,16 +51,18 @@ export function computeGradeStats(rows: HistoryRow[]): GradeStats {
   for (const r of rows) if (!latestBySub.has(r.submissionId)) latestBySub.set(r.submissionId, r);
   const latest = [...latestBySub.values()];
 
-  const gradedSubmissions = latest.length;
+  // 未実施(skip)は「採点された課題」「合格率の母数」から除外する。
+  const judged = latest.filter((r) => r.result !== "skip");
+  const gradedSubmissions = judged.length;
   const gradingCount = rows.length;
-  const passCount = latest.filter((r) => r.result === "ok").length;
+  const passCount = judged.filter((r) => r.result === "ok").length;
   const passRate = gradedSubmissions ? Math.round((passCount / gradedSubmissions) * 100) : 0;
   const avgPct = avg(latest.map((r) => pct(r.score, r.maxScore)).filter((n): n is number => n != null));
   const streak = studyStreak(rows.map((r) => r.createdAt));
   const level = levelInfo(passCount);
 
   const bySub = new Map<string, HistoryRow[]>();
-  for (const r of latest) {
+  for (const r of judged) {
     const k = r.subject || "その他";
     const list = bySub.get(k);
     if (list) list.push(r);

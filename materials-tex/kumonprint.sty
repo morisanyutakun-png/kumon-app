@@ -1,0 +1,133 @@
+%% kumonprint.sty
+%% 反復学習プリント用の共通スタイル (uplatex + jsarticle 前提)。
+%% 小学生向け: 大きな文字・やさしい配色・なまえ/ひづけ欄・問題グリッド。
+%%
+%% 解答版は  \def\ANSWER{1}  を定義してからコンパイルすると赤字で答えが出る。
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{kumonprint}[2026/06/25 Kumon-style worksheet]
+
+\RequirePackage{amsmath}
+\RequirePackage{amssymb}
+\RequirePackage{xcolor}
+\RequirePackage{multicol}
+\RequirePackage{tikz}
+\RequirePackage{array}
+\RequirePackage{enumitem}
+\RequirePackage[hmargin=16mm,vmargin=16mm]{geometry}
+
+\definecolor{kpblue}{HTML}{2563EB}
+\definecolor{kpgreen}{HTML}{0E9F6E}
+\definecolor{kpink}{HTML}{E11D48}
+\definecolor{kpink2}{HTML}{FDE7EC}
+\definecolor{kpgray}{HTML}{475569}
+\definecolor{kpline}{HTML}{C7CED6}
+\definecolor{kpbox}{HTML}{8A97A6}
+\definecolor{kpbg}{HTML}{EEF3F7}
+
+%% 解答モード判定
+\newif\ifkpans
+\ifdefined\ANSWER\kpanstrue\else\kpansfalse\fi
+
+%% ページ番号は出さない
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+
+%% ------- ヘッダー (学年・タイトル・なまえ/ひづけ) -------
+%% \kpheader{学年ラベル}{タイトル}{ねらい(サブ)}
+\newcommand{\kpheader}[3]{%
+  \noindent
+  \begin{tikzpicture}
+    \node[anchor=north west, inner sep=0pt] (a) at (0,0) {%
+      \colorbox{kpblue}{\textcolor{white}{\sffamily\bfseries\large\,#1\,}}%
+    };
+  \end{tikzpicture}\hfill
+  \ifkpans\colorbox{kpink}{\textcolor{white}{\sffamily\bfseries\,かいとう\,}}\fi
+  \par\vspace{2mm}
+  {\sffamily\bfseries\Huge #2}\par
+  \vspace{1mm}
+  {\sffamily\color{kpgray}\large #3}\par
+  \vspace{3mm}
+  \noindent\begin{tikzpicture}
+    \draw[kpline, line width=1pt] (0,0) -- (\linewidth,0);
+  \end{tikzpicture}\par
+  \vspace{1.5mm}
+  {\sffamily\large
+    なまえ \fbox{\rule{0pt}{6mm}\hspace{52mm}}\hfill
+    ひづけ \quad\rule{12mm}{0.4pt}\ がつ\ \rule{12mm}{0.4pt}\ にち \hfill
+    てんすう \fbox{\rule{0pt}{6mm}\hspace{16mm}}%
+  }\par
+  \vspace{4mm}
+}
+
+%% ------- セクション見出し -------
+\newcommand{\kpsection}[1]{%
+  \vspace{2mm}\par
+  {\sffamily\bfseries\large\textcolor{kpblue}{\rule[-0.5mm]{3mm}{4mm}}\ #1}\par
+  \vspace{1.5mm}
+}
+
+%% ------- 解答の表示切り替え -------
+%% 問題モードでは空欄(下線/箱)、解答モードでは赤字で答え。
+\newcommand{\kpblank}[1]{%
+  \ifkpans{\textcolor{kpink}{\bfseries #1}}\else\underline{\hspace{9mm}}\fi
+}
+%% 大きめの答え枠 (子どもが答えを書く欄)。fcolorbox で確実に枠を描く。
+\newcommand{\kpbox}[1]{%
+  \setlength{\fboxrule}{1pt}\setlength{\fboxsep}{1pt}%
+  \ifkpans
+    \fcolorbox{kpink}{white}{\rule[-2.6mm]{0pt}{8.6mm}\makebox[11mm]{\bfseries\large\textcolor{kpink}{#1}}}%
+  \else
+    \fcolorbox{kpbox}{white}{\rule[-2.6mm]{0pt}{8.6mm}\makebox[11mm]{}}%
+  \fi
+}
+
+%% ------- 計算問題 -------
+%% \kpcalc{(1)}{$3+4=$}{7}  -> 番号・式・答え
+\newcommand{\kpcalc}[3]{%
+  {\sffamily\large\textcolor{kpgray}#1}\ \ {\Large #2}\,\kpbox{#3}%
+}
+
+%% 計算問題をグリッドで並べる環境 (列数を引数で)
+%% \begin{kpgrid}{2} ... \kpitem ... \end{kpgrid}
+\newenvironment{kpgrid}[1]{%
+  \begin{multicols}{#1}
+  \setlength{\columnsep}{6mm}
+  \large
+}{%
+  \end{multicols}
+}
+%% 1問ぶん(縦に余白)
+\newcommand{\kpitem}[3]{\kpcalc{#1}{#2}{#3}\par\vspace{6.5mm}}
+%% 答え箱を付けない項目(本文中に \kpbox を自分で置く用)
+\newcommand{\kpitemx}[2]{{\sffamily\large\textcolor{kpgray}#1}\ \ {\large #2}\par\vspace{6mm}}
+%% 全幅の縦並び設問(文章題・順序数など。multicols を使わない)
+\newcommand{\kpqfull}[2]{%
+  \noindent{\sffamily\large\textcolor{kpgray}#1}\ \begin{minipage}[t]{0.92\linewidth}\large #2\end{minipage}\par\vspace{5mm}%
+}
+
+%% ------- とけい (なんじ・なんじはん) -------
+%% \kpclock{じ}{ふん}
+\newcommand{\kpclock}[2]{%
+  \begin{tikzpicture}
+    \draw[line width=1.2pt] (0,0) circle (1cm);
+    \foreach \i in {1,...,12}{%
+      \node[font=\sffamily\scriptsize] at ({90-30*\i}:0.78cm) {\i};%
+      \draw[line width=0.6pt] ({90-30*\i}:0.92cm) -- ({90-30*\i}:1cm);%
+    }
+    \draw[line width=1.8pt, kpgray] (0,0) -- ({90-30*#1-0.5*#2}:0.5cm);
+    \draw[line width=1pt, kpink] (0,0) -- ({90-6*#2}:0.82cm);
+    \fill (0,0) circle (1.2pt);
+  \end{tikzpicture}%
+}
+
+%% ------- 筆算用マス (任意) -------
+\newcommand{\kpgridcell}{\tikz{\draw[kpline] (0,0) rectangle (8mm,8mm);}}
+
+%% ------- フッター -------
+\newcommand{\kpfooter}[1]{%
+  \vfill
+  \noindent\begin{tikzpicture}\draw[kpline, line width=0.6pt] (0,0) -- (\linewidth,0);\end{tikzpicture}\par
+  \vspace{1mm}
+  {\sffamily\footnotesize\color{kpgray} #1 \hfill ｜ はんぷくがくしゅうプリント}
+}
+\endinput

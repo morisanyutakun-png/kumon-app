@@ -36,6 +36,13 @@
       "when": 1782189986699,
       "tag": "0004_true_living_mummy",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782314806828,
+      "tag": "0005_rare_taskmaster",
+      "breakpoints": true
     }
   ]
 }

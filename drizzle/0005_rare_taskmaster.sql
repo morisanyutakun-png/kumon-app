@@ -1,0 +1,1 @@
+ALTER TYPE "public"."grading_result" ADD VALUE 'skip';

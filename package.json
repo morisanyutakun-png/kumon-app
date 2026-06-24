@@ -14,6 +14,8 @@
     "db:seed": "tsx src/db/seed.ts",
     "db:seed:prod": "tsx src/db/seed-prod.ts",
     "demo:ddl": "node scripts/gen-demo-ddl.mjs",
+    "materials:build": "node scripts/build-materials.mjs",
+    "materials:seed": "tsx scripts/seed-math-materials.ts",
     "test:unit": "tsx scripts/progress-test.ts",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui"

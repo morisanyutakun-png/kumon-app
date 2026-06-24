@@ -37,10 +37,12 @@ export function HistoryList({
                     "rounded-none px-2 py-0.5 text-xs font-medium " +
                     (r.result === "ok"
                       ? "bg-emerald-100 text-emerald-700"
-                      : "bg-rose-100 text-rose-700")
+                      : r.result === "skip"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-rose-100 text-rose-700")
                   }
                 >
-                  {r.result === "ok" ? "合格" : "不合格"}
+                  {r.result === "ok" ? "合格" : r.result === "skip" ? "未実施" : "不合格"}
                 </span>
               )}
               <span className="font-medium">

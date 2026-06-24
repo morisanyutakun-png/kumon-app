@@ -30,10 +30,12 @@ export function GradingHistory({
                     "rounded-none px-2 py-0.5 text-xs font-medium " +
                     (g.result === "ok"
                       ? "bg-emerald-100 text-emerald-700"
-                      : "bg-rose-100 text-rose-700")
+                      : g.result === "skip"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-rose-100 text-rose-700")
                   }
                 >
-                  {g.result === "ok" ? "合格" : "不合格"}
+                  {g.result === "ok" ? "合格" : g.result === "skip" ? "未実施" : "不合格"}
                 </span>
               )}
               {(g.score !== null || g.maxScore !== null) && (

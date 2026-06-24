@@ -50,3 +50,7 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# 教材プリントのビルド成果物 (npm run materials:build で再生成)
+materials-tex/dist/
+materials-tex/.work/

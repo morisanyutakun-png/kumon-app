@@ -23,9 +23,43 @@ export interface StudentGroup {
   answers: AnswerRow[];
 }
 
-interface CellState { score: string; maxScore: string; pass: boolean; comment: string }
-const empty: CellState = { score: "", maxScore: "", pass: false, comment: "" };
+/**
+ * 1 答案ぶんの採点状態。判定は PHP 添削結果入力表の導出ロジックを踏襲し、
+ * チェックの組み合わせから OK/NG/SKIP を導く:
+ *   未実施(skip) チェック → SKIP
+ *   合格(pass)  チェック → OK
+ *   どちらも無し          → NG (やり直し)
+ */
+interface CellState { score: string; maxScore: string; pass: boolean; skip: boolean; comment: string }
+const empty: CellState = { score: "", maxScore: "", pass: false, skip: false, comment: "" };
 interface NextState { startIdx: number; count: number; manual: string }
+
+type Judge = "ok" | "ng" | "skip";
+function judgeOf(st: CellState): Judge {
+  return st.skip ? "skip" : st.pass ? "ok" : "ng";
+}
+
+/** 正答率(%)。算出できなければ null。 */
+function accuracyPct(score: string, maxScore: string): number | null {
+  const s = Number(score.trim());
+  const m = Number(maxScore.trim());
+  if (score.trim() === "" || maxScore.trim() === "") return null;
+  if (!Number.isFinite(s) || !Number.isFinite(m) || m <= 0) return null;
+  return Math.round((s / m) * 1000) / 10;
+}
+
+/** 入力エラー(得点を入れたら満点必須・得点≤満点・満点>0)。未実施は対象外。 */
+function rowError(st: CellState): string | null {
+  if (st.skip) return null;
+  const s = st.score.trim();
+  const m = st.maxScore.trim();
+  if (s === "" && m === "") return null;
+  if (s !== "" && m === "") return "満点も入力してください";
+  if (m !== "" && !(Number(m) > 0)) return "満点は0より大きく";
+  if (s !== "" && !(Number(s) >= 0)) return "得点は0以上";
+  if (s !== "" && m !== "" && Number(s) > Number(m)) return "得点が満点を超えています";
+  return null;
+}
 
 function labelAt(w: NextWindow, idx: number): string {
   return w.track === "number" ? String(w.numberStart + idx) : (w.labels[idx] ?? "");
@@ -83,18 +117,24 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
   }
 
   function confirmStudent(g: StudentGroup) {
+    const badRow = g.answers.find((a) => rowError(state[a.submissionId]));
+    if (badRow) {
+      toast.error(`「${badRow.materialName}」の得点・満点を見直してください（${rowError(state[badRow.submissionId])}）。`);
+      return;
+    }
     const items: BatchGradeItem[] = g.answers.map((a) => {
       const st = state[a.submissionId];
-      const pass = st.pass;
+      const judge = judgeOf(st);
       const item: BatchGradeItem = {
         submissionId: a.submissionId,
         score: st.score,
         maxScore: st.maxScore,
-        result: pass ? "ok" : "ng",
+        result: judge,
         comment: st.comment,
-        mode: pass ? "return" : "resubmit",
+        mode: judge === "ng" ? "resubmit" : "return",
       };
-      if (pass && a.next && !a.next.fixed) {
+      // 合格時のみ次回範囲を指定(未実施・やり直しは前進しない)。
+      if (judge === "ok" && a.next && !a.next.fixed) {
         const ns = nextState[a.submissionId];
         item.next = a.next.track === "manual" ? { label: ns.manual } : { startIdx: ns.startIdx, count: ns.count };
       }
@@ -140,13 +180,15 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
   return (
     <div className="gstudents">
       <p className="hint" style={{ marginBottom: 12 }}>
-        生徒を1人ずつ採点します（採点可能 {groups.length} 名）。各教材の<b>合格</b>にチェック（スペース可）→<b>「結果を返す」</b>で生徒に届きます。チェック無し＝やり直し。矢印キーでセル移動。
+        生徒を1人ずつ採点します（採点可能 {groups.length} 名）。各教材に <b>合格</b>(スペース可) か <b>未実施</b> をチェック、無ければ<b>やり直し</b>。得点を入れると<b>正答率</b>を自動計算します（得点を入れたら満点も必須）。<b>「結果を返す」</b>で生徒に届きます。矢印キーでセル移動。
       </p>
 
       {groups.map((g) => {
         const busy = pendingId === g.studentId;
         const isSent = !!sent[g.studentId];
-        const passN = g.answers.filter((a) => state[a.submissionId]?.pass).length;
+        const passN = g.answers.filter((a) => judgeOf(state[a.submissionId]) === "ok").length;
+        const skipN = g.answers.filter((a) => state[a.submissionId]?.skip).length;
+        const errN = g.answers.filter((a) => rowError(state[a.submissionId])).length;
         return (
           <section key={g.studentId} className={`gstudent${isSent ? " is-sent" : ""}`} onKeyDown={onGridKey}>
             <div className="gstudent-head">
@@ -184,26 +226,61 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
                     </tr>
                     <tr>
                       <td className="rowlab">得点</td>
-                      {g.answers.map((a, ci) => (
-                        <td key={a.submissionId}><input type="number" step="0.5" inputMode="decimal" value={state[a.submissionId].score} placeholder="点" style={{ textAlign: "center" }} data-gx={ci} data-gy={0} onChange={(e) => set(a.submissionId, { score: e.target.value })} /></td>
-                      ))}
-                    </tr>
-                    <tr>
-                      <td className="rowlab">満点</td>
-                      {g.answers.map((a, ci) => (
-                        <td key={a.submissionId}><input type="number" step="0.5" inputMode="decimal" value={state[a.submissionId].maxScore} placeholder="満点" style={{ textAlign: "center" }} data-gx={ci} data-gy={1} onChange={(e) => set(a.submissionId, { maxScore: e.target.value })} /></td>
-                      ))}
-                    </tr>
-                    <tr>
-                      <td className="rowlab">合格</td>
                       {g.answers.map((a, ci) => {
                         const st = state[a.submissionId];
                         return (
-                          <td key={a.submissionId} className={st.pass ? "j-ok" : ""}>
-                            <label className="single-check pass" title="チェック=合格 / 空=やり直し">
-                              <input type="checkbox" checked={st.pass} data-gx={ci} data-gy={2} data-cell-type="checkbox" onChange={(e) => set(a.submissionId, { pass: e.target.checked })} />
-                              <span>合格</span>
-                            </label>
+                          <td key={a.submissionId} className={rowError(st) ? "is-required-missing" : ""}>
+                            <input type="number" step="0.5" inputMode="decimal" value={st.score} placeholder="点" disabled={st.skip} style={{ textAlign: "center" }} data-gx={ci} data-gy={0} onChange={(e) => set(a.submissionId, { score: e.target.value })} />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    <tr>
+                      <td className="rowlab">満点</td>
+                      {g.answers.map((a, ci) => {
+                        const st = state[a.submissionId];
+                        const needMax = !st.skip && st.score.trim() !== "" && st.maxScore.trim() === "";
+                        return (
+                          <td key={a.submissionId} className={rowError(st) ? "is-required-missing" : ""}>
+                            <input type="number" step="0.5" inputMode="decimal" value={st.maxScore} placeholder="満点" disabled={st.skip} className={needMax ? "need-fill" : ""} style={{ textAlign: "center" }} data-gx={ci} data-gy={1} onChange={(e) => set(a.submissionId, { maxScore: e.target.value })} />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    <tr>
+                      <td className="rowlab">正答率</td>
+                      {g.answers.map((a) => {
+                        const st = state[a.submissionId];
+                        const acc = accuracyPct(st.score, st.maxScore);
+                        return (
+                          <td key={a.submissionId} className="num">
+                            {st.skip ? <span className="muted">—</span> : acc === null ? <span className="muted">—</span> : (
+                              <b style={{ color: acc >= 80 ? "#0e9f6e" : acc >= 60 ? "#b45309" : "#e11d48" }}>{acc}%</b>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    <tr>
+                      <td className="rowlab">判定</td>
+                      {g.answers.map((a, ci) => {
+                        const st = state[a.submissionId];
+                        const j = judgeOf(st);
+                        return (
+                          <td key={a.submissionId} className={j === "ok" ? "j-ok" : j === "skip" ? "j-skip" : "j-ng"}>
+                            <span className="judge-checks">
+                              <label className="single-check pass" title="チェック=合格">
+                                <input type="checkbox" checked={st.pass} disabled={st.skip} data-gx={ci} data-gy={2} data-cell-type="checkbox" onChange={(e) => set(a.submissionId, { pass: e.target.checked, skip: false })} />
+                                <span>合格</span>
+                              </label>
+                              <label className="single-check skip" title="チェック=未実施(進度は進めません)">
+                                <input type="checkbox" checked={st.skip} data-gx={ci} data-gy={3} data-cell-type="checkbox" onChange={(e) => set(a.submissionId, { skip: e.target.checked, pass: false })} />
+                                <span>未実施</span>
+                              </label>
+                            </span>
+                            <div className="muted" style={{ fontSize: 11, textAlign: "center" }}>
+                              {j === "ok" ? "合格→進む" : j === "skip" ? "未実施" : "やり直し"}
+                            </div>
                           </td>
                         );
                       })}
@@ -211,7 +288,7 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
                     <tr>
                       <td className="rowlab">コメント</td>
                       {g.answers.map((a, ci) => (
-                        <td key={a.submissionId}><input type="text" value={state[a.submissionId].comment} placeholder="任意" data-gx={ci} data-gy={3} onChange={(e) => set(a.submissionId, { comment: e.target.value })} /></td>
+                        <td key={a.submissionId}><input type="text" value={state[a.submissionId].comment} placeholder="任意" data-gx={ci} data-gy={4} onChange={(e) => set(a.submissionId, { comment: e.target.value })} /></td>
                       ))}
                     </tr>
                     <tr>
@@ -219,11 +296,12 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
                       {g.answers.map((a) => {
                         const w = a.next;
                         const st = state[a.submissionId];
+                        const isPass = judgeOf(st) === "ok";
                         if (!w) return <td key={a.submissionId}><span className="muted cell-pad">—</span></td>;
                         const ns = nextState[a.submissionId];
                         return (
                           <td key={a.submissionId}>
-                            <div className={`next-cell${st.pass ? "" : " is-off"}`}>
+                            <div className={`next-cell${isPass ? "" : " is-off"}`}>
                               {w.fixed ? (
                                 <b className="next-fixed">{w.label}</b>
                               ) : w.track === "manual" ? (
@@ -254,11 +332,14 @@ export function GradeByStudent({ groups }: { groups: StudentGroup[] }) {
             </div>
 
             <div className="gstudent-foot">
-              <span className="hint">合格 {passN} / {g.answers.length} 件 ・ 「結果を返す」で生徒に届きます（チェック無し＝やり直し）。</span>
+              <span className="hint">
+                合格 {passN} / {g.answers.length} 件{skipN > 0 ? ` ・ 未実施 ${skipN}` : ""}
+                {errN > 0 ? <b style={{ color: "#e11d48" }}> ・ 入力エラー {errN}</b> : ""} ・ 「結果を返す」で生徒に届きます（チェック無し＝やり直し）。
+              </span>
               {isSent ? (
                 <span className="btn-sent">✓ 返却済み（生徒に届きました）</span>
               ) : (
-                <button type="button" className="btn-send big" onClick={() => confirmStudent(g)} disabled={pendingId !== null}>
+                <button type="button" className="btn-send big" onClick={() => confirmStudent(g)} disabled={pendingId !== null || errN > 0}>
                   {busy ? "返しています…" : `📨 ${g.studentName}さんに結果を返す`}
                 </button>
               )}

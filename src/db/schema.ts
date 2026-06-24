@@ -71,7 +71,7 @@ export const submissionStatusEnum = pgEnum("submission_status", [
 ]);
 
 /** 採点結果 (合否)。 */
-export const gradingResultEnum = pgEnum("grading_result", ["ok", "ng"]);
+export const gradingResultEnum = pgEnum("grading_result", ["ok", "ng", "skip"]);
 
 /** 教材に紐づくファイル種別。 */
 export const materialFileKindEnum = pgEnum("material_file_kind", [

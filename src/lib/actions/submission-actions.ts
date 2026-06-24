@@ -21,6 +21,7 @@ import type { Submission, SubmissionStatus } from "@/db/schema";
 import { getPrincipal, isOperator } from "@/lib/access";
 import type { Principal } from "@/auth";
 import { saveFile } from "@/lib/blob";
+import { validateScorePair } from "@/lib/grading-validation";
 import { isAutoAdvance, planAdvance, rangeLabelAt } from "@/lib/progress-db";
 import {
   actorForRole,
@@ -262,7 +263,8 @@ export interface BatchGradeItem {
   submissionId: string;
   score?: string;
   maxScore?: string;
-  result?: "ok" | "ng" | "";
+  /** "ok" 合格 / "ng" やり直し / "skip" 未実施。 */
+  result?: "ok" | "ng" | "skip" | "";
   comment?: string;
   /** "return" 返却 / "resubmit" 再提出依頼。 */
   mode: "return" | "resubmit";
@@ -301,10 +303,18 @@ export async function batchGrade(
       current = { ...current, status: "grading" };
     }
 
-    const requiresResubmit = it.mode === "resubmit";
-    const score = (it.score ?? "").trim();
-    const maxScore = (it.maxScore ?? "").trim();
-    const result = it.result === "ok" || it.result === "ng" ? it.result : null;
+    const result =
+      it.result === "ok" || it.result === "ng" || it.result === "skip"
+        ? it.result
+        : null;
+    // 未実施は再提出を求めず、得点も持たない。やり直し(ng)は再提出依頼。
+    const requiresResubmit = it.mode === "resubmit" && result !== "skip";
+    // 未実施は得点・満点を無視して空に揃える (PHP の挙動を踏襲)。
+    const score = result === "skip" ? "" : (it.score ?? "").trim();
+    const maxScore = result === "skip" ? "" : (it.maxScore ?? "").trim();
+
+    // 入力仕様の検証 (得点を入れたら満点必須・得点≤満点・満点>0)。
+    validateScorePair(score, maxScore, `提出 ${current.id.slice(0, 8)}`);
 
     await db.insert(gradings).values({
       organizationId: current.organizationId,
@@ -329,6 +339,7 @@ export async function batchGrade(
       to === "returned" ? { returnedAt: new Date() } : {},
     );
 
+    // 合格返却のみ進度を前進。未実施(skip)・やり直しは前進しない。
     if (!requiresResubmit && result === "ok") {
       if (it.next) await advanceWithNext(current, it.next);
       else await advanceProgressAfterPass(current);
