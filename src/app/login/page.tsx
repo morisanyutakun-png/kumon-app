@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getPrincipal } from "@/lib/access";
@@ -30,6 +31,9 @@ export default async function LoginPage() {
 
         <p className="auth-help">
           ログイン情報がわからないときは、教室の先生におたずねください。
+        </p>
+        <p className="auth-help">
+          教室を新しく始める方は <Link href="/signup">運営アカウントを新規登録</Link>
         </p>
 
         {demo && (

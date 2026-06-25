@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { students } from "@/db/schema";
 import { accessibleStudentIds, requirePrincipal } from "@/lib/access";
+import { divisionForGrade } from "@/lib/division";
 import { encourageMessage, levelInfo, studyStreak } from "@/lib/encourage";
 import { listGradingHistory, listNotifications, listSubmissions } from "@/lib/queries";
 import { Mascot } from "@/components/mascot";
@@ -82,11 +83,17 @@ export default async function StudentHome() {
   const weekCount = rows.filter((r) => r.submittedAt && new Date(r.submittedAt).getTime() >= weekAgo).length;
 
   let message = "お子さまの今日の課題と結果を確認できます。";
+  let grade = "";
   if (p.role === "student" && p.studentId) {
     const [s] = await db.select({ grade: students.grade }).from(students).where(eq(students.id, p.studentId)).limit(1);
-    message = encourageMessage(s?.grade ?? "");
+    grade = s?.grade ?? "";
+    message = encourageMessage(grade);
   }
-  const greet = p.role === "student" ? `こんにちは、${p.name} さん！` : "こんにちは！";
+  // 部門 (中高部は落ち着いたトーン・マスコット非表示)。
+  const sec = divisionForGrade(grade) === "secondary";
+  const greet = p.role === "student"
+    ? sec ? `こんにちは、${p.name} さん` : `こんにちは、${p.name} さん！`
+    : "こんにちは！";
 
   const mission = todo[0];
   const missionColor = mission ? subjectColor(mission.subject) : "#1c9dd8";
@@ -104,7 +111,7 @@ export default async function StudentHome() {
             <span className="hero-chip"><IconMedal size={15} /> {lv.name}</span>
           </div>
         </div>
-        <span className="learn-hero-mascot" aria-hidden><Mascot className="learn-mascot" /></span>
+        {!sec && <span className="learn-hero-mascot" aria-hidden><Mascot className="learn-mascot" /></span>}
       </div>
 
       {notices.length > 0 && (
@@ -124,9 +131,9 @@ export default async function StudentHome() {
       {/* 今日のミッション */}
       {mission ? (
         <Link href={`/submissions/${mission.submissionId}`} className="mission" style={{ ["--accent" as string]: missionColor }}>
-          <span className="mission-mascot"><Mascot pose="point" sizes="90px" /></span>
+          {!sec && <span className="mission-mascot"><Mascot pose="point" sizes="90px" /></span>}
           <div className="mission-body">
-            <div className="mission-label">きょうのミッション</div>
+            <div className="mission-label">{sec ? "今日の課題" : "きょうのミッション"}</div>
             <div className="mission-title">{mission.assignmentTitle || mission.materialName}</div>
             <div className="mission-meta">{mission.subject}{mission.rangeText ? ` ・ ${mission.rangeText}` : ""}</div>
           </div>
@@ -134,18 +141,18 @@ export default async function StudentHome() {
         </Link>
       ) : rows.length === 0 ? (
         <div className="mission mission-done">
-          <span className="mission-mascot"><Mascot pose="point" sizes="90px" /></span>
+          {!sec && <span className="mission-mascot"><Mascot pose="point" sizes="90px" /></span>}
           <div className="mission-body">
-            <div className="mission-title">じゅんび オッケー！</div>
-            <div className="mission-meta">先生からの課題がとどくと、ここに出るよ。たのしみにまっててね。</div>
+            <div className="mission-title">{sec ? "準備OK" : "じゅんび オッケー！"}</div>
+            <div className="mission-meta">{sec ? "先生からの課題が届くと、ここに表示されます。" : "先生からの課題がとどくと、ここに出るよ。たのしみにまっててね。"}</div>
           </div>
         </div>
       ) : (
         <div className="mission mission-done">
-          <span className="mission-mascot"><Mascot pose="wave" sizes="90px" /></span>
+          {!sec && <span className="mission-mascot"><Mascot pose="wave" sizes="90px" /></span>}
           <div className="mission-body">
-            <div className="mission-title">きょうのミッション かんりょう！</div>
-            <div className="mission-meta">よくがんばったね。あたらしい課題をまっててね。</div>
+            <div className="mission-title">{sec ? "本日の課題は完了です" : "きょうのミッション かんりょう！"}</div>
+            <div className="mission-meta">{sec ? "お疲れさまでした。新しい課題をお待ちください。" : "よくがんばったね。あたらしい課題をまっててね。"}</div>
           </div>
         </div>
       )}

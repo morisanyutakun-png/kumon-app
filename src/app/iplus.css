@@ -1494,3 +1494,23 @@ body {
   display: inline-flex; align-items: center; gap: 6px;
   background: var(--primary); color: #fff;
 }
+
+/* =====================================================================
+   中高部 (secondary) ブランド/テーマ
+   ===================================================================== */
+/* 中高部ロゴ(画像が無い間のテキストワードマーク) */
+.brand-wordmark { display: inline-flex; align-items: center; gap: 8px; line-height: 1; }
+.brand-wordmark .bw-main { font-weight: 800; font-size: 22px; letter-spacing: 0.01em; color: #0f172a; }
+.brand-wordmark .bw-badge {
+  font-size: 12px; font-weight: 800; color: #fff; background: #1e3a8a;
+  padding: 3px 9px; border-radius: 6px; letter-spacing: 0.08em;
+}
+/* 中高部テーマ: 落ち着いた配色(ヒーローは紺、遊び要素を抑える) */
+[data-division="secondary"] .learn-hero {
+  background: linear-gradient(135deg, #1e3a8a, #0f172a) !important; color: #fff;
+}
+[data-division="secondary"] .learn-hero-title,
+[data-division="secondary"] .learn-hero-sub { color: #fff; }
+[data-division="secondary"] .hero-chip { background: rgba(255,255,255,0.14); color: #fff; }
+[data-division="secondary"] .mission { border-color: #cbd5e1; }
+[data-division="secondary"] .meter-title { letter-spacing: 0.02em; }

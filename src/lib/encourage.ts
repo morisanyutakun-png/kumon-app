@@ -6,7 +6,8 @@ function band(grade: string): "g12" | "g34" | "g56" | "jhs" | "default" {
   if (grade === "小1" || grade === "小2") return "g12";
   if (grade === "小3" || grade === "小4") return "g34";
   if (grade === "小5" || grade === "小6") return "g56";
-  if (grade.startsWith("中")) return "jhs";
+  // 中高部 (中学・高校) は落ち着いたトーン。
+  if (grade.startsWith("中") || grade.startsWith("高")) return "jhs";
   return "default";
 }
 
