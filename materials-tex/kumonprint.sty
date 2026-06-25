@@ -245,9 +245,9 @@
 }
 %% 解答欄のコンパイル行 (multicols で並べる計算ドリル用)。番号+こたえ。
 \newcommand{\kpARc}[2]{%
-  \noindent{\footnotesize\textcolor{kpgray}{#1}}\ \ifkpans\textcolor{kpink}{\bfseries #2}\else\phantom{99}\fi\par\vspace{3.1mm}%
+  \noindent{\scriptsize\textcolor{kpgray}{#1}}\,\ifkpans\textcolor{kpink}{\bfseries #2}\else\phantom{99}\fi\par\vspace{2.0mm}%
 }
 %% 左の番号付き計算項目 (multicols 用)。番号+式 (こたえは右の解答欄)。
-\newcommand{\kpLc}[2]{\noindent{\sffamily\textcolor{kpgray}{#1}}\ \ {\large #2}\par\vspace{2.7mm}}
+\newcommand{\kpLc}[2]{\noindent{\sffamily\footnotesize\textcolor{kpgray}{#1}}\ {#2}\par\vspace{1.7mm}}
 
 \endinput

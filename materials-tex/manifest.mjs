@@ -182,7 +182,7 @@ function buildG1() {
     desc: "合併・増加の場面のたし算。和が 6 までの 1 桁どうしのたし算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-03");
-      return calcBody(genAdd(rng, 18, { maxSum: 6 }));
+      return calcBody(genAdd(rng, 36, { maxSum: 6 }));
     })(),
   });
 
@@ -197,7 +197,7 @@ function buildG1() {
     desc: "和が 10 までのたし算。くり上がりのない 1 桁どうしを反復します。",
     body: (() => {
       const rng = rngFromString("g1-04");
-      return calcBody(genAdd(rng, 27, { maxSum: 10 }));
+      return calcBody(genAdd(rng, 40, { maxSum: 10 }));
     })(),
   });
 
@@ -212,7 +212,7 @@ function buildG1() {
     desc: "求残・求差のひき算。10 までの数からのくり下がりのないひき算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-05");
-      return calcBody(genSub(rng, 27, { max: 10 }));
+      return calcBody(genSub(rng, 40, { max: 10 }));
     })(),
   });
 
@@ -227,7 +227,7 @@ function buildG1() {
     desc: "2 つの数のちがいを求めるひき算。0 のひき算もふくめて反復します。",
     body: (() => {
       const rng = rngFromString("g1-06");
-      const probs = genSub(rng, 21, { max: 10 });
+      const probs = genSub(rng, 36, { max: 10 });
       // 0のひき算を少し混ぜる
       probs.push({ expr: "6-0=", ans: 6 }, { expr: "9-9=", ans: 0 }, { expr: "8-0=", ans: 8 });
       return calcBody(probs);
@@ -363,7 +363,7 @@ function buildG1() {
     desc: "くり上がりのある(1位数)+(1位数)。10 のまとまりをつくる考え方(さくらんぼ計算)を反復します。",
     body: (() => {
       const rng = rngFromString("g1-11");
-      return calcBody(genAddCarry(rng, 24, { maxSum: 14 }));
+      return calcBody(genAddCarry(rng, 40, { maxSum: 14 }));
     })(),
   });
 
@@ -378,7 +378,7 @@ function buildG1() {
     desc: "くり上がりのあるたし算のしあげ。和が 18 までの 1 桁どうしを確実に計算します。",
     body: (() => {
       const rng = rngFromString("g1-12");
-      return calcBody(genAddCarry(rng, 27, { maxSum: 18 }));
+      return calcBody(genAddCarry(rng, 40, { maxSum: 18 }));
     })(),
   });
 
@@ -393,7 +393,7 @@ function buildG1() {
     desc: "くり下がりのある(十何)−(1位数)。10 から引いてたす考え方(減加法)を反復します。",
     body: (() => {
       const rng = rngFromString("g1-13");
-      return calcBody(genSubBorrow(rng, 24, { max: 14 }));
+      return calcBody(genSubBorrow(rng, 40, { max: 14 }));
     })(),
   });
 
@@ -408,7 +408,7 @@ function buildG1() {
     desc: "くり下がりのあるひき算のしあげ。18 までの数からのひき算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-14");
-      return calcBody(genSubBorrow(rng, 27, { max: 18 }));
+      return calcBody(genSubBorrow(rng, 40, { max: 18 }));
     })(),
   });
 
@@ -509,10 +509,10 @@ function buildG1() {
     body: (() => {
       const rng = rngFromString("g1-18");
       const mix = [
-        ...genAdd(rng, 4, { maxSum: 10 }),
-        ...genAddCarry(rng, 5, { maxSum: 18 }),
-        ...genSub(rng, 4, { max: 10 }),
-        ...genSubBorrow(rng, 5, { max: 18 }),
+        ...genAdd(rng, 7, { maxSum: 10 }),
+        ...genAddCarry(rng, 9, { maxSum: 18 }),
+        ...genSub(rng, 7, { max: 10 }),
+        ...genSubBorrow(rng, 9, { max: 18 }),
       ];
       return calcBody(mix);
     })(),
@@ -693,13 +693,13 @@ function buildG2() {
     })() });
 
   // ③ 2けたのたし算(暗算)
-  add(calcPrint({ grade: G, id: "g2-03", unitNo: 3, name: "算数2年③ 2けたの たし算", title: "2けたの たし算", subtitle: "くり上がりの ない あんざん", goal: "2けたの たし算を、あたまの なかで すばやく できるように なろう！", desc: "(2位数)+(1,2位数)で繰り上がりのない加法。" }, (rng) => genAddN(rng, 24, { min: 11, max: 88, carry: false })));
+  add(calcPrint({ grade: G, id: "g2-03", unitNo: 3, name: "算数2年③ 2けたの たし算", title: "2けたの たし算", subtitle: "くり上がりの ない あんざん", goal: "2けたの たし算を、あたまの なかで すばやく できるように なろう！", desc: "(2位数)+(1,2位数)で繰り上がりのない加法。" }, (rng) => genAddN(rng, 40, { min: 11, max: 88, carry: false })));
 
   // ④ たし算のひっ算
-  add(calcPrint({ grade: G, id: "g2-04", unitNo: 4, name: "算数2年④ たし算の ひっ算", title: "たし算の ひっ算", subtitle: "くり上がりの ある たし算", goal: "くり上がりの ある 2けたの たし算を、ひっ算で できるように なろう！", desc: "繰り上がりのある(2位数)+(2位数)の筆算。" }, (rng) => genAddN(rng, 24, { min: 13, max: 89, carry: true })));
+  add(calcPrint({ grade: G, id: "g2-04", unitNo: 4, name: "算数2年④ たし算の ひっ算", title: "たし算の ひっ算", subtitle: "くり上がりの ある たし算", goal: "くり上がりの ある 2けたの たし算を、ひっ算で できるように なろう！", desc: "繰り上がりのある(2位数)+(2位数)の筆算。" }, (rng) => genAddN(rng, 40, { min: 13, max: 89, carry: true })));
 
   // ⑤ ひき算のひっ算
-  add(calcPrint({ grade: G, id: "g2-05", unitNo: 5, name: "算数2年⑤ ひき算の ひっ算", title: "ひき算の ひっ算", subtitle: "くり下がりの ある ひき算", goal: "くり下がりの ある 2けたの ひき算を、ひっ算で できるように なろう！", desc: "繰り下がりのある(2位数)-(1,2位数)の筆算。" }, (rng) => genSubN(rng, 24, { min: 21, max: 99, borrow: true })));
+  add(calcPrint({ grade: G, id: "g2-05", unitNo: 5, name: "算数2年⑤ ひき算の ひっ算", title: "ひき算の ひっ算", subtitle: "くり下がりの ある ひき算", goal: "くり下がりの ある 2けたの ひき算を、ひっ算で できるように なろう！", desc: "繰り下がりのある(2位数)-(1,2位数)の筆算。" }, (rng) => genSubN(rng, 40, { min: 21, max: 99, borrow: true })));
 
   // ⑥ 1000までの数
   add({ grade: G, subject: "算数", id: "g2-06", unitNo: 6, name: "算数2年⑥ 1000までの 数", title: "1000までの 数", subtitle: "数の しくみ", goal: "100が いくつ、10が いくつ…で 数を かんがえよう！", desc: "1000までの数の構成・読み方・書き方。",
@@ -716,7 +716,7 @@ function buildG2() {
     ].join("\n") });
 
   // ⑦ 大きい数のたし算とひき算
-  add(calcPrint({ grade: G, id: "g2-07", unitNo: 7, name: "算数2年⑦ 大きい数の たし算と ひき算", title: "大きい数の けいさん", subtitle: "3けたの たし算・ひき算", goal: "3けたの たし算・ひき算を ひっ算で できるように なろう！", desc: "(3位数)±(2,3位数)の筆算。" }, (rng) => [...genAddN(rng, 10, { min: 105, max: 899 }), ...genSubN(rng, 10, { min: 120, max: 999 })], 2));
+  add(calcPrint({ grade: G, id: "g2-07", unitNo: 7, name: "算数2年⑦ 大きい数の たし算と ひき算", title: "大きい数の けいさん", subtitle: "3けたの たし算・ひき算", goal: "3けたの たし算・ひき算を ひっ算で できるように なろう！", desc: "(3位数)±(2,3位数)の筆算。" }, (rng) => [...genAddN(rng, 18, { min: 105, max: 899 }), ...genSubN(rng, 18, { min: 120, max: 999 })], 2));
 
   // ⑧ 長さ(1) cm mm
   add({ grade: G, subject: "算数", id: "g2-08", unitNo: 8, name: "算数2年⑧ 長さ (1) cm と mm", title: "長さ (cm と mm)", subtitle: "1cm = 10mm", goal: "cm と mm の かんけいを おぼえて、長さを あらわそう！", desc: "長さの単位cm,mm。1cm=10mm。",
@@ -764,13 +764,13 @@ function buildG2() {
     })() });
 
   // ⑪ かけ算(1)
-  add(calcPrint({ grade: G, id: "g2-11", unitNo: 11, name: "算数2年⑪ かけ算 (1)", title: "かけ算 (1)", subtitle: "2・3・4・5の だん", goal: "2・3・4・5の だんの 九九を おぼえよう！", desc: "乗法の意味。2,3,4,5の段の九九。" }, (rng) => genMul(rng, 24, { tables: [2, 5, 3, 4] })));
+  add(calcPrint({ grade: G, id: "g2-11", unitNo: 11, name: "算数2年⑪ かけ算 (1)", title: "かけ算 (1)", subtitle: "2・3・4・5の だん", goal: "2・3・4・5の だんの 九九を おぼえよう！", desc: "乗法の意味。2,3,4,5の段の九九。" }, (rng) => genMul(rng, 40, { tables: [2, 5, 3, 4] })));
 
   // ⑫ かけ算(2)
-  add(calcPrint({ grade: G, id: "g2-12", unitNo: 12, name: "算数2年⑫ かけ算 (2)", title: "かけ算 (2)", subtitle: "6・7・8・9・1の だん", goal: "6・7・8・9・1の だんの 九九を おぼえよう！", desc: "6〜9,1の段の九九。" }, (rng) => genMul(rng, 24, { tables: [6, 7, 8, 9, 1] })));
+  add(calcPrint({ grade: G, id: "g2-12", unitNo: 12, name: "算数2年⑫ かけ算 (2)", title: "かけ算 (2)", subtitle: "6・7・8・9・1の だん", goal: "6・7・8・9・1の だんの 九九を おぼえよう！", desc: "6〜9,1の段の九九。" }, (rng) => genMul(rng, 40, { tables: [6, 7, 8, 9, 1] })));
 
   // ⑬ かけ算(3) 九九ミックス
-  add(calcPrint({ grade: G, id: "g2-13", unitNo: 13, name: "算数2年⑬ かけ算 (3) 九九ミックス", title: "九九 ミックス", subtitle: "ぜんぶの だん", goal: "ぜんぶの だんの 九九を すらすら いえるように なろう！", desc: "九九表。乗法の交換法則。" }, (rng) => genMul(rng, 27, { tables: [1, 2, 3, 4, 5, 6, 7, 8, 9] })));
+  add(calcPrint({ grade: G, id: "g2-13", unitNo: 13, name: "算数2年⑬ かけ算 (3) 九九ミックス", title: "九九 ミックス", subtitle: "ぜんぶの だん", goal: "ぜんぶの だんの 九九を すらすら いえるように なろう！", desc: "九九表。乗法の交換法則。" }, (rng) => genMul(rng, 40, { tables: [1, 2, 3, 4, 5, 6, 7, 8, 9] })));
 
   // ⑭ 分数
   add({ grade: G, subject: "算数", id: "g2-14", unitNo: 14, name: "算数2年⑭ 分数", title: "分数", subtitle: "1/2・1/3・1/4", goal: "ぜんたいを おなじ 大きさに わけた 1つぶんを 分数で あらわそう！", desc: "分数の意味(1/2,1/3,1/4)。",
@@ -846,7 +846,7 @@ function buildG2() {
     })() });
 
   // ⑳ 2年のまとめ
-  add(calcPrint({ grade: G, id: "g2-20", unitNo: 20, name: "算数2年⑳ 2年の まとめ", title: "2年の まとめ", subtitle: "たし算・ひき算・九九", goal: "2年で ならった けいさんの しあげ！ ぜんぶ できるかな？", desc: "2年の計算の総合復習(筆算・九九)。" }, (rng) => [...genAddN(rng, 6, { min: 23, max: 89, carry: true }), ...genSubN(rng, 6, { min: 31, max: 99, borrow: true }), ...genMul(rng, 12, { tables: [3, 4, 6, 7, 8, 9] })]));
+  add(calcPrint({ grade: G, id: "g2-20", unitNo: 20, name: "算数2年⑳ 2年の まとめ", title: "2年の まとめ", subtitle: "たし算・ひき算・九九", goal: "2年で ならった けいさんの しあげ！ ぜんぶ できるかな？", desc: "2年の計算の総合復習(筆算・九九)。" }, (rng) => [...genAddN(rng, 11, { min: 23, max: 89, carry: true }), ...genSubN(rng, 11, { min: 31, max: 99, borrow: true }), ...genMul(rng, 20, { tables: [3, 4, 6, 7, 8, 9] })]));
 
   return P;
 }
@@ -887,13 +887,13 @@ function buildG3() {
     ].join("\n") });
 
   // ③ わり算
-  add(calcPrint({ grade: G, id: "g3-03", unitNo: 3, name: "算数3年③ わり算", title: "わり算", subtitle: "九九を つかって", goal: "九九を つかって わり算が できるように なろう！", desc: "除法の意味と答えの求め方(九九1回適用)。" }, (rng) => genDiv(rng, 24, { bmin: 2, bmax: 9 })));
+  add(calcPrint({ grade: G, id: "g3-03", unitNo: 3, name: "算数3年③ わり算", title: "わり算", subtitle: "九九を つかって", goal: "九九を つかって わり算が できるように なろう！", desc: "除法の意味と答えの求め方(九九1回適用)。" }, (rng) => genDiv(rng, 40, { bmin: 2, bmax: 9 })));
 
   // ④ あまりのあるわり算
-  add(calcPrint({ grade: G, id: "g3-04", unitNo: 4, name: "算数3年④ あまりの ある わり算", title: "あまりの ある わり算", subtitle: "わって あまりを だす", goal: "あまりの ある わり算が できるように なろう！", desc: "余りのある除法の意味と計算。" }, (rng) => genDivRem(rng, 21), 3));
+  add(calcPrint({ grade: G, id: "g3-04", unitNo: 4, name: "算数3年④ あまりの ある わり算", title: "あまりの ある わり算", subtitle: "わって あまりを だす", goal: "あまりの ある わり算が できるように なろう！", desc: "余りのある除法の意味と計算。" }, (rng) => genDivRem(rng, 36), 3));
 
   // ⑤ たし算とひき算(3,4けたの筆算)
-  add(calcPrint({ grade: G, id: "g3-05", unitNo: 5, name: "算数3年⑤ たし算と ひき算 (ひっ算)", title: "大きい数の ひっ算", subtitle: "3けた・4けたの たし算ひき算", goal: "3けた・4けたの たし算・ひき算を ひっ算で できるように なろう！", desc: "(3,4位数)±(3,4位数)の筆算。" }, (rng) => [...genAddN(rng, 8, { min: 235, max: 4899 }), ...genSubN(rng, 8, { min: 412, max: 9999 })], 2));
+  add(calcPrint({ grade: G, id: "g3-05", unitNo: 5, name: "算数3年⑤ たし算と ひき算 (ひっ算)", title: "大きい数の ひっ算", subtitle: "3けた・4けたの たし算ひき算", goal: "3けた・4けたの たし算・ひき算を ひっ算で できるように なろう！", desc: "(3,4位数)±(3,4位数)の筆算。" }, (rng) => [...genAddN(rng, 14, { min: 235, max: 4899 }), ...genSubN(rng, 14, { min: 412, max: 9999 })], 2));
 
   // ⑥ 表とグラフ
   add({ grade: G, subject: "算数", id: "g3-06", unitNo: 6, name: "算数3年⑥ 表と グラフ", title: "表と グラフ", subtitle: "ぼうグラフ", goal: "ぼうグラフを よんで、数を くらべよう！", desc: "棒グラフの読み方、表の整理。",
@@ -918,10 +918,10 @@ function buildG3() {
     ].join("\n") });
 
   // ⑧ (2けた)×(1けた)
-  add(calcPrint({ grade: G, id: "g3-08", unitNo: 8, name: "算数3年⑧ (2けた)×(1けた)", title: "(2けた)×(1けた)", subtitle: "かけ算の ひっ算", goal: "2けた×1けたの かけ算が できるように なろう！", desc: "(2位数)×(1位数)の計算の仕方、筆算。" }, (rng) => genMulBig(rng, 21, { amin: 12, amax: 99, bmin: 2, bmax: 9 })));
+  add(calcPrint({ grade: G, id: "g3-08", unitNo: 8, name: "算数3年⑧ (2けた)×(1けた)", title: "(2けた)×(1けた)", subtitle: "かけ算の ひっ算", goal: "2けた×1けたの かけ算が できるように なろう！", desc: "(2位数)×(1位数)の計算の仕方、筆算。" }, (rng) => genMulBig(rng, 36, { amin: 12, amax: 99, bmin: 2, bmax: 9 })));
 
   // ⑨ (3けた)×(1けた)
-  add(calcPrint({ grade: G, id: "g3-09", unitNo: 9, name: "算数3年⑨ (3けた)×(1けた)", title: "(3けた)×(1けた)", subtitle: "かけ算の ひっ算", goal: "3けた×1けたの かけ算が できるように なろう！", desc: "(3位数)×(1位数)の筆算。" }, (rng) => genMulBig(rng, 18, { amin: 112, amax: 989, bmin: 2, bmax: 9 }), 2));
+  add(calcPrint({ grade: G, id: "g3-09", unitNo: 9, name: "算数3年⑨ (3けた)×(1けた)", title: "(3けた)×(1けた)", subtitle: "かけ算の ひっ算", goal: "3けた×1けたの かけ算が できるように なろう！", desc: "(3位数)×(1位数)の筆算。" }, (rng) => genMulBig(rng, 36, { amin: 112, amax: 989, bmin: 2, bmax: 9 }), 2));
 
   // ⑩ 大きい数
   add({ grade: G, subject: "算数", id: "g3-10", unitNo: 10, name: "算数3年⑩ 大きい数", title: "大きい数", subtitle: "万の くらい", goal: "一万を こえる 大きい数を かんがえよう！", desc: "1億未満の数の構成・読み方。万。",
@@ -963,7 +963,7 @@ function buildG3() {
     ].join("\n") });
 
   // ⑬ 小数
-  add(calcPrint({ grade: G, id: "g3-13", unitNo: 13, name: "算数3年⑬ 小数", title: "小数", subtitle: "小数第一位の たしひき", goal: "小数の たし算・ひき算が できるように なろう！", desc: "小数(第一位)の仕組みと加減。" }, (rng) => genDecimal(rng, 18), 3));
+  add(calcPrint({ grade: G, id: "g3-13", unitNo: 13, name: "算数3年⑬ 小数", title: "小数", subtitle: "小数第一位の たしひき", goal: "小数の たし算・ひき算が できるように なろう！", desc: "小数(第一位)の仕組みと加減。" }, (rng) => genDecimal(rng, 36), 3));
 
   // ⑭ 三角形と角
   add({ grade: G, subject: "算数", id: "g3-14", unitNo: 14, name: "算数3年⑭ 三角形と 角", title: "三角形と 角", subtitle: "二等辺三角形・正三角形", goal: "いろいろな 三角形の なまえを おぼえよう！", desc: "二等辺三角形・正三角形の定義、角。",
@@ -979,10 +979,10 @@ function buildG3() {
     })() });
 
   // ⑮ (2,3けた)×(2けた)
-  add(calcPrint({ grade: G, id: "g3-15", unitNo: 15, name: "算数3年⑮ (2,3けた)×(2けた)", title: "(2,3けた)×(2けた)", subtitle: "かけ算の ひっ算", goal: "2けた・3けた×2けたの かけ算が できるように なろう！", desc: "(2,3位数)×(2位数)の筆算。" }, (rng) => [...genMulBig(rng, 8, { amin: 12, amax: 99, bmin: 11, bmax: 99 }), ...genMulBig(rng, 8, { amin: 102, amax: 899, bmin: 11, bmax: 99 })], 2));
+  add(calcPrint({ grade: G, id: "g3-15", unitNo: 15, name: "算数3年⑮ (2,3けた)×(2けた)", title: "(2,3けた)×(2けた)", subtitle: "かけ算の ひっ算", goal: "2けた・3けた×2けたの かけ算が できるように なろう！", desc: "(2,3位数)×(2位数)の筆算。" }, (rng) => [...genMulBig(rng, 14, { amin: 12, amax: 99, bmin: 11, bmax: 99 }), ...genMulBig(rng, 14, { amin: 102, amax: 899, bmin: 11, bmax: 99 })], 2));
 
   // ⑯ 分数
-  add(calcPrint({ grade: G, id: "g3-16", unitNo: 16, name: "算数3年⑯ 分数", title: "分数", subtitle: "同じ 分母の たしひき", goal: "同じ 分母の 分数の たし算・ひき算を しよう！", desc: "分数の意味、同分母分数の加減。" }, (rng) => genFracSame(rng, 12), 2));
+  add(calcPrint({ grade: G, id: "g3-16", unitNo: 16, name: "算数3年⑯ 分数", title: "分数", subtitle: "同じ 分母の たしひき", goal: "同じ 分母の 分数の たし算・ひき算を しよう！", desc: "分数の意味、同分母分数の加減。" }, (rng) => genFracSame(rng, 20), 2));
 
   // ⑰ 重さ
   add({ grade: G, subject: "算数", id: "g3-17", unitNo: 17, name: "算数3年⑰ 重さ", title: "重さ", subtitle: "kg と g", goal: "kg と g の かんけいを おぼえよう！", desc: "重さの単位kg,g。1kg=1000g。",
@@ -1011,10 +1011,10 @@ function buildG3() {
     ].join("\n") });
 
   // ⑲ わり算の れんしゅう
-  add(calcPrint({ grade: G, id: "g3-19", unitNo: 19, name: "算数3年⑲ わり算の れんしゅう", title: "わり算の れんしゅう", subtitle: "あまりなし・あまりあり ミックス", goal: "わり算を すらすら できるように なろう！", desc: "除法の習熟(余りなし・余りあり混合)。" }, (rng) => [...genDiv(rng, 12, { bmin: 2, bmax: 9 }), ...genDivRem(rng, 12)], 3));
+  add(calcPrint({ grade: G, id: "g3-19", unitNo: 19, name: "算数3年⑲ わり算の れんしゅう", title: "わり算の れんしゅう", subtitle: "あまりなし・あまりあり ミックス", goal: "わり算を すらすら できるように なろう！", desc: "除法の習熟(余りなし・余りあり混合)。" }, (rng) => [...genDiv(rng, 20, { bmin: 2, bmax: 9 }), ...genDivRem(rng, 20)], 3));
 
   // ⑳ 3年のまとめ
-  add(calcPrint({ grade: G, id: "g3-20", unitNo: 20, name: "算数3年⑳ 3年の まとめ", title: "3年の まとめ", subtitle: "かけ算・わり算・ひっ算", goal: "3年で ならった けいさんの しあげ！ ぜんぶ できるかな？", desc: "3年の計算の総合復習。" }, (rng) => [...genDiv(rng, 6, { bmin: 2, bmax: 9 }), ...genMulBig(rng, 6, { amin: 13, amax: 89, bmin: 3, bmax: 9 }), ...genAddN(rng, 3, { min: 234, max: 4899 }), ...genSubN(rng, 3, { min: 412, max: 8999 })], 2));
+  add(calcPrint({ grade: G, id: "g3-20", unitNo: 20, name: "算数3年⑳ 3年の まとめ", title: "3年の まとめ", subtitle: "かけ算・わり算・ひっ算", goal: "3年で ならった けいさんの しあげ！ ぜんぶ できるかな？", desc: "3年の計算の総合復習。" }, (rng) => [...genDiv(rng, 11, { bmin: 2, bmax: 9 }), ...genMulBig(rng, 11, { amin: 13, amax: 89, bmin: 3, bmax: 9 }), ...genAddN(rng, 5, { min: 234, max: 4899 }), ...genSubN(rng, 5, { min: 412, max: 8999 })], 2));
 
   return P;
 }
@@ -1086,7 +1086,7 @@ function buildG4() {
       "\\kpqfull{(2)}{9時から 12時までに 気温は 何℃ 上がりましたか。 \\quad こたえ \\kpbox{8} ℃}",
       "\\kpqfull{(3)}{気温が 下がったのは 何時から 何時の あいだですか。 \\quad こたえ \\kpbox{12時〜13時}}"].join("\n") });
 
-  add(calcPrint({ grade: G, id: "g4-03", unitNo: 3, name: "算数4年③ 1けたで わるわり算", title: "1けたで わるわり算", subtitle: "わり算の ひっ算", goal: "大きい数を 1けたで わる ひっ算が できるように なろう！", desc: "(2,3位数)÷(1位数)の筆算。" }, (rng) => genDivLong(rng, 21, { dividendMax: 999, divisorMax: 9 })));
+  add(calcPrint({ grade: G, id: "g4-03", unitNo: 3, name: "算数4年③ 1けたで わるわり算", title: "1けたで わるわり算", subtitle: "わり算の ひっ算", goal: "大きい数を 1けたで わる ひっ算が できるように なろう！", desc: "(2,3位数)÷(1位数)の筆算。" }, (rng) => genDivLong(rng, 36, { dividendMax: 999, divisorMax: 9 })));
 
   add(calcPrint({ grade: G, id: "g4-04", unitNo: 4, name: "算数4年④ 2けたで わるわり算", title: "2けたで わるわり算", subtitle: "わり算の ひっ算", goal: "2けたで わる わり算が できるように なろう！", desc: "(2,3位数)÷(2位数)の筆算。" }, (rng) => genDiv2(rng, 18), 2));
 
@@ -1121,11 +1121,11 @@ function buildG4() {
       "\\kpitemx{(4)}{$5.6\\div10=$ \\kpbox{0.56}}",
       "\\end{kpgrid}"].join("\n") });
 
-  add(calcPrint({ grade: G, id: "g4-09", unitNo: 9, name: "算数4年⑨ 小数の たし算・ひき算", title: "小数の たし算・ひき算", subtitle: "小数の ひっ算", goal: "小数の たし算・ひき算を ひっ算で できるように なろう！", desc: "小数(第一位)の加減の筆算。" }, (rng) => genDecimal(rng, 21)));
+  add(calcPrint({ grade: G, id: "g4-09", unitNo: 9, name: "算数4年⑨ 小数の たし算・ひき算", title: "小数の たし算・ひき算", subtitle: "小数の ひっ算", goal: "小数の たし算・ひき算を ひっ算で できるように なろう！", desc: "小数(第一位)の加減の筆算。" }, (rng) => genDecimal(rng, 36)));
 
-  add(calcPrint({ grade: G, id: "g4-10", unitNo: 10, name: "算数4年⑩ 小数の かけ算 (×整数)", title: "小数の かけ算", subtitle: "小数 × 整数", goal: "(小数)×(整数)が できるように なろう！", desc: "(小数)×(整数)の計算、筆算。" }, (rng) => genDecMulInt(rng, 21)));
+  add(calcPrint({ grade: G, id: "g4-10", unitNo: 10, name: "算数4年⑩ 小数の かけ算 (×整数)", title: "小数の かけ算", subtitle: "小数 × 整数", goal: "(小数)×(整数)が できるように なろう！", desc: "(小数)×(整数)の計算、筆算。" }, (rng) => genDecMulInt(rng, 36)));
 
-  add(calcPrint({ grade: G, id: "g4-11", unitNo: 11, name: "算数4年⑪ 小数の わり算 (÷整数)", title: "小数の わり算", subtitle: "小数 ÷ 整数", goal: "(小数)÷(整数)が できるように なろう！", desc: "(小数)÷(整数)の計算、筆算。" }, (rng) => genDecDivInt(rng, 21)));
+  add(calcPrint({ grade: G, id: "g4-11", unitNo: 11, name: "算数4年⑪ 小数の わり算 (÷整数)", title: "小数の わり算", subtitle: "小数 ÷ 整数", goal: "(小数)÷(整数)が できるように なろう！", desc: "(小数)÷(整数)の計算、筆算。" }, (rng) => genDecDivInt(rng, 36)));
 
   add({ grade: G, subject: "算数", id: "g4-12", unitNo: 12, name: "算数4年⑫ 式と計算", title: "式と 計算", subtitle: "( )・四則の じゅんじょ", goal: "( )や かけ算・わり算を 先に 計算しよう！", desc: "四則の混じった式、計算の順序、( )。",
     body: calcBody([{ expr: "3+4\\times2=", ans: 11 }, { expr: "(3+4)\\times2=", ans: 14 }, { expr: "20-12\\div4=", ans: 17 }, { expr: "(20-12)\\div4=", ans: 2 }, { expr: "8\\times(5-2)=", ans: 24 }, { expr: "6+18\\div3=", ans: 12 }]) });
@@ -1160,9 +1160,9 @@ function buildG4() {
       "\\kpqfull{(2)}{□が 7 の とき ○は \\kpbox{28}}",
       "\\kpqfull{(3)}{○が 40 の とき □は \\kpbox{10}}"].join("\n") });
 
-  add(calcPrint({ grade: G, id: "g4-17", unitNo: 17, name: "算数4年⑰ 計算の れんしゅう", title: "計算の れんしゅう", subtitle: "わり算・小数 ミックス", goal: "わり算と 小数の 計算を すらすら できるように なろう！", desc: "除法・小数計算の習熟。" }, (rng) => [...genDivLong(rng, 8, { dividendMax: 999 }), ...genDecMulInt(rng, 6), ...genDecDivInt(rng, 6)], 3));
+  add(calcPrint({ grade: G, id: "g4-17", unitNo: 17, name: "算数4年⑰ 計算の れんしゅう", title: "計算の れんしゅう", subtitle: "わり算・小数 ミックス", goal: "わり算と 小数の 計算を すらすら できるように なろう！", desc: "除法・小数計算の習熟。" }, (rng) => [...genDivLong(rng, 14, { dividendMax: 999 }), ...genDecMulInt(rng, 11), ...genDecDivInt(rng, 11)], 3));
 
-  add(calcPrint({ grade: G, id: "g4-18", unitNo: 18, name: "算数4年⑱ 4年の まとめ", title: "4年の まとめ", subtitle: "わり算・小数・分数", goal: "4年で ならった 計算の しあげ！", desc: "4年の計算の総合復習。" }, (rng) => [...genDiv2(rng, 5), ...genDecMulInt(rng, 4), ...genDecDivInt(rng, 4), ...genDecimal(rng, 5)], 3));
+  add(calcPrint({ grade: G, id: "g4-18", unitNo: 18, name: "算数4年⑱ 4年の まとめ", title: "4年の まとめ", subtitle: "わり算・小数・分数", goal: "4年で ならった 計算の しあげ！", desc: "4年の計算の総合復習。" }, (rng) => [...genDiv2(rng, 5), ...genDecMulInt(rng, 7), ...genDecDivInt(rng, 7), ...genDecimal(rng, 9)], 3));
 
   return P;
 }
@@ -1208,9 +1208,9 @@ function buildG5() {
       "\\kpqfull{(2)}{5Lで 300km 走る車の 1Lあたりの きょりは $300\\div5=$ \\kpbox{60} km}",
       "\\kpqfull{(3)}{A室は 6畳に 9人、B室は 8畳に 10人。こんでいるのは \\kpbox{A室}}"].join("\n") });
 
-  add(calcPrint({ grade: G, id: "g5-06", unitNo: 6, name: "算数5年⑥ 小数の かけ算", title: "小数の かけ算", subtitle: "小数 × 小数", goal: "(小数)×(小数)が できるように なろう！", desc: "(小数)×(小数)の意味と計算、筆算。" }, (rng) => genDecMulDec(rng, 18), 2));
+  add(calcPrint({ grade: G, id: "g5-06", unitNo: 6, name: "算数5年⑥ 小数の かけ算", title: "小数の かけ算", subtitle: "小数 × 小数", goal: "(小数)×(小数)が できるように なろう！", desc: "(小数)×(小数)の意味と計算、筆算。" }, (rng) => genDecMulDec(rng, 36), 2));
 
-  add(calcPrint({ grade: G, id: "g5-07", unitNo: 7, name: "算数5年⑦ 小数の わり算", title: "小数の わり算", subtitle: "小数 ÷ 小数", goal: "(小数)÷(小数)が できるように なろう！", desc: "(小数)÷(小数)の意味と計算、筆算。" }, (rng) => genDecDivDec(rng, 21)));
+  add(calcPrint({ grade: G, id: "g5-07", unitNo: 7, name: "算数5年⑦ 小数の わり算", title: "小数の わり算", subtitle: "小数 ÷ 小数", goal: "(小数)÷(小数)が できるように なろう！", desc: "(小数)÷(小数)の意味と計算、筆算。" }, (rng) => genDecDivDec(rng, 36)));
 
   add({ grade: G, subject: "算数", id: "g5-08", unitNo: 8, name: "算数5年⑧ 速さ", title: "速さ", subtitle: "速さ・道のり・時間", goal: "速さ $=$ 道のり $÷$ 時間。 速さの もとめ方を おぼえよう！", desc: "速さの意味と求め方(時速・分速・秒速)。",
     body: ["\\kpsection{もんだいに こたえましょう}",
@@ -1234,7 +1234,7 @@ function buildG5() {
       "\\kpitemx{(4)}{16の 約数は 1, 2, 4, 8, \\kpbox{16}}",
       "\\end{kpgrid}"].join("\n") });
 
-  add(calcPrint({ grade: G, id: "g5-11", unitNo: 11, name: "算数5年⑪ 分数の たし算・ひき算", title: "分数の たし算・ひき算", subtitle: "通分して 計算", goal: "分母の ちがう 分数を 通分して 計算しよう！", desc: "異分母分数の加減、通分・約分。" }, (rng) => genFracDiff(rng, 12), 2));
+  add(calcPrint({ grade: G, id: "g5-11", unitNo: 11, name: "算数5年⑪ 分数の たし算・ひき算", title: "分数の たし算・ひき算", subtitle: "通分して 計算", goal: "分母の ちがう 分数を 通分して 計算しよう！", desc: "異分母分数の加減、通分・約分。" }, (rng) => genFracDiff(rng, 20), 2));
 
   add({ grade: G, subject: "算数", id: "g5-12", unitNo: 12, name: "算数5年⑫ 分数と 小数", title: "分数と 小数", subtitle: "なおして くらべる", goal: "分数を 小数に、小数を 分数に なおそう！", desc: "分数と小数・整数の関係。",
     body: ["\\kpsection{$\\square$ に あう数を かきましょう}", "\\begin{kpgrid}{2}",
@@ -1279,7 +1279,7 @@ function buildG5() {
       "\\kpqfull{(1)}{算数が すきな 人の 割合は $16\\div40=$ \\kpbox{0.4}（\\kpbox{40} ％）}",
       "\\kpqfull{(2)}{国語が すきな 人の 百分率は \\kpbox{25} ％}"].join("\n") });
 
-  add(calcPrint({ grade: G, id: "g5-18", unitNo: 18, name: "算数5年⑱ 5年の まとめ", title: "5年の まとめ", subtitle: "小数・分数の 計算", goal: "5年で ならった 計算の しあげ！", desc: "5年の計算の総合復習。" }, (rng) => [...genDecMulDec(rng, 5), ...genDecDivDec(rng, 5), ...genFracDiff(rng, 6)], 2));
+  add(calcPrint({ grade: G, id: "g5-18", unitNo: 18, name: "算数5年⑱ 5年の まとめ", title: "5年の まとめ", subtitle: "小数・分数の 計算", goal: "5年で ならった 計算の しあげ！", desc: "5年の計算の総合復習。" }, (rng) => [...genDecMulDec(rng, 9), ...genDecDivDec(rng, 9), ...genFracDiff(rng, 11)], 2));
 
   return P;
 }
@@ -1301,13 +1301,13 @@ function buildG6() {
       "\\kpitemx{(4)}{$80\\times x$ で $x=6$ の とき \\kpbox{480}}",
       "\\end{kpgrid}"].join("\n") });
 
-  add(calcPrint({ grade: G, id: "g6-02", unitNo: 2, name: "算数6年② 分数と整数の かけ算・わり算", title: "分数 × ÷ 整数", subtitle: "分数と 整数", goal: "(分数)×(整数)、(分数)÷(整数)が できるように なろう！", desc: "(分数)×(整数)、(分数)÷(整数)の計算。" }, (rng) => [...genFracMulInt(rng, 11), ...genFracDivInt(rng, 10)], 3));
+  add(calcPrint({ grade: G, id: "g6-02", unitNo: 2, name: "算数6年② 分数と整数の かけ算・わり算", title: "分数 × ÷ 整数", subtitle: "分数と 整数", goal: "(分数)×(整数)、(分数)÷(整数)が できるように なろう！", desc: "(分数)×(整数)、(分数)÷(整数)の計算。" }, (rng) => [...genFracMulInt(rng, 20), ...genFracDivInt(rng, 18)], 3));
 
-  add(calcPrint({ grade: G, id: "g6-03", unitNo: 3, name: "算数6年③ 分数 × 分数", title: "分数 × 分数", subtitle: "分数の かけ算", goal: "(分数)×(分数)が できるように なろう！", desc: "(分数)×(分数)の意味と計算。" }, (rng) => genFracMul(rng, 18), 3));
+  add(calcPrint({ grade: G, id: "g6-03", unitNo: 3, name: "算数6年③ 分数 × 分数", title: "分数 × 分数", subtitle: "分数の かけ算", goal: "(分数)×(分数)が できるように なろう！", desc: "(分数)×(分数)の意味と計算。" }, (rng) => genFracMul(rng, 36), 3));
 
-  add(calcPrint({ grade: G, id: "g6-04", unitNo: 4, name: "算数6年④ 分数 ÷ 分数", title: "分数 ÷ 分数", subtitle: "分数の わり算", goal: "(分数)÷(分数)が できるように なろう！ ぎゃくすうを かける！", desc: "(分数)÷(分数)の意味と計算、逆数。" }, (rng) => genFracDiv(rng, 18), 3));
+  add(calcPrint({ grade: G, id: "g6-04", unitNo: 4, name: "算数6年④ 分数 ÷ 分数", title: "分数 ÷ 分数", subtitle: "分数の わり算", goal: "(分数)÷(分数)が できるように なろう！ ぎゃくすうを かける！", desc: "(分数)÷(分数)の意味と計算、逆数。" }, (rng) => genFracDiv(rng, 36), 3));
 
-  add(calcPrint({ grade: G, id: "g6-05", unitNo: 5, name: "算数6年⑤ 分数の 計算 ミックス", title: "分数の 計算ミックス", subtitle: "× と ÷", goal: "分数の かけ算・わり算を すらすら できるように なろう！", desc: "分数の乗除の習熟。" }, (rng) => [...genFracMul(rng, 9), ...genFracDiv(rng, 9)], 3));
+  add(calcPrint({ grade: G, id: "g6-05", unitNo: 5, name: "算数6年⑤ 分数の 計算 ミックス", title: "分数の 計算ミックス", subtitle: "× と ÷", goal: "分数の かけ算・わり算を すらすら できるように なろう！", desc: "分数の乗除の習熟。" }, (rng) => [...genFracMul(rng, 16), ...genFracDiv(rng, 16)], 3));
 
   add({ grade: G, subject: "算数", id: "g6-06", unitNo: 6, name: "算数6年⑥ 対称な 図形", title: "対称な 図形", subtitle: "線対称・点対称", goal: "線対称・点対称の 図形を しらべよう！", desc: "線対称・点対称の定義と性質。",
     body: ["\\kpsection{$\\square$ に あう ことば・数を かきましょう}", "\\begin{kpgrid}{1}",
@@ -1364,7 +1364,7 @@ function buildG6() {
       "\\kpqfull{(2)}{中央値(まんなかの 値)は \\kpbox{5} 点}",
       "\\kpqfull{(3)}{最頻値(いちばん 多い 値)は \\kpbox{5} 点}"].join("\n") });
 
-  add(calcPrint({ grade: G, id: "g6-14", unitNo: 14, name: "算数6年⑭ 6年の まとめ", title: "6年の まとめ", subtitle: "分数の 四則", goal: "6年で ならった 分数の 計算の しあげ！ 中学への 橋わたし！", desc: "6年の計算の総合復習、中学への接続。" }, (rng) => [...genFracMul(rng, 6), ...genFracDiv(rng, 6), ...genFracDiff(rng, 6)], 3));
+  add(calcPrint({ grade: G, id: "g6-14", unitNo: 14, name: "算数6年⑭ 6年の まとめ", title: "6年の まとめ", subtitle: "分数の 四則", goal: "6年で ならった 分数の 計算の しあげ！ 中学への 橋わたし！", desc: "6年の計算の総合復習、中学への接続。" }, (rng) => [...genFracMul(rng, 11), ...genFracDiv(rng, 11), ...genFracDiff(rng, 11)], 3));
 
   return P;
 }
