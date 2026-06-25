@@ -250,4 +250,25 @@
 %% 左の番号付き計算項目 (multicols 用)。番号+式 (こたえは右の解答欄)。
 \newcommand{\kpLc}[2]{\noindent{\sffamily\footnotesize\textcolor{kpgray}{#1}}\ {#2}\par\vspace{1.7mm}}
 
+%% アイプラス風の番号付き見出し (全幅・インライン解答用)。\kpprompt{1}{つぎの…}
+\newcommand{\kpprompt}[2]{%
+  \par\vspace{0.5mm}
+  \raisebox{0pt}[0pt][0pt]{\colorbox{kpsecbg}{\makebox[7mm][c]{\bfseries\large\textcolor{kpblued}{#1}}}}\ %
+  {\sffamily\bfseries\large #2}\par\vspace{2.6mm}%
+}
+%% 10のまとまり(テンフレーム)。\kptenframe{ぬる数}  (0〜10)
+\newcommand{\kptenframe}[1]{%
+  \begin{tikzpicture}[scale=0.42]
+    \foreach \c in {0,...,4}{
+      \draw[kpbox,line width=1pt] (\c,0) rectangle (\c+1,1);
+      \draw[kpbox,line width=1pt] (\c,1) rectangle (\c+1,2);
+    }
+    \foreach \i in {1,...,#1}{
+      \pgfmathtruncatemacro{\row}{(\i-1)/5}
+      \pgfmathtruncatemacro{\col}{mod(\i-1,5)}
+      \fill[kpblue] (\col+0.5, 1.5-\row) circle (0.34);
+    }
+  \end{tikzpicture}%
+}
+
 \endinput

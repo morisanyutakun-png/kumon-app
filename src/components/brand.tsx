@@ -38,8 +38,8 @@ export function Brand({
     );
   }
   return (
-    <span className="brand-wordmark brand-secondary" aria-label="ノビット 中高部">
-      <span className="bw-main">Nobit</span>
+    <span className="brand-wordmark brand-secondary" aria-label="ノビットスタディ 中高部">
+      <span className="bw-main">ノビットスタディ</span>
       <span className="bw-badge">中高部</span>
     </span>
   );

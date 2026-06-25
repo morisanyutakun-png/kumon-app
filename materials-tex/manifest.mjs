@@ -182,7 +182,18 @@ function buildG1() {
     desc: "合併・増加の場面のたし算。和が 6 までの 1 桁どうしのたし算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-03");
-      return calcBody(genAdd(rng, 36, { maxSum: 6 }));
+      const dots = (n, c) => `\\textcolor{${c}}{${"$\\bullet$\\,".repeat(n)}}`;
+      const pic = (no, a, b) =>
+        `\\kpitemx{(${no})}{${dots(a, "kpblue")} と ${dots(b, "kpink")}\\quad $\\rightarrow$\\quad あわせて \\kpbox{${a + b}} こ}`;
+      const pics = [[2, 1], [3, 2], [2, 3], [4, 2]].map((p, i) => pic(i + 1, p[0], p[1])).join("\n");
+      const drill = grid(calcItems(genAdd(rng, 18, { maxSum: 6 })), 3);
+      return [
+        "\\kpprompt{1}{えを 見て、あわせて いくつか かきましょう}",
+        pics,
+        "\\vspace{2.5mm}",
+        "\\kpprompt{2}{つぎの けいさんを しましょう}",
+        drill,
+      ].join("\n");
     })(),
   });
 
@@ -197,7 +208,7 @@ function buildG1() {
     desc: "和が 10 までのたし算。くり上がりのない 1 桁どうしを反復します。",
     body: (() => {
       const rng = rngFromString("g1-04");
-      return calcBody(genAdd(rng, 40, { maxSum: 10 }));
+      return calcBodyInline(genAdd(rng, 40, { maxSum: 10 }));
     })(),
   });
 
@@ -212,7 +223,7 @@ function buildG1() {
     desc: "求残・求差のひき算。10 までの数からのくり下がりのないひき算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-05");
-      return calcBody(genSub(rng, 40, { max: 10 }));
+      return calcBodyInline(genSub(rng, 40, { max: 10 }));
     })(),
   });
 
@@ -230,7 +241,7 @@ function buildG1() {
       const probs = genSub(rng, 36, { max: 10 });
       // 0のひき算を少し混ぜる
       probs.push({ expr: "6-0=", ans: 6 }, { expr: "9-9=", ans: 0 }, { expr: "8-0=", ans: 8 });
-      return calcBody(probs);
+      return calcBodyInline(probs);
     })(),
   });
 
@@ -284,7 +295,7 @@ function buildG1() {
         if (a - b < 10) return null;
         return { expr: `${a}-${b}=`, ans: a - b };
       });
-      return calcBody([...t10, ...add2, ...sub2]);
+      return calcBodyInline([...t10, ...add2, ...sub2]);
     })(),
   });
 
@@ -348,7 +359,7 @@ function buildG1() {
         if (a + b > 10 || a + b - c < 0) return null;
         return { expr: `${a}+${b}-${c}=`, ans: a + b - c };
       });
-      return calcBody([...addadd, ...subsub, ...mix]);
+      return calcBodyInline([...addadd, ...subsub, ...mix]);
     })(),
   });
 
@@ -363,7 +374,7 @@ function buildG1() {
     desc: "くり上がりのある(1位数)+(1位数)。10 のまとまりをつくる考え方(さくらんぼ計算)を反復します。",
     body: (() => {
       const rng = rngFromString("g1-11");
-      return calcBody(genAddCarry(rng, 40, { maxSum: 14 }));
+      return calcBodyInline(genAddCarry(rng, 40, { maxSum: 14 }));
     })(),
   });
 
@@ -378,7 +389,7 @@ function buildG1() {
     desc: "くり上がりのあるたし算のしあげ。和が 18 までの 1 桁どうしを確実に計算します。",
     body: (() => {
       const rng = rngFromString("g1-12");
-      return calcBody(genAddCarry(rng, 40, { maxSum: 18 }));
+      return calcBodyInline(genAddCarry(rng, 40, { maxSum: 18 }));
     })(),
   });
 
@@ -393,7 +404,7 @@ function buildG1() {
     desc: "くり下がりのある(十何)−(1位数)。10 から引いてたす考え方(減加法)を反復します。",
     body: (() => {
       const rng = rngFromString("g1-13");
-      return calcBody(genSubBorrow(rng, 40, { max: 14 }));
+      return calcBodyInline(genSubBorrow(rng, 40, { max: 14 }));
     })(),
   });
 
@@ -408,7 +419,7 @@ function buildG1() {
     desc: "くり下がりのあるひき算のしあげ。18 までの数からのひき算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-14");
-      return calcBody(genSubBorrow(rng, 40, { max: 18 }));
+      return calcBodyInline(genSubBorrow(rng, 40, { max: 18 }));
     })(),
   });
 
@@ -440,7 +451,7 @@ function buildG1() {
         if ((a % 10) + b >= 10) return null;
         return { expr: `${a}+${b}=`, ans: a + b };
       });
-      return calcBody([...tens, ...tensSub, ...d2]);
+      return calcBodyInline([...tens, ...tensSub, ...d2]);
     })(),
   });
 
@@ -514,7 +525,7 @@ function buildG1() {
         ...genSub(rng, 7, { max: 10 }),
         ...genSubBorrow(rng, 9, { max: 18 }),
       ];
-      return calcBody(mix);
+      return calcBodyInline(mix);
     })(),
   });
 
@@ -657,10 +668,16 @@ function calcBody(probs, section = "つぎの けいさんを しましょう") 
   const ans = `\\setlength{\\columnsep}{3mm}\\begin{multicols}{2}${probs.map((p, i) => `\\kpARc{(${i + 1})}{${p.ans}}`).join("")}\\end{multicols}`;
   return `\\begin{kpsheet}\\kpQ{1}{${left}}{${ans}}\\end{kpsheet}`;
 }
-// 計算ドリルを1行で作る
+// 低学年向け: インライン解答(= のすぐ後ろに箱)の計算ドリル本文
+function calcBodyInline(probs, cols = 3, section = "つぎの けいさんを しましょう") {
+  return `\\kpprompt{1}{${section}}\n` + grid(calcItems(probs), cols);
+}
+// 計算ドリルを1行で作る (小1・小2はインライン解答、小3以上は右の解答欄)
 function calcPrint(def, gen, cols = 2, section = "つぎの けいさんを しましょう") {
   const rng = rngFromString(def.id);
-  return { subject: "算数", ...def, body: calcBody(gen(rng), section) };
+  const probs = gen(rng);
+  const low = (def.grade ?? 9) <= 2;
+  return { subject: "算数", ...def, body: low ? calcBodyInline(probs, 3, section) : calcBody(probs, section) };
 }
 
 // =============================================================================
@@ -1128,7 +1145,7 @@ function buildG4() {
   add(calcPrint({ grade: G, id: "g4-11", unitNo: 11, name: "算数4年⑪ 小数の わり算 (÷整数)", title: "小数の わり算", subtitle: "小数 ÷ 整数", goal: "(小数)÷(整数)が できるように なろう！", desc: "(小数)÷(整数)の計算、筆算。" }, (rng) => genDecDivInt(rng, 36)));
 
   add({ grade: G, subject: "算数", id: "g4-12", unitNo: 12, name: "算数4年⑫ 式と計算", title: "式と 計算", subtitle: "( )・四則の じゅんじょ", goal: "( )や かけ算・わり算を 先に 計算しよう！", desc: "四則の混じった式、計算の順序、( )。",
-    body: calcBody([{ expr: "3+4\\times2=", ans: 11 }, { expr: "(3+4)\\times2=", ans: 14 }, { expr: "20-12\\div4=", ans: 17 }, { expr: "(20-12)\\div4=", ans: 2 }, { expr: "8\\times(5-2)=", ans: 24 }, { expr: "6+18\\div3=", ans: 12 }]) });
+    body: calcBodyInline([{ expr: "3+4\\times2=", ans: 11 }, { expr: "(3+4)\\times2=", ans: 14 }, { expr: "20-12\\div4=", ans: 17 }, { expr: "(20-12)\\div4=", ans: 2 }, { expr: "8\\times(5-2)=", ans: 24 }, { expr: "6+18\\div3=", ans: 12 }]) });
 
   add({ grade: G, subject: "算数", id: "g4-13", unitNo: 13, name: "算数4年⑬ 面積", title: "面積", subtitle: "長方形・正方形", goal: "長方形・正方形の 面積を もとめよう！", desc: "面積の意味と単位、長方形・正方形の面積公式。",
     body: ["\\kpsection{面積を もとめましょう}", "\\begin{kpgrid}{1}",
