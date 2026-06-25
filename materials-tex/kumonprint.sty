@@ -13,6 +13,7 @@
 \RequirePackage{multicol}
 \RequirePackage{tikz}
 \RequirePackage{array}
+\RequirePackage{longtable}
 \RequirePackage{enumitem}
 \RequirePackage[hmargin=15mm,vmargin=14mm]{geometry}
 
@@ -181,4 +182,72 @@
   \vspace{1mm}
   {\sffamily\footnotesize\color{kpgray} #1 \hfill ｜ はんぷく がくしゅう プリント}
 }
+
+% =====================================================================
+% アイプラス風レイアウト (v3): ヘッダーバー + 左=問題/右=解答欄
+% =====================================================================
+\RequirePackage{array}
+
+%% ヘッダーバー  \kphead{科目}{単元タイトル}{配点}{ページ}
+\newcommand{\kpsep}{\;\textcolor{kpline}{\rule[-1.6mm]{0.7pt}{6.4mm}}\;}
+\newcommand{\kphead}[4]{%
+  \noindent\begin{tikzpicture}
+    \node[draw=kpblue, line width=1.3pt, rounded corners=13pt, fill=kpheadbg,
+          minimum height=10.5mm, inner xsep=9pt, inner ysep=0pt,
+          text width=\dimexpr\linewidth-18pt\relax, anchor=north west, font=\sffamily] at (0,0) {%
+      \tikz[baseline=-2.3mm]{\node[circle,fill=kpblue,text=white,inner sep=1.6pt,font=\bfseries\scriptsize]{はん};}\;%
+      {\bfseries #1}\kpsep
+      #2\hfill
+      \kpsep{\bfseries ／#3}\kpsep{\small #4}%
+    };
+  \end{tikzpicture}\par\vspace{2.4mm}
+  % なまえ / てんすう
+  \noindent\begin{tikzpicture}
+    \node[fill=white, draw=kpline, rounded corners=7pt, inner sep=6pt,
+          text width=\dimexpr\linewidth-16pt\relax, anchor=north west] at (0,0) {%
+      {\sffamily
+        なまえ \tikz[baseline=-2.4mm]{\node[draw=kpline,fill=white,rounded corners=3pt,minimum width=54mm,minimum height=7.5mm]{};}\hfill
+        ひづけ \rule{8mm}{0.4pt}\,がつ\,\rule{8mm}{0.4pt}\,にち \hfill
+        てんすう \tikz[baseline=-2.4mm]{\node[draw=kpstar,fill=white,line width=1pt,rounded corners=3pt,minimum width=18mm,minimum height=7.5mm]{};}%
+      }%
+    };
+  \end{tikzpicture}\par\vspace{3mm}
+}
+
+%% 問題と解答欄の2段組  \begin{kpsheet} ... \kpQ ... \end{kpsheet}
+\newenvironment{kpsheet}{%
+  \par\sffamily
+  \tabcolsep=0pt
+  \begin{longtable}{@{}p{0.60\linewidth}@{\hspace{0.02\linewidth}}p{0.36\linewidth}@{}}%
+}{%
+  \end{longtable}%
+}
+%% 1問  \kpQ{番号}{問題本文}{解答欄(中身は \kpAR の列)}
+%% 列幅は longtable の p{} が決めるので、内側で再 parbox しない。
+\newcommand{\kpQ}[3]{%
+  \raisebox{0pt}[0pt][0pt]{\colorbox{kpsecbg}{\makebox[7mm][c]{\bfseries\large\textcolor{kpblued}{#1}}}}\ %
+  {\large #2}%
+  &
+  \kpAns{#3}%
+  \tabularnewline[5mm]
+}
+%% 解答欄の箱 (右セル幅いっぱい・上揃え)。参考プリント同様の素朴な四角。
+\newcommand{\kpAns}[1]{%
+  \setlength{\fboxsep}{6pt}\setlength{\fboxrule}{0.8pt}%
+  \fcolorbox{kpbox}{white}{\begin{minipage}[t]{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}%
+    \vspace{0.5mm}#1\vspace{0.5mm}%
+  \end{minipage}}%
+}
+%% 解答欄の1行  \kpAR{ラベル}{こたえ}  (ラベル空可)。ラベル+こたえを1行に。
+\newcommand{\kpAR}[2]{%
+  \par\noindent{\footnotesize\textcolor{kpgray}{#1}}\ifx\relax#1\relax\else\ \fi\ifkpans\textcolor{kpink}{\bfseries #2}\else\phantom{#2}\fi\par
+  \vspace{0.8mm}\textcolor{kpline}{\rule{\linewidth}{0.3pt}}\par\vspace{1.2mm}%
+}
+%% 解答欄のコンパイル行 (multicols で並べる計算ドリル用)。番号+こたえ。
+\newcommand{\kpARc}[2]{%
+  \noindent{\footnotesize\textcolor{kpgray}{#1}}\ \ifkpans\textcolor{kpink}{\bfseries #2}\else\phantom{99}\fi\par\vspace{3.1mm}%
+}
+%% 左の番号付き計算項目 (multicols 用)。番号+式 (こたえは右の解答欄)。
+\newcommand{\kpLc}[2]{\noindent{\sffamily\textcolor{kpgray}{#1}}\ \ {\large #2}\par\vspace{2.7mm}}
+
 \endinput

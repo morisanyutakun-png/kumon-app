@@ -35,7 +35,9 @@ ${body}
 
 function pageBody(p) {
   const goal = p.goal ? `\\kpgoal{${p.goal}}\n` : "";
-  return `\\kpheader{さんすう ${p.grade}年}{${p.title}}{${p.subtitle}}
+  const points = p.points ?? 10;
+  // アイプラス風ヘッダーバー: 科目 / 学年・単元 / 配点 / ページ
+  return `\\kphead{さんすう}{${p.grade}年 ／ ${p.title}}{${points}}{1/1}
 ${goal}${p.body}
 \\kpfinish
 \\kpfooter{さんすう ${p.grade}年 ｜ ${p.title}}`;

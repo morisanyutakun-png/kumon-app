@@ -182,10 +182,7 @@ function buildG1() {
     desc: "合併・増加の場面のたし算。和が 6 までの 1 桁どうしのたし算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-03");
-      return [
-        "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(genAdd(rng, 18, { maxSum: 6 })), 3),
-      ].join("\n");
+      return calcBody(genAdd(rng, 18, { maxSum: 6 }));
     })(),
   });
 
@@ -200,10 +197,7 @@ function buildG1() {
     desc: "和が 10 までのたし算。くり上がりのない 1 桁どうしを反復します。",
     body: (() => {
       const rng = rngFromString("g1-04");
-      return [
-        "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(genAdd(rng, 27, { maxSum: 10 })), 3),
-      ].join("\n");
+      return calcBody(genAdd(rng, 27, { maxSum: 10 }));
     })(),
   });
 
@@ -218,10 +212,7 @@ function buildG1() {
     desc: "求残・求差のひき算。10 までの数からのくり下がりのないひき算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-05");
-      return [
-        "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(genSub(rng, 27, { max: 10 })), 3),
-      ].join("\n");
+      return calcBody(genSub(rng, 27, { max: 10 }));
     })(),
   });
 
@@ -239,10 +230,7 @@ function buildG1() {
       const probs = genSub(rng, 21, { max: 10 });
       // 0のひき算を少し混ぜる
       probs.push({ expr: "6-0=", ans: 6 }, { expr: "9-9=", ans: 0 }, { expr: "8-0=", ans: 8 });
-      return [
-        "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(probs), 3),
-      ].join("\n");
+      return calcBody(probs);
     })(),
   });
 
@@ -296,10 +284,7 @@ function buildG1() {
         if (a - b < 10) return null;
         return { expr: `${a}-${b}=`, ans: a - b };
       });
-      return [
-        "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems([...t10, ...add2, ...sub2]), 3),
-      ].join("\n");
+      return calcBody([...t10, ...add2, ...sub2]);
     })(),
   });
 
@@ -363,10 +348,7 @@ function buildG1() {
         if (a + b > 10 || a + b - c < 0) return null;
         return { expr: `${a}+${b}-${c}=`, ans: a + b - c };
       });
-      return [
-        "\\kpsection{まえから じゅんに けいさんしましょう}",
-        grid(calcItems([...addadd, ...subsub, ...mix]), 3),
-      ].join("\n");
+      return calcBody([...addadd, ...subsub, ...mix]);
     })(),
   });
 
@@ -381,10 +363,7 @@ function buildG1() {
     desc: "くり上がりのある(1位数)+(1位数)。10 のまとまりをつくる考え方(さくらんぼ計算)を反復します。",
     body: (() => {
       const rng = rngFromString("g1-11");
-      return [
-        "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(genAddCarry(rng, 24, { maxSum: 14 })), 3),
-      ].join("\n");
+      return calcBody(genAddCarry(rng, 24, { maxSum: 14 }));
     })(),
   });
 
@@ -399,10 +378,7 @@ function buildG1() {
     desc: "くり上がりのあるたし算のしあげ。和が 18 までの 1 桁どうしを確実に計算します。",
     body: (() => {
       const rng = rngFromString("g1-12");
-      return [
-        "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(genAddCarry(rng, 27, { maxSum: 18 })), 3),
-      ].join("\n");
+      return calcBody(genAddCarry(rng, 27, { maxSum: 18 }));
     })(),
   });
 
@@ -417,10 +393,7 @@ function buildG1() {
     desc: "くり下がりのある(十何)−(1位数)。10 から引いてたす考え方(減加法)を反復します。",
     body: (() => {
       const rng = rngFromString("g1-13");
-      return [
-        "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(genSubBorrow(rng, 24, { max: 14 })), 3),
-      ].join("\n");
+      return calcBody(genSubBorrow(rng, 24, { max: 14 }));
     })(),
   });
 
@@ -435,10 +408,7 @@ function buildG1() {
     desc: "くり下がりのあるひき算のしあげ。18 までの数からのひき算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-14");
-      return [
-        "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(genSubBorrow(rng, 27, { max: 18 })), 3),
-      ].join("\n");
+      return calcBody(genSubBorrow(rng, 27, { max: 18 }));
     })(),
   });
 
@@ -470,10 +440,7 @@ function buildG1() {
         if ((a % 10) + b >= 10) return null;
         return { expr: `${a}+${b}=`, ans: a + b };
       });
-      return [
-        "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems([...tens, ...tensSub, ...d2]), 3),
-      ].join("\n");
+      return calcBody([...tens, ...tensSub, ...d2]);
     })(),
   });
 
@@ -547,10 +514,7 @@ function buildG1() {
         ...genSub(rng, 4, { max: 10 }),
         ...genSubBorrow(rng, 5, { max: 18 }),
       ];
-      return [
-        "\\kpsection{つぎの けいさんを しましょう}",
-        grid(calcItems(mix), 3),
-      ].join("\n");
+      return calcBody(mix);
     })(),
   });
 
@@ -687,10 +651,16 @@ function genFracSame(rng, count) {
     return { expr: `\\frac{${x}}{${d}}-\\frac{${y}}{${d}}=`, ans: `$\\frac{${x - y}}{${d}}$` };
   });
 }
-// 計算ドリル(セクション+グリッド)を1行で作る
-function calcPrint(def, gen, cols = 3, section = "つぎの けいさんを しましょう") {
+// 計算ドリル本文(アイプラス風: 左=番号付き式 / 右=解答欄)を probs から作る
+function calcBody(probs, section = "つぎの けいさんを しましょう") {
+  const left = `${section}。\\par\\vspace{1.5mm}\\setlength{\\columnsep}{5mm}\\begin{multicols}{2}${probs.map((p, i) => `\\kpLc{(${i + 1})}{$${p.expr}$}`).join("")}\\end{multicols}`;
+  const ans = `\\setlength{\\columnsep}{3mm}\\begin{multicols}{2}${probs.map((p, i) => `\\kpARc{(${i + 1})}{${p.ans}}`).join("")}\\end{multicols}`;
+  return `\\begin{kpsheet}\\kpQ{1}{${left}}{${ans}}\\end{kpsheet}`;
+}
+// 計算ドリルを1行で作る
+function calcPrint(def, gen, cols = 2, section = "つぎの けいさんを しましょう") {
   const rng = rngFromString(def.id);
-  return { subject: "算数", ...def, body: [`\\kpsection{${section}}`, grid(calcItems(gen(rng)), cols)].join("\n") };
+  return { subject: "算数", ...def, body: calcBody(gen(rng), section) };
 }
 
 // =============================================================================
@@ -1158,8 +1128,7 @@ function buildG4() {
   add(calcPrint({ grade: G, id: "g4-11", unitNo: 11, name: "算数4年⑪ 小数の わり算 (÷整数)", title: "小数の わり算", subtitle: "小数 ÷ 整数", goal: "(小数)÷(整数)が できるように なろう！", desc: "(小数)÷(整数)の計算、筆算。" }, (rng) => genDecDivInt(rng, 21)));
 
   add({ grade: G, subject: "算数", id: "g4-12", unitNo: 12, name: "算数4年⑫ 式と計算", title: "式と 計算", subtitle: "( )・四則の じゅんじょ", goal: "( )や かけ算・わり算を 先に 計算しよう！", desc: "四則の混じった式、計算の順序、( )。",
-    body: ["\\kpsection{つぎの けいさんを しましょう}",
-      grid(calcItems([{ expr: "3+4\\times2=", ans: 11 }, { expr: "(3+4)\\times2=", ans: 14 }, { expr: "20-12\\div4=", ans: 17 }, { expr: "(20-12)\\div4=", ans: 2 }, { expr: "8\\times(5-2)=", ans: 24 }, { expr: "6+18\\div3=", ans: 12 }]), 2)].join("\n") });
+    body: calcBody([{ expr: "3+4\\times2=", ans: 11 }, { expr: "(3+4)\\times2=", ans: 14 }, { expr: "20-12\\div4=", ans: 17 }, { expr: "(20-12)\\div4=", ans: 2 }, { expr: "8\\times(5-2)=", ans: 24 }, { expr: "6+18\\div3=", ans: 12 }]) });
 
   add({ grade: G, subject: "算数", id: "g4-13", unitNo: 13, name: "算数4年⑬ 面積", title: "面積", subtitle: "長方形・正方形", goal: "長方形・正方形の 面積を もとめよう！", desc: "面積の意味と単位、長方形・正方形の面積公式。",
     body: ["\\kpsection{面積を もとめましょう}", "\\begin{kpgrid}{1}",
