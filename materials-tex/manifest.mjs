@@ -613,4 +613,440 @@ function buildG1() {
   return P;
 }
 
-export const prints = [...buildG1()];
+
+// --- 追加の計算ジェネレータ (2・3年用) ---
+function hasCarryAdd(a, b) { while (a > 0 || b > 0) { if ((a % 10) + (b % 10) >= 10) return true; a = Math.floor(a / 10); b = Math.floor(b / 10); } return false; }
+function hasBorrow(a, b) { while (b > 0) { if ((a % 10) < (b % 10)) return true; a = Math.floor(a / 10); b = Math.floor(b / 10); } return false; }
+const fmt1 = (x) => (Number.isInteger(x) ? `${x}` : x.toFixed(1));
+function genMul(rng, count, { tables, bmax = 9 }) {
+  return uniqueProbs(rng, count, () => {
+    const a = tables[Math.floor(rng() * tables.length)];
+    const b = ri(rng, 1, bmax);
+    return { expr: `${a}\\times${b}=`, ans: a * b };
+  });
+}
+function genDiv(rng, count, { bmin = 2, bmax = 9 }) {
+  return uniqueProbs(rng, count, () => {
+    const b = ri(rng, bmin, bmax);
+    const q = ri(rng, 1, 9);
+    return { expr: `${b * q}\\div${b}=`, ans: q };
+  });
+}
+function genDivRem(rng, count) {
+  return uniqueProbs(rng, count, () => {
+    const b = ri(rng, 2, 9);
+    const q = ri(rng, 1, 9);
+    const r = ri(rng, 1, b - 1);
+    return { expr: `${b * q + r}\\div${b}=`, ans: `${q}あまり${r}` };
+  });
+}
+function genAddN(rng, count, { min, max, carry = null }) {
+  return uniqueProbs(rng, count, () => {
+    const a = ri(rng, min, max), b = ri(rng, min, max);
+    if (carry === false && hasCarryAdd(a, b)) return null;
+    if (carry === true && !hasCarryAdd(a, b)) return null;
+    return { expr: `${a}+${b}=`, ans: a + b };
+  });
+}
+function genSubN(rng, count, { min, max, borrow = null }) {
+  return uniqueProbs(rng, count, () => {
+    let a = ri(rng, min, max), b = ri(rng, min, max);
+    if (a < b) { const t = a; a = b; b = t; }
+    if (a === b) return null;
+    if (borrow === false && hasBorrow(a, b)) return null;
+    if (borrow === true && !hasBorrow(a, b)) return null;
+    return { expr: `${a}-${b}=`, ans: a - b };
+  });
+}
+function genMulBig(rng, count, { amin, amax, bmin, bmax }) {
+  return uniqueProbs(rng, count, () => {
+    const a = ri(rng, amin, amax), b = ri(rng, bmin, bmax);
+    return { expr: `${a}\\times${b}=`, ans: a * b };
+  });
+}
+function genDecimal(rng, count) {
+  return uniqueProbs(rng, count, () => {
+    const a = ri(rng, 2, 89) / 10, b = ri(rng, 2, 89) / 10;
+    if (rng() < 0.5) {
+      const hi = Math.max(a, b), lo = Math.min(a, b);
+      if (hi === lo) return null;
+      return { expr: `${fmt1(hi)}-${fmt1(lo)}=`, ans: fmt1(Math.round((hi - lo) * 10) / 10) };
+    }
+    return { expr: `${fmt1(a)}+${fmt1(b)}=`, ans: fmt1(Math.round((a + b) * 10) / 10) };
+  });
+}
+function genFracSame(rng, count) {
+  return uniqueProbs(rng, count, () => {
+    const d = ri(rng, 3, 8);
+    if (rng() < 0.5) {
+      const x = ri(rng, 1, d - 2), y = ri(rng, 1, d - 1 - x);
+      if (x + y >= d || y < 1) return null;
+      return { expr: `\\frac{${x}}{${d}}+\\frac{${y}}{${d}}=`, ans: `$\\frac{${x + y}}{${d}}$` };
+    }
+    const x = ri(rng, 2, d - 1), y = ri(rng, 1, x - 1);
+    return { expr: `\\frac{${x}}{${d}}-\\frac{${y}}{${d}}=`, ans: `$\\frac{${x - y}}{${d}}$` };
+  });
+}
+// 計算ドリル(セクション+グリッド)を1行で作る
+function calcPrint(def, gen, cols = 3, section = "つぎの けいさんを しましょう") {
+  const rng = rngFromString(def.id);
+  return { subject: "算数", ...def, body: [`\\kpsection{${section}}`, grid(calcItems(gen(rng)), cols)].join("\n") };
+}
+
+// =============================================================================
+// プリント一覧 (小学2年)
+// =============================================================================
+function buildG2() {
+  const P = [];
+  const add = (d) => P.push(d);
+  const G = 2;
+
+  // ① ひょうとグラフ
+  add({ grade: G, subject: "算数", id: "g2-01", unitNo: 1, name: "算数2年① ひょうと グラフ", title: "ひょうと グラフ", subtitle: "かずを よみとる",
+    goal: "ひょうや グラフを よんで、かずを くらべて みよう！", desc: "簡単な事柄を表やグラフに表し、数を読み取る。",
+    body: [
+      "\\kpsection{すきな くだもの しらべ}",
+      "{\\large りんご … 4にん ／ みかん … 6にん ／ ぶどう … 3にん ／ いちご … 5にん}\\par\\vspace{3mm}",
+      "\\kpqfull{(1)}{いちばん おおい くだものは どれですか。 \\quad こたえ \\kpbox{みかん}}",
+      "\\kpqfull{(2)}{りんごと いちごは あわせて なんにんですか。 \\quad こたえ \\kpbox{9} にん}",
+      "\\kpqfull{(3)}{みかんは ぶどうより なんにん おおいですか。 \\quad こたえ \\kpbox{3} にん}",
+      "\\kpqfull{(4)}{ぜんぶで なんにん しらべましたか。 \\quad こたえ \\kpbox{18} にん}",
+    ].join("\n") });
+
+  // ② 時こくと時間(1)
+  add({ grade: G, subject: "算数", id: "g2-02", unitNo: 2, name: "算数2年② 時こくと 時間 (1)", title: "とけいを よもう", subtitle: "なんじ なんぷん",
+    goal: "とけいの ながいはりを よんで「なんじ なんぷん」が わかるように なろう！", desc: "時刻の読み方(何時何分)。1日の時間、午前・午後。",
+    body: (() => {
+      const clocks = [[3, 15, "3じ15ふん"], [8, 40, "8じ40ぷん"], [10, 5, "10じ5ふん"], [6, 30, "6じ30ぷん"], [1, 50, "1じ50ぷん"], [12, 20, "12じ20ぷん"]];
+      const cell = ([h, m, ans], i) => `\\begin{minipage}[t]{0.3\\linewidth}\\centering (${i + 1})\\par \\kpclock{${h}}{${m}}\\par\\vspace{1mm}\\kpbox{${ans}}\\end{minipage}`;
+      return ["\\kpsection{なんじ なんぷんですか}", "\\begin{center}", clocks.slice(0, 3).map(cell).join("\\hfill"), "\\par\\vspace{6mm}", clocks.slice(3).map((c, i) => cell(c, i + 3)).join("\\hfill"), "\\end{center}"].join("\n");
+    })() });
+
+  // ③ 2けたのたし算(暗算)
+  add(calcPrint({ grade: G, id: "g2-03", unitNo: 3, name: "算数2年③ 2けたの たし算", title: "2けたの たし算", subtitle: "くり上がりの ない あんざん", goal: "2けたの たし算を、あたまの なかで すばやく できるように なろう！", desc: "(2位数)+(1,2位数)で繰り上がりのない加法。" }, (rng) => genAddN(rng, 24, { min: 11, max: 88, carry: false })));
+
+  // ④ たし算のひっ算
+  add(calcPrint({ grade: G, id: "g2-04", unitNo: 4, name: "算数2年④ たし算の ひっ算", title: "たし算の ひっ算", subtitle: "くり上がりの ある たし算", goal: "くり上がりの ある 2けたの たし算を、ひっ算で できるように なろう！", desc: "繰り上がりのある(2位数)+(2位数)の筆算。" }, (rng) => genAddN(rng, 24, { min: 13, max: 89, carry: true })));
+
+  // ⑤ ひき算のひっ算
+  add(calcPrint({ grade: G, id: "g2-05", unitNo: 5, name: "算数2年⑤ ひき算の ひっ算", title: "ひき算の ひっ算", subtitle: "くり下がりの ある ひき算", goal: "くり下がりの ある 2けたの ひき算を、ひっ算で できるように なろう！", desc: "繰り下がりのある(2位数)-(1,2位数)の筆算。" }, (rng) => genSubN(rng, 24, { min: 21, max: 99, borrow: true })));
+
+  // ⑥ 1000までの数
+  add({ grade: G, subject: "算数", id: "g2-06", unitNo: 6, name: "算数2年⑥ 1000までの 数", title: "1000までの 数", subtitle: "数の しくみ", goal: "100が いくつ、10が いくつ…で 数を かんがえよう！", desc: "1000までの数の構成・読み方・書き方。",
+    body: [
+      "\\kpsection{$\\square$ に あう 数を かきましょう}",
+      "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{100が 3こ、10が 5こ、1が 8こで \\kpbox{358}}",
+      "\\kpitemx{(2)}{100が 6こ、10が 0こ、1が 4こで \\kpbox{604}}",
+      "\\kpitemx{(3)}{100が 7こで \\kpbox{700}}",
+      "\\kpitemx{(4)}{472は 100が \\kpbox{4} こ、10が \\kpbox{7} こ、1が \\kpbox{2} こ}",
+      "\\kpitemx{(5)}{990より 10 大きい数は \\kpbox{1000}}",
+      "\\kpitemx{(6)}{640は 10を \\kpbox{64} こ あつめた数}",
+      "\\end{kpgrid}",
+    ].join("\n") });
+
+  // ⑦ 大きい数のたし算とひき算
+  add(calcPrint({ grade: G, id: "g2-07", unitNo: 7, name: "算数2年⑦ 大きい数の たし算と ひき算", title: "大きい数の けいさん", subtitle: "3けたの たし算・ひき算", goal: "3けたの たし算・ひき算を ひっ算で できるように なろう！", desc: "(3位数)±(2,3位数)の筆算。" }, (rng) => [...genAddN(rng, 10, { min: 105, max: 899 }), ...genSubN(rng, 10, { min: 120, max: 999 })], 2));
+
+  // ⑧ 長さ(1) cm mm
+  add({ grade: G, subject: "算数", id: "g2-08", unitNo: 8, name: "算数2年⑧ 長さ (1) cm と mm", title: "長さ (cm と mm)", subtitle: "1cm = 10mm", goal: "cm と mm の かんけいを おぼえて、長さを あらわそう！", desc: "長さの単位cm,mm。1cm=10mm。",
+    body: [
+      "\\kpsection{$\\square$ に あう数を かきましょう}",
+      "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{1 cm $=$ \\kpbox{10} mm}",
+      "\\kpitemx{(2)}{4 cm $=$ \\kpbox{40} mm}",
+      "\\kpitemx{(3)}{3 cm 5 mm $=$ \\kpbox{35} mm}",
+      "\\kpitemx{(4)}{60 mm $=$ \\kpbox{6} cm}",
+      "\\kpitemx{(5)}{8 cm 2 mm $=$ \\kpbox{82} mm}",
+      "\\kpitemx{(6)}{47 mm $=$ \\kpbox{4} cm \\kpbox{7} mm}",
+      "\\end{kpgrid}",
+    ].join("\n") });
+
+  // ⑨ 水のかさ
+  add({ grade: G, subject: "算数", id: "g2-09", unitNo: 9, name: "算数2年⑨ 水の かさ", title: "水の かさ", subtitle: "L・dL・mL", goal: "L・dL・mL の かんけいを おぼえよう！", desc: "かさの単位L,dL,mL。1L=10dL=1000mL。",
+    body: [
+      "\\kpsection{$\\square$ に あう数を かきましょう}",
+      "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{1 L $=$ \\kpbox{10} dL}",
+      "\\kpitemx{(2)}{1 dL $=$ \\kpbox{100} mL}",
+      "\\kpitemx{(3)}{1 L $=$ \\kpbox{1000} mL}",
+      "\\kpitemx{(4)}{3 L 2 dL $=$ \\kpbox{32} dL}",
+      "\\kpitemx{(5)}{50 dL $=$ \\kpbox{5} L}",
+      "\\kpitemx{(6)}{2 L $=$ \\kpbox{2000} mL}",
+      "\\end{kpgrid}",
+    ].join("\n") });
+
+  // ⑩ 三角形と四角形
+  add({ grade: G, subject: "算数", id: "g2-10", unitNo: 10, name: "算数2年⑩ 三角形と 四角形", title: "三角形と 四角形", subtitle: "へん・ちょうてん・直角", goal: "三角形や 四角形の かたちを しらべよう！", desc: "三角形・四角形の意味、辺・頂点、直角。",
+    body: (() => {
+      const pic = "\\begin{tikzpicture}[scale=0.8]" +
+        "\\draw[kpblue,line width=1.2pt] (0,0)--(1.6,0)--(0.8,1.3)--cycle;" +
+        "\\draw[kpgreen,line width=1.2pt] (2.4,0) rectangle (3.9,1.3);" +
+        "\\draw[kpink,line width=1.2pt] (4.6,0)--(6.4,0)--(6.0,1.2)--(4.9,1.2)--cycle;" +
+        "\\end{tikzpicture}";
+      return [
+        "\\kpsection{かたちを しらべましょう}",
+        `\\begin{center}${pic}\\end{center}\\vspace{3mm}`,
+        "\\kpqfull{(1)}{三角形の ちょうてんは いくつ ありますか。 \\quad こたえ \\kpbox{3} つ}",
+        "\\kpqfull{(2)}{四角形の へんは いくつ ありますか。 \\quad こたえ \\kpbox{4} つ}",
+        "\\kpqfull{(3)}{まんなかの かたちのように、4つの かどが みんな 直角な 四角形を なんと いいますか。 \\quad こたえ \\kpbox{長方形}}",
+      ].join("\n");
+    })() });
+
+  // ⑪ かけ算(1)
+  add(calcPrint({ grade: G, id: "g2-11", unitNo: 11, name: "算数2年⑪ かけ算 (1)", title: "かけ算 (1)", subtitle: "2・3・4・5の だん", goal: "2・3・4・5の だんの 九九を おぼえよう！", desc: "乗法の意味。2,3,4,5の段の九九。" }, (rng) => genMul(rng, 24, { tables: [2, 5, 3, 4] })));
+
+  // ⑫ かけ算(2)
+  add(calcPrint({ grade: G, id: "g2-12", unitNo: 12, name: "算数2年⑫ かけ算 (2)", title: "かけ算 (2)", subtitle: "6・7・8・9・1の だん", goal: "6・7・8・9・1の だんの 九九を おぼえよう！", desc: "6〜9,1の段の九九。" }, (rng) => genMul(rng, 24, { tables: [6, 7, 8, 9, 1] })));
+
+  // ⑬ かけ算(3) 九九ミックス
+  add(calcPrint({ grade: G, id: "g2-13", unitNo: 13, name: "算数2年⑬ かけ算 (3) 九九ミックス", title: "九九 ミックス", subtitle: "ぜんぶの だん", goal: "ぜんぶの だんの 九九を すらすら いえるように なろう！", desc: "九九表。乗法の交換法則。" }, (rng) => genMul(rng, 27, { tables: [1, 2, 3, 4, 5, 6, 7, 8, 9] })));
+
+  // ⑭ 分数
+  add({ grade: G, subject: "算数", id: "g2-14", unitNo: 14, name: "算数2年⑭ 分数", title: "分数", subtitle: "1/2・1/3・1/4", goal: "ぜんたいを おなじ 大きさに わけた 1つぶんを 分数で あらわそう！", desc: "分数の意味(1/2,1/3,1/4)。",
+    body: [
+      "\\kpsection{$\\square$ に あう 分数や 数を かきましょう}",
+      "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{ぜんたいを 2つに わけた 1つぶんは \\kpbox{$\\frac{1}{2}$}}",
+      "\\kpitemx{(2)}{ぜんたいを 4つに わけた 1つぶんは \\kpbox{$\\frac{1}{4}$}}",
+      "\\kpitemx{(3)}{ぜんたいを 3つに わけた 1つぶんは \\kpbox{$\\frac{1}{3}$}}",
+      "\\kpitemx{(4)}{$\\frac{1}{4}$ が 4こで \\kpbox{1}}",
+      "\\end{kpgrid}",
+    ].join("\n") });
+
+  // ⑮ 時こくと時間(2)
+  add({ grade: G, subject: "算数", id: "g2-15", unitNo: 15, name: "算数2年⑮ 時こくと 時間 (2)", title: "時間の けいさん", subtitle: "1時間 = 60分", goal: "1時間=60分。 時間の かんけいを おぼえよう！", desc: "時間の計算。1時間=60分。",
+    body: [
+      "\\kpsection{$\\square$ に あう数を かきましょう}",
+      "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{1 時間 $=$ \\kpbox{60} 分}",
+      "\\kpitemx{(2)}{70 分 $=$ \\kpbox{1} 時間 \\kpbox{10} 分}",
+      "\\kpitemx{(3)}{2 時間 $=$ \\kpbox{120} 分}",
+      "\\kpitemx{(4)}{午前 9時から 午前 11時までは \\kpbox{2} 時間}",
+      "\\end{kpgrid}",
+    ].join("\n") });
+
+  // ⑯ 10000までの数
+  add({ grade: G, subject: "算数", id: "g2-16", unitNo: 16, name: "算数2年⑯ 10000までの 数", title: "10000までの 数", subtitle: "千のくらい", goal: "千のくらいまでの 大きい数を かんがえよう！", desc: "10000までの数の構成・読み方・書き方。",
+    body: [
+      "\\kpsection{$\\square$ に あう数を かきましょう}",
+      "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{1000が 3こ、100が 5こ、10が 2こ、1が 7こで \\kpbox{3527}}",
+      "\\kpitemx{(2)}{2840は 1000が \\kpbox{2} こ、100が \\kpbox{8} こ、10が \\kpbox{4} こ}",
+      "\\kpitemx{(3)}{9000より 1000 大きい数は \\kpbox{10000}}",
+      "\\kpitemx{(4)}{6000は 1000を \\kpbox{6} こ あつめた数}",
+      "\\end{kpgrid}",
+    ].join("\n") });
+
+  // ⑰ 長さ(2) m
+  add({ grade: G, subject: "算数", id: "g2-17", unitNo: 17, name: "算数2年⑰ 長さ (2) m", title: "長さ (m)", subtitle: "1m = 100cm", goal: "m と cm の かんけいを おぼえよう！", desc: "長さの単位m。1m=100cm。",
+    body: [
+      "\\kpsection{$\\square$ に あう数を かきましょう}",
+      "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{1 m $=$ \\kpbox{100} cm}",
+      "\\kpitemx{(2)}{2 m 50 cm $=$ \\kpbox{250} cm}",
+      "\\kpitemx{(3)}{300 cm $=$ \\kpbox{3} m}",
+      "\\kpitemx{(4)}{1 m 8 cm $=$ \\kpbox{108} cm}",
+      "\\end{kpgrid}",
+    ].join("\n") });
+
+  // ⑱ たし算とひき算(文章題)
+  add({ grade: G, subject: "算数", id: "g2-18", unitNo: 18, name: "算数2年⑱ たし算と ひき算 (ぶんしょうだい)", title: "ぶんしょうだい", subtitle: "たし算・ひき算", goal: "おはなしを よんで、しきを かいて こたえよう！", desc: "場面を読み取り加減の式を立てる。",
+    body: (() => {
+      const Q = (no, text, eq, ans, unit) => `\\kpqfull{(${no})}{${text}\\par\\vspace{2.5mm}しき \\ \\kpblank{${eq}} \\qquad こたえ \\ \\kpbox{${ans}}\\,${unit}}`;
+      return [
+        "\\kpsection{しきを かいて こたえましょう}",
+        Q(1, "あめが 45こ あります。28こ もらいました。ぜんぶで なんこですか。", "45+28=73", "73", "こ"),
+        Q(2, "りんごが 52こ ありました。17こ たべました。のこりは なんこですか。", "52-17=35", "35", "こ"),
+        Q(3, "いろえんぴつが 1はこ 12本 あります。3はこでは なん本ですか。", "$12\\times3=36$", "36", "本"),
+      ].join("\n");
+    })() });
+
+  // ⑲ はこの形
+  add({ grade: G, subject: "算数", id: "g2-19", unitNo: 19, name: "算数2年⑲ はこの 形", title: "はこの 形", subtitle: "めん・へん・ちょうてん", goal: "はこの 形の めん・へん・ちょうてんの 数を しらべよう！", desc: "箱の形の構成要素(面・辺・頂点)。",
+    body: (() => {
+      const cube = "\\begin{tikzpicture}[scale=0.9]\\kpcube{0}{0}\\end{tikzpicture}";
+      return [
+        "\\kpsection{はこの 形を しらべましょう}",
+        `\\begin{center}${cube}\\end{center}\\vspace{3mm}`,
+        "\\kpqfull{(1)}{はこの 形の めんは いくつ ありますか。 \\quad こたえ \\kpbox{6} つ}",
+        "\\kpqfull{(2)}{ちょうてんは いくつ ありますか。 \\quad こたえ \\kpbox{8} つ}",
+        "\\kpqfull{(3)}{へんは いくつ ありますか。 \\quad こたえ \\kpbox{12} つ}",
+      ].join("\n");
+    })() });
+
+  // ⑳ 2年のまとめ
+  add(calcPrint({ grade: G, id: "g2-20", unitNo: 20, name: "算数2年⑳ 2年の まとめ", title: "2年の まとめ", subtitle: "たし算・ひき算・九九", goal: "2年で ならった けいさんの しあげ！ ぜんぶ できるかな？", desc: "2年の計算の総合復習(筆算・九九)。" }, (rng) => [...genAddN(rng, 6, { min: 23, max: 89, carry: true }), ...genSubN(rng, 6, { min: 31, max: 99, borrow: true }), ...genMul(rng, 12, { tables: [3, 4, 6, 7, 8, 9] })]));
+
+  return P;
+}
+
+
+// =============================================================================
+// プリント一覧 (小学3年)
+// =============================================================================
+function buildG3() {
+  const P = [];
+  const add = (d) => P.push(d);
+  const G = 3;
+
+  // ① かけ算のきまり
+  add({ grade: G, subject: "算数", id: "g3-01", unitNo: 1, name: "算数3年① かけ算の きまり", title: "かけ算の きまり", subtitle: "0の だん・10倍・きまり", goal: "0や 10の かけ算と、かけ算の きまりを つかえるように なろう！", desc: "乗法のきまり(交換・0の乗法・10の乗法)。",
+    body: [
+      "\\kpsection{$\\square$ に あう数を かきましょう}",
+      "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{$7\\times0=$ \\kpbox{0}}",
+      "\\kpitemx{(2)}{$0\\times6=$ \\kpbox{0}}",
+      "\\kpitemx{(3)}{$4\\times10=$ \\kpbox{40}}",
+      "\\kpitemx{(4)}{$10\\times8=$ \\kpbox{80}}",
+      "\\kpitemx{(5)}{$3\\times6=6\\times$ \\kpbox{3}}",
+      "\\kpitemx{(6)}{$5\\times7=5\\times6+$ \\kpbox{5}}",
+      "\\end{kpgrid}",
+    ].join("\n") });
+
+  // ② 時こくと時間(1)
+  add({ grade: G, subject: "算数", id: "g3-02", unitNo: 2, name: "算数3年② 時こくと 時間 (1)", title: "時間の けいさん", subtitle: "時こくと 時間", goal: "時こくと 時間の けいさんが できるように なろう！", desc: "時間の計算、日常生活と時刻。",
+    body: [
+      "\\kpsection{$\\square$ に あう数を かきましょう}",
+      "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{午前 8時から 午後 3時までは \\kpbox{7} 時間}",
+      "\\kpitemx{(2)}{40分 $+$ 30分 $=$ \\kpbox{1} 時間 \\kpbox{10} 分}",
+      "\\kpitemx{(3)}{1時間20分 $=$ \\kpbox{80} 分}",
+      "\\kpitemx{(4)}{9時50分から 20分 たつと \\kpbox{10} 時 \\kpbox{10} 分}",
+      "\\end{kpgrid}",
+    ].join("\n") });
+
+  // ③ わり算
+  add(calcPrint({ grade: G, id: "g3-03", unitNo: 3, name: "算数3年③ わり算", title: "わり算", subtitle: "九九を つかって", goal: "九九を つかって わり算が できるように なろう！", desc: "除法の意味と答えの求め方(九九1回適用)。" }, (rng) => genDiv(rng, 24, { bmin: 2, bmax: 9 })));
+
+  // ④ あまりのあるわり算
+  add(calcPrint({ grade: G, id: "g3-04", unitNo: 4, name: "算数3年④ あまりの ある わり算", title: "あまりの ある わり算", subtitle: "わって あまりを だす", goal: "あまりの ある わり算が できるように なろう！", desc: "余りのある除法の意味と計算。" }, (rng) => genDivRem(rng, 21), 3));
+
+  // ⑤ たし算とひき算(3,4けたの筆算)
+  add(calcPrint({ grade: G, id: "g3-05", unitNo: 5, name: "算数3年⑤ たし算と ひき算 (ひっ算)", title: "大きい数の ひっ算", subtitle: "3けた・4けたの たし算ひき算", goal: "3けた・4けたの たし算・ひき算を ひっ算で できるように なろう！", desc: "(3,4位数)±(3,4位数)の筆算。" }, (rng) => [...genAddN(rng, 8, { min: 235, max: 4899 }), ...genSubN(rng, 8, { min: 412, max: 9999 })], 2));
+
+  // ⑥ 表とグラフ
+  add({ grade: G, subject: "算数", id: "g3-06", unitNo: 6, name: "算数3年⑥ 表と グラフ", title: "表と グラフ", subtitle: "ぼうグラフ", goal: "ぼうグラフを よんで、数を くらべよう！", desc: "棒グラフの読み方、表の整理。",
+    body: [
+      "\\kpsection{1しゅうかんに よんだ 本の さっすう}",
+      "{\\large 月 … 3さつ ／ 火 … 5さつ ／ 水 … 2さつ ／ 木 … 6さつ ／ 金 … 4さつ}\\par\\vspace{3mm}",
+      "\\kpqfull{(1)}{いちばん おおく よんだ 曜日は どれですか。 \\quad こたえ \\kpbox{木}}",
+      "\\kpqfull{(2)}{月と 金では あわせて なんさつ よみましたか。 \\quad こたえ \\kpbox{7} さつ}",
+      "\\kpqfull{(3)}{1しゅうかんで ぜんぶで なんさつ よみましたか。 \\quad こたえ \\kpbox{20} さつ}",
+    ].join("\n") });
+
+  // ⑦ 長さ km
+  add({ grade: G, subject: "算数", id: "g3-07", unitNo: 7, name: "算数3年⑦ 長さ (km)", title: "長さ (km)", subtitle: "1km = 1000m", goal: "km と m の かんけいを おぼえよう！", desc: "長さの単位km。1km=1000m。",
+    body: [
+      "\\kpsection{$\\square$ に あう数を かきましょう}",
+      "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{1 km $=$ \\kpbox{1000} m}",
+      "\\kpitemx{(2)}{2 km 300 m $=$ \\kpbox{2300} m}",
+      "\\kpitemx{(3)}{1500 m $=$ \\kpbox{1} km \\kpbox{500} m}",
+      "\\kpitemx{(4)}{3 km $=$ \\kpbox{3000} m}",
+      "\\end{kpgrid}",
+    ].join("\n") });
+
+  // ⑧ (2けた)×(1けた)
+  add(calcPrint({ grade: G, id: "g3-08", unitNo: 8, name: "算数3年⑧ (2けた)×(1けた)", title: "(2けた)×(1けた)", subtitle: "かけ算の ひっ算", goal: "2けた×1けたの かけ算が できるように なろう！", desc: "(2位数)×(1位数)の計算の仕方、筆算。" }, (rng) => genMulBig(rng, 21, { amin: 12, amax: 99, bmin: 2, bmax: 9 })));
+
+  // ⑨ (3けた)×(1けた)
+  add(calcPrint({ grade: G, id: "g3-09", unitNo: 9, name: "算数3年⑨ (3けた)×(1けた)", title: "(3けた)×(1けた)", subtitle: "かけ算の ひっ算", goal: "3けた×1けたの かけ算が できるように なろう！", desc: "(3位数)×(1位数)の筆算。" }, (rng) => genMulBig(rng, 18, { amin: 112, amax: 989, bmin: 2, bmax: 9 }), 2));
+
+  // ⑩ 大きい数
+  add({ grade: G, subject: "算数", id: "g3-10", unitNo: 10, name: "算数3年⑩ 大きい数", title: "大きい数", subtitle: "万の くらい", goal: "一万を こえる 大きい数を かんがえよう！", desc: "1億未満の数の構成・読み方。万。",
+    body: [
+      "\\kpsection{$\\square$ に あう数を かきましょう}",
+      "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{10000が 4こで \\kpbox{40000}}",
+      "\\kpitemx{(2)}{1000が 10こで \\kpbox{10000}}",
+      "\\kpitemx{(3)}{53000は 1000を \\kpbox{53} こ あつめた数}",
+      "\\kpitemx{(4)}{38000より 2000 大きい数は \\kpbox{40000}}",
+      "\\kpitemx{(5)}{$700\\times100=$ \\kpbox{70000}}",
+      "\\kpitemx{(6)}{$60000\\div10=$ \\kpbox{6000}}",
+      "\\end{kpgrid}",
+    ].join("\n") });
+
+  // ⑪ 円と球
+  add({ grade: G, subject: "算数", id: "g3-11", unitNo: 11, name: "算数3年⑪ 円と 球", title: "円と 球", subtitle: "半径・直径", goal: "円の 半径と 直径の かんけいを おぼえよう！", desc: "円の定義、中心・半径・直径の性質。",
+    body: (() => {
+      const pic = "\\begin{tikzpicture}[scale=0.9]\\draw[kpblue,line width=1.2pt](0,0)circle(1.2);\\fill(0,0)circle(1.5pt);\\draw[kpink,line width=1pt](0,0)--(1.2,0);\\node[font=\\small] at (0.6,0.22){はんけい};\\end{tikzpicture}";
+      return [
+        "\\kpsection{円に ついて こたえましょう}",
+        `\\begin{center}${pic}\\end{center}\\vspace{2mm}`,
+        "\\kpqfull{(1)}{半径 4cmの 円の 直径は なんcmですか。 \\quad こたえ \\kpbox{8} cm}",
+        "\\kpqfull{(2)}{直径 10cmの 円の 半径は なんcmですか。 \\quad こたえ \\kpbox{5} cm}",
+        "\\kpqfull{(3)}{直径は 半径の なんばいですか。 \\quad こたえ \\kpbox{2} ばい}",
+      ].join("\n");
+    })() });
+
+  // ⑫ 時こくと時間(2) 秒
+  add({ grade: G, subject: "算数", id: "g3-12", unitNo: 12, name: "算数3年⑫ 時こくと 時間 (2) 秒", title: "秒", subtitle: "1分 = 60秒", goal: "分と 秒の かんけいを おぼえよう！", desc: "短い時間、秒。1分=60秒。",
+    body: [
+      "\\kpsection{$\\square$ に あう数を かきましょう}",
+      "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{1分 $=$ \\kpbox{60} 秒}",
+      "\\kpitemx{(2)}{90秒 $=$ \\kpbox{1} 分 \\kpbox{30} 秒}",
+      "\\kpitemx{(3)}{2分 $=$ \\kpbox{120} 秒}",
+      "\\kpitemx{(4)}{1分45秒 $=$ \\kpbox{105} 秒}",
+      "\\end{kpgrid}",
+    ].join("\n") });
+
+  // ⑬ 小数
+  add(calcPrint({ grade: G, id: "g3-13", unitNo: 13, name: "算数3年⑬ 小数", title: "小数", subtitle: "小数第一位の たしひき", goal: "小数の たし算・ひき算が できるように なろう！", desc: "小数(第一位)の仕組みと加減。" }, (rng) => genDecimal(rng, 18), 3));
+
+  // ⑭ 三角形と角
+  add({ grade: G, subject: "算数", id: "g3-14", unitNo: 14, name: "算数3年⑭ 三角形と 角", title: "三角形と 角", subtitle: "二等辺三角形・正三角形", goal: "いろいろな 三角形の なまえを おぼえよう！", desc: "二等辺三角形・正三角形の定義、角。",
+    body: (() => {
+      const pic = "\\begin{tikzpicture}[scale=0.85]\\draw[kpblue,line width=1.2pt](0,0)--(1.4,0)--(0.7,1.2)--cycle;\\draw[kpink,line width=1.2pt](2.4,0)--(3.8,0)--(3.1,1.2)--cycle;\\end{tikzpicture}";
+      return [
+        "\\kpsection{三角形を しらべましょう}",
+        `\\begin{center}${pic}\\end{center}\\vspace{2mm}`,
+        "\\kpqfull{(1)}{3つの へんの 長さが みんな おなじ 三角形を なんと いいますか。 \\quad こたえ \\kpbox{正三角形}}",
+        "\\kpqfull{(2)}{2つの へんの 長さが おなじ 三角形を なんと いいますか。 \\quad こたえ \\kpbox{二等辺三角形}}",
+        "\\kpqfull{(3)}{正三角形の 3つの 角の 大きさは すべて \\kpbox{おなじ}}",
+      ].join("\n");
+    })() });
+
+  // ⑮ (2,3けた)×(2けた)
+  add(calcPrint({ grade: G, id: "g3-15", unitNo: 15, name: "算数3年⑮ (2,3けた)×(2けた)", title: "(2,3けた)×(2けた)", subtitle: "かけ算の ひっ算", goal: "2けた・3けた×2けたの かけ算が できるように なろう！", desc: "(2,3位数)×(2位数)の筆算。" }, (rng) => [...genMulBig(rng, 8, { amin: 12, amax: 99, bmin: 11, bmax: 99 }), ...genMulBig(rng, 8, { amin: 102, amax: 899, bmin: 11, bmax: 99 })], 2));
+
+  // ⑯ 分数
+  add(calcPrint({ grade: G, id: "g3-16", unitNo: 16, name: "算数3年⑯ 分数", title: "分数", subtitle: "同じ 分母の たしひき", goal: "同じ 分母の 分数の たし算・ひき算を しよう！", desc: "分数の意味、同分母分数の加減。" }, (rng) => genFracSame(rng, 12), 2));
+
+  // ⑰ 重さ
+  add({ grade: G, subject: "算数", id: "g3-17", unitNo: 17, name: "算数3年⑰ 重さ", title: "重さ", subtitle: "kg と g", goal: "kg と g の かんけいを おぼえよう！", desc: "重さの単位kg,g。1kg=1000g。",
+    body: [
+      "\\kpsection{$\\square$ に あう数を かきましょう}",
+      "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{1 kg $=$ \\kpbox{1000} g}",
+      "\\kpitemx{(2)}{2 kg 500 g $=$ \\kpbox{2500} g}",
+      "\\kpitemx{(3)}{3000 g $=$ \\kpbox{3} kg}",
+      "\\kpitemx{(4)}{1 kg 200 g $=$ \\kpbox{1200} g}",
+      "\\end{kpgrid}",
+    ].join("\n") });
+
+  // ⑱ □を使った式
+  add({ grade: G, subject: "算数", id: "g3-18", unitNo: 18, name: "算数3年⑱ □を つかった 式", title: "□を つかった 式", subtitle: "わからない数を もとめる", goal: "□に あう 数を もとめる れんしゅうを しよう！", desc: "未知数を□にして式に表し、求める。",
+    body: [
+      "\\kpsection{$\\square$ に あう数を かきましょう}",
+      "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{$\\square+15=40$\\quad $\\square=$ \\kpbox{25}}",
+      "\\kpitemx{(2)}{$\\square-12=20$\\quad $\\square=$ \\kpbox{32}}",
+      "\\kpitemx{(3)}{$8\\times\\square=56$\\quad $\\square=$ \\kpbox{7}}",
+      "\\kpitemx{(4)}{$\\square\\div4=6$\\quad $\\square=$ \\kpbox{24}}",
+      "\\kpitemx{(5)}{$30-\\square=18$\\quad $\\square=$ \\kpbox{12}}",
+      "\\kpitemx{(6)}{$\\square\\div7=8$\\quad $\\square=$ \\kpbox{56}}",
+      "\\end{kpgrid}",
+    ].join("\n") });
+
+  // ⑲ わり算の れんしゅう
+  add(calcPrint({ grade: G, id: "g3-19", unitNo: 19, name: "算数3年⑲ わり算の れんしゅう", title: "わり算の れんしゅう", subtitle: "あまりなし・あまりあり ミックス", goal: "わり算を すらすら できるように なろう！", desc: "除法の習熟(余りなし・余りあり混合)。" }, (rng) => [...genDiv(rng, 12, { bmin: 2, bmax: 9 }), ...genDivRem(rng, 12)], 3));
+
+  // ⑳ 3年のまとめ
+  add(calcPrint({ grade: G, id: "g3-20", unitNo: 20, name: "算数3年⑳ 3年の まとめ", title: "3年の まとめ", subtitle: "かけ算・わり算・ひっ算", goal: "3年で ならった けいさんの しあげ！ ぜんぶ できるかな？", desc: "3年の計算の総合復習。" }, (rng) => [...genDiv(rng, 6, { bmin: 2, bmax: 9 }), ...genMulBig(rng, 6, { amin: 13, amax: 89, bmin: 3, bmax: 9 }), ...genAddN(rng, 3, { min: 234, max: 4899 }), ...genSubN(rng, 3, { min: 412, max: 8999 })], 2));
+
+  return P;
+}
+
+export const prints = [...buildG1(), ...buildG2(), ...buildG3()];
