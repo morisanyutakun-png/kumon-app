@@ -1049,4 +1049,355 @@ function buildG3() {
   return P;
 }
 
-export const prints = [...buildG1(), ...buildG2(), ...buildG3()];
+
+// --- 追加の計算ジェネレータ (4・5・6年用) ---
+function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { const t = b; b = a % b; a = t; } return a || 1; }
+const dec = (x, p = 2) => `${Math.round(x * 10 ** p) / 10 ** p}`;
+function fracStr(n, d) { const g = gcd(n, d); n /= g; d /= g; return d === 1 ? `${n}` : `$\\frac{${n}}{${d}}$`; }
+function genDivLong(rng, count, { dividendMax, divisorMax = 9 }) {
+  return uniqueProbs(rng, count, () => {
+    const b = ri(rng, 2, divisorMax);
+    const q = ri(rng, 12, Math.max(13, Math.floor(dividendMax / b)));
+    const r = rng() < 0.5 ? ri(rng, 1, b - 1) : 0;
+    return { expr: `${b * q + r}\\div${b}=`, ans: r ? `${q}あまり${r}` : `${q}` };
+  });
+}
+function genDiv2(rng, count) {
+  return uniqueProbs(rng, count, () => {
+    const b = ri(rng, 11, 39);
+    const q = ri(rng, 2, 30);
+    const r = rng() < 0.5 ? ri(rng, 1, b - 1) : 0;
+    return { expr: `${b * q + r}\\div${b}=`, ans: r ? `${q}あまり${r}` : `${q}` };
+  });
+}
+function genDecMulInt(rng, count) { return uniqueProbs(rng, count, () => { const a = ri(rng, 2, 99) / 10, b = ri(rng, 2, 9); return { expr: `${dec(a, 1)}\\times${b}=`, ans: dec(a * b, 1) }; }); }
+function genDecDivInt(rng, count) { return uniqueProbs(rng, count, () => { const b = ri(rng, 2, 9), q = ri(rng, 2, 40) / 10; const a = Math.round(q * b * 10) / 10; return { expr: `${dec(a, 1)}\\div${b}=`, ans: dec(q, 1) }; }); }
+function genDecMulDec(rng, count) { return uniqueProbs(rng, count, () => { const a = ri(rng, 2, 95) / 10, b = ri(rng, 2, 95) / 10; return { expr: `${dec(a, 1)}\\times${dec(b, 1)}=`, ans: dec(a * b, 2) }; }); }
+function genDecDivDec(rng, count) { return uniqueProbs(rng, count, () => { const b = ri(rng, 2, 9) / 10, q = ri(rng, 2, 9); const a = Math.round(b * q * 10) / 10; return { expr: `${dec(a, 1)}\\div${dec(b, 1)}=`, ans: `${q}` }; }); }
+function genFracDiff(rng, count) {
+  return uniqueProbs(rng, count, () => {
+    const d1 = ri(rng, 2, 6), d2 = ri(rng, 2, 6);
+    if (d1 === d2) return null;
+    const a = ri(rng, 1, d1 - 1), b = ri(rng, 1, d2 - 1);
+    const L = (d1 * d2) / gcd(d1, d2);
+    const na = a * (L / d1), nb = b * (L / d2);
+    if (rng() < 0.5) return { expr: `\\frac{${a}}{${d1}}+\\frac{${b}}{${d2}}=`, ans: fracStr(na + nb, L) };
+    if (na === nb) return null;
+    const expr = na > nb ? `\\frac{${a}}{${d1}}-\\frac{${b}}{${d2}}=` : `\\frac{${b}}{${d2}}-\\frac{${a}}{${d1}}=`;
+    return { expr, ans: fracStr(Math.abs(na - nb), L) };
+  });
+}
+function genFracMul(rng, count) { return uniqueProbs(rng, count, () => { const b = ri(rng, 2, 7), d = ri(rng, 2, 7), a = ri(rng, 1, b - 1), c = ri(rng, 1, d - 1); return { expr: `\\frac{${a}}{${b}}\\times\\frac{${c}}{${d}}=`, ans: fracStr(a * c, b * d) }; }); }
+function genFracDiv(rng, count) { return uniqueProbs(rng, count, () => { const b = ri(rng, 2, 7), d = ri(rng, 2, 7), a = ri(rng, 1, b - 1), c = ri(rng, 1, d - 1); return { expr: `\\frac{${a}}{${b}}\\div\\frac{${c}}{${d}}=`, ans: fracStr(a * d, b * c) }; }); }
+function genFracMulInt(rng, count) { return uniqueProbs(rng, count, () => { const b = ri(rng, 2, 8), a = ri(rng, 1, b - 1), k = ri(rng, 2, 6); return { expr: `\\frac{${a}}{${b}}\\times${k}=`, ans: fracStr(a * k, b) }; }); }
+function genFracDivInt(rng, count) { return uniqueProbs(rng, count, () => { const b = ri(rng, 2, 8), a = ri(rng, 1, b - 1), k = ri(rng, 2, 6); return { expr: `\\frac{${a}}{${b}}\\div${k}=`, ans: fracStr(a, b * k) }; }); }
+
+// =============================================================================
+// プリント一覧 (小学4年)
+// =============================================================================
+function buildG4() {
+  const P = [];
+  const add = (d) => P.push(d);
+  const G = 4;
+
+  add({ grade: G, subject: "算数", id: "g4-01", unitNo: 1, name: "算数4年① 大きい数", title: "大きい数", subtitle: "億・兆", goal: "億や 兆の 大きい数を よめるように なろう！", desc: "億・兆。整数の仕組み、大きな数のかけ算・わり算。",
+    body: ["\\kpsection{$\\square$ に あう数を かきましょう}", "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{1000万を 10こ あつめた数は \\kpbox{1億}}",
+      "\\kpitemx{(2)}{1億を 1000こ あつめた数は \\kpbox{1000億}}",
+      "\\kpitemx{(3)}{$50000\\times100=$ \\kpbox{5000000}}",
+      "\\kpitemx{(4)}{$8000000\\div1000=$ \\kpbox{8000}}",
+      "\\kpitemx{(5)}{1兆は 1億の \\kpbox{10000} 倍}",
+      "\\kpitemx{(6)}{3億5000万を 数字で かくと \\kpbox{350000000}}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g4-02", unitNo: 2, name: "算数4年② 折れ線グラフ", title: "折れ線グラフ", subtitle: "へんかを よみとる", goal: "折れ線グラフから かわりかたを よみとろう！", desc: "折れ線グラフの読み方・かき方。",
+    body: ["\\kpsection{ある日の 気温(℃)}", "{\\large 9時…14 ／ 10時…17 ／ 11時…20 ／ 12時…22 ／ 13時…21}\\par\\vspace{3mm}",
+      "\\kpqfull{(1)}{いちばん 気温が 高いのは 何時ですか。 \\quad こたえ \\kpbox{12時}}",
+      "\\kpqfull{(2)}{9時から 12時までに 気温は 何℃ 上がりましたか。 \\quad こたえ \\kpbox{8} ℃}",
+      "\\kpqfull{(3)}{気温が 下がったのは 何時から 何時の あいだですか。 \\quad こたえ \\kpbox{12時〜13時}}"].join("\n") });
+
+  add(calcPrint({ grade: G, id: "g4-03", unitNo: 3, name: "算数4年③ 1けたで わるわり算", title: "1けたで わるわり算", subtitle: "わり算の ひっ算", goal: "大きい数を 1けたで わる ひっ算が できるように なろう！", desc: "(2,3位数)÷(1位数)の筆算。" }, (rng) => genDivLong(rng, 21, { dividendMax: 999, divisorMax: 9 })));
+
+  add(calcPrint({ grade: G, id: "g4-04", unitNo: 4, name: "算数4年④ 2けたで わるわり算", title: "2けたで わるわり算", subtitle: "わり算の ひっ算", goal: "2けたで わる わり算が できるように なろう！", desc: "(2,3位数)÷(2位数)の筆算。" }, (rng) => genDiv2(rng, 18), 2));
+
+  add({ grade: G, subject: "算数", id: "g4-05", unitNo: 5, name: "算数4年⑤ がい数 (四捨五入)", title: "がい数", subtitle: "四捨五入", goal: "四捨五入して、およその 数で あらわそう！", desc: "概数、四捨五入、概算。",
+    body: ["\\kpsection{四捨五入して、$\\square$ の くらいまでの がい数に しましょう}", "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{2834 を 百のくらいまで $\\to$ \\kpbox{2800}}",
+      "\\kpitemx{(2)}{4567 を 千のくらいまで $\\to$ \\kpbox{5000}}",
+      "\\kpitemx{(3)}{31250 を 一万のくらいまで $\\to$ \\kpbox{30000}}",
+      "\\kpitemx{(4)}{785 を 十のくらいまで $\\to$ \\kpbox{790}}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g4-06", unitNo: 6, name: "算数4年⑥ 角", title: "角の 大きさ", subtitle: "角度", goal: "角の 大きさ(角度)を かんがえよう！", desc: "回転角、角の単位(度)。1直角=90度。",
+    body: ["\\kpsection{$\\square$ に あう数を かきましょう}", "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{1直角は \\kpbox{90} 度}",
+      "\\kpitemx{(2)}{2直角(まっすぐ)は \\kpbox{180} 度}",
+      "\\kpitemx{(3)}{1回転は \\kpbox{360} 度}",
+      "\\kpitemx{(4)}{三角じょうぎの いちばん 大きい角は \\kpbox{90} 度}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g4-07", unitNo: 7, name: "算数4年⑦ 垂直・平行と 四角形", title: "垂直・平行と 四角形", subtitle: "いろいろな 四角形", goal: "垂直・平行と、いろいろな 四角形を しらべよう！", desc: "垂直・平行の意味、台形・平行四辺形・ひし形。",
+    body: ["\\kpsection{$\\square$ に あう ことばを かきましょう}", "\\begin{kpgrid}{1}",
+      "\\kpitemx{(1)}{むかいあった 2くみの 辺が 平行な 四角形を \\kpbox{平行四辺形} という}",
+      "\\kpitemx{(2)}{4つの 辺の 長さが みんな 同じ 四角形を \\kpbox{ひし形} という}",
+      "\\kpitemx{(3)}{1くみの 辺だけが 平行な 四角形を \\kpbox{台形} という}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g4-08", unitNo: 8, name: "算数4年⑧ 小数", title: "小数の しくみ", subtitle: "小数第二・三位", goal: "0.01 や 0.001 の くらいの 小数を かんがえよう！", desc: "小数第二位・三位、小数の仕組み。",
+    body: ["\\kpsection{$\\square$ に あう数を かきましょう}", "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{0.01 を 7こ あつめた数は \\kpbox{0.07}}",
+      "\\kpitemx{(2)}{0.1 を 23こ あつめた数は \\kpbox{2.3}}",
+      "\\kpitemx{(3)}{$3.14\\times10=$ \\kpbox{31.4}}",
+      "\\kpitemx{(4)}{$5.6\\div10=$ \\kpbox{0.56}}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add(calcPrint({ grade: G, id: "g4-09", unitNo: 9, name: "算数4年⑨ 小数の たし算・ひき算", title: "小数の たし算・ひき算", subtitle: "小数の ひっ算", goal: "小数の たし算・ひき算を ひっ算で できるように なろう！", desc: "小数(第一位)の加減の筆算。" }, (rng) => genDecimal(rng, 21)));
+
+  add(calcPrint({ grade: G, id: "g4-10", unitNo: 10, name: "算数4年⑩ 小数の かけ算 (×整数)", title: "小数の かけ算", subtitle: "小数 × 整数", goal: "(小数)×(整数)が できるように なろう！", desc: "(小数)×(整数)の計算、筆算。" }, (rng) => genDecMulInt(rng, 21)));
+
+  add(calcPrint({ grade: G, id: "g4-11", unitNo: 11, name: "算数4年⑪ 小数の わり算 (÷整数)", title: "小数の わり算", subtitle: "小数 ÷ 整数", goal: "(小数)÷(整数)が できるように なろう！", desc: "(小数)÷(整数)の計算、筆算。" }, (rng) => genDecDivInt(rng, 21)));
+
+  add({ grade: G, subject: "算数", id: "g4-12", unitNo: 12, name: "算数4年⑫ 式と計算", title: "式と 計算", subtitle: "( )・四則の じゅんじょ", goal: "( )や かけ算・わり算を 先に 計算しよう！", desc: "四則の混じった式、計算の順序、( )。",
+    body: ["\\kpsection{つぎの けいさんを しましょう}",
+      grid(calcItems([{ expr: "3+4\\times2=", ans: 11 }, { expr: "(3+4)\\times2=", ans: 14 }, { expr: "20-12\\div4=", ans: 17 }, { expr: "(20-12)\\div4=", ans: 2 }, { expr: "8\\times(5-2)=", ans: 24 }, { expr: "6+18\\div3=", ans: 12 }]), 2)].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g4-13", unitNo: 13, name: "算数4年⑬ 面積", title: "面積", subtitle: "長方形・正方形", goal: "長方形・正方形の 面積を もとめよう！", desc: "面積の意味と単位、長方形・正方形の面積公式。",
+    body: ["\\kpsection{面積を もとめましょう}", "\\begin{kpgrid}{1}",
+      "\\kpitemx{(1)}{たて 4cm、よこ 6cm の 長方形 $\\to$ $4\\times6=$ \\kpbox{24} cm$^2$}",
+      "\\kpitemx{(2)}{1辺 5cm の 正方形 $\\to$ $5\\times5=$ \\kpbox{25} cm$^2$}",
+      "\\kpitemx{(3)}{たて 8m、よこ 10m の 長方形 $\\to$ \\kpbox{80} m$^2$}",
+      "\\kpitemx{(4)}{$1$ m$^2$ $=$ \\kpbox{10000} cm$^2$}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g4-14", unitNo: 14, name: "算数4年⑭ 分数", title: "分数", subtitle: "仮分数・帯分数", goal: "仮分数と 帯分数を なおせるように なろう！", desc: "真分数・仮分数・帯分数、同分母分数の加減。",
+    body: ["\\kpsection{$\\square$ に あう数を かきましょう}", "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{$\\frac{7}{3}$ を 帯分数に すると \\kpbox{$2\\frac{1}{3}$}}",
+      "\\kpitemx{(2)}{$1\\frac{2}{5}$ を 仮分数に すると \\kpbox{$\\frac{7}{5}$}}",
+      "\\kpitemx{(3)}{$\\frac{2}{6}$ を かんたんに すると \\kpbox{$\\frac{1}{3}$}}",
+      "\\kpitemx{(4)}{$\\frac{4}{5}+\\frac{3}{5}=$ \\kpbox{$\\frac{7}{5}$}}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g4-15", unitNo: 15, name: "算数4年⑮ 直方体と 立方体", title: "直方体と 立方体", subtitle: "面・辺・頂点", goal: "直方体・立方体の 面・辺・頂点を しらべよう！", desc: "直方体・立方体の定義と性質、見取図・展開図。",
+    body: (() => { const cube = "\\begin{tikzpicture}[scale=0.9]\\kpcube{0}{0}\\end{tikzpicture}";
+      return ["\\kpsection{立方体を しらべましょう}", `\\begin{center}${cube}\\end{center}\\vspace{3mm}`,
+        "\\kpqfull{(1)}{面は いくつ ありますか。 \\quad こたえ \\kpbox{6} つ}",
+        "\\kpqfull{(2)}{辺は いくつ ありますか。 \\quad こたえ \\kpbox{12} つ}",
+        "\\kpqfull{(3)}{頂点は いくつ ありますか。 \\quad こたえ \\kpbox{8} つ}"].join("\n"); })() });
+
+  add({ grade: G, subject: "算数", id: "g4-16", unitNo: 16, name: "算数4年⑯ ともなって 変わる量", title: "ともなって 変わる量", subtitle: "□と○の かんけい", goal: "2つの 量の かわりかたを 式に あらわそう！", desc: "伴って変わる2つの量、□や○を使った式。",
+    body: ["\\kpsection{1辺が □cm の 正方形の まわりの 長さ ○cm}",
+      "{\\large □が 1, 2, 3, 4 の とき ○は 4, 8, 12, 16}\\par\\vspace{3mm}",
+      "\\kpqfull{(1)}{□と ○の かんけいを 式に すると ○ $=$ □ $\\times$ \\kpbox{4}}",
+      "\\kpqfull{(2)}{□が 7 の とき ○は \\kpbox{28}}",
+      "\\kpqfull{(3)}{○が 40 の とき □は \\kpbox{10}}"].join("\n") });
+
+  add(calcPrint({ grade: G, id: "g4-17", unitNo: 17, name: "算数4年⑰ 計算の れんしゅう", title: "計算の れんしゅう", subtitle: "わり算・小数 ミックス", goal: "わり算と 小数の 計算を すらすら できるように なろう！", desc: "除法・小数計算の習熟。" }, (rng) => [...genDivLong(rng, 8, { dividendMax: 999 }), ...genDecMulInt(rng, 6), ...genDecDivInt(rng, 6)], 3));
+
+  add(calcPrint({ grade: G, id: "g4-18", unitNo: 18, name: "算数4年⑱ 4年の まとめ", title: "4年の まとめ", subtitle: "わり算・小数・分数", goal: "4年で ならった 計算の しあげ！", desc: "4年の計算の総合復習。" }, (rng) => [...genDiv2(rng, 5), ...genDecMulInt(rng, 4), ...genDecDivInt(rng, 4), ...genDecimal(rng, 5)], 3));
+
+  return P;
+}
+
+
+// =============================================================================
+// プリント一覧 (小学5年)
+// =============================================================================
+function buildG5() {
+  const P = [];
+  const add = (d) => P.push(d);
+  const G = 5;
+
+  add({ grade: G, subject: "算数", id: "g5-01", unitNo: 1, name: "算数5年① 小数と整数", title: "小数と 整数", subtitle: "10倍・1/10", goal: "小数を 10倍・$\\frac{1}{10}$ したときの しくみを かんがえよう！", desc: "十進位取り記数法、小数を10倍・1/10した数。",
+    body: ["\\kpsection{$\\square$ に あう数を かきましょう}", "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{$2.74\\times10=$ \\kpbox{27.4}}",
+      "\\kpitemx{(2)}{$2.74\\times100=$ \\kpbox{274}}",
+      "\\kpitemx{(3)}{$36\\div10=$ \\kpbox{3.6}}",
+      "\\kpitemx{(4)}{$5\\div100=$ \\kpbox{0.05}}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g5-02", unitNo: 2, name: "算数5年② 合同な図形", title: "合同な 図形", subtitle: "対応する 辺・角", goal: "ぴったり 重なる 図形の 対応を しらべよう！", desc: "合同の意味、対応する頂点・辺・角。",
+    body: ["\\kpsection{合同な 2つの 三角形に ついて}", "{\\large 三角形ABC と 三角形DEF が 合同で、AB$=$5cm、角B$=$40度}\\par\\vspace{3mm}",
+      "\\kpqfull{(1)}{辺DE の 長さは なんcmですか。 \\quad こたえ \\kpbox{5} cm}",
+      "\\kpqfull{(2)}{角E の 大きさは なん度ですか。 \\quad こたえ \\kpbox{40} 度}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g5-03", unitNo: 3, name: "算数5年③ 比例", title: "比例", subtitle: "ともなって 変わる量", goal: "一方が 2倍、3倍に なると もう一方も…の かんけいを しらべよう！", desc: "比例の関係、表に表す。",
+    body: ["\\kpsection{1mの ねだんが 80円の リボン}", "{\\large 長さ □m … 1, 2, 3, 4 / 代金 ○円 … 80, 160, 240, 320}\\par\\vspace{3mm}",
+      "\\kpqfull{(1)}{○は □に 比例しています。○ $=$ \\kpbox{80} $\\times$ □}",
+      "\\kpqfull{(2)}{長さが 6m の とき 代金は \\kpbox{480} 円}",
+      "\\kpqfull{(3)}{代金が 800円の とき 長さは \\kpbox{10} m}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g5-04", unitNo: 4, name: "算数5年④ 平均", title: "平均", subtitle: "ならすと いくつ", goal: "いくつかの 数を ならした 平均を もとめよう！", desc: "平均の意味と求め方。",
+    body: ["\\kpsection{平均を もとめましょう}", "\\begin{kpgrid}{1}",
+      "\\kpitemx{(1)}{3, 5, 4 の 平均 $\\to$ $(3+5+4)\\div3=$ \\kpbox{4}}",
+      "\\kpitemx{(2)}{10, 8, 6, 12 の 平均 $\\to$ \\kpbox{9}}",
+      "\\kpitemx{(3)}{テスト 80点, 90点, 70点 の 平均 $\\to$ \\kpbox{80} 点}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g5-05", unitNo: 5, name: "算数5年⑤ 単位量あたりの 大きさ", title: "単位量あたりの 大きさ", subtitle: "こみぐあい", goal: "1あたりの 大きさで くらべよう！", desc: "単位量あたりの大きさ、混み具合・人口密度。",
+    body: ["\\kpsection{もんだいに こたえましょう}",
+      "\\kpqfull{(1)}{8m$^2$に 24人 いる へやの 1m$^2$あたりの 人数は $24\\div8=$ \\kpbox{3} 人}",
+      "\\kpqfull{(2)}{5Lで 300km 走る車の 1Lあたりの きょりは $300\\div5=$ \\kpbox{60} km}",
+      "\\kpqfull{(3)}{A室は 6畳に 9人、B室は 8畳に 10人。こんでいるのは \\kpbox{A室}}"].join("\n") });
+
+  add(calcPrint({ grade: G, id: "g5-06", unitNo: 6, name: "算数5年⑥ 小数の かけ算", title: "小数の かけ算", subtitle: "小数 × 小数", goal: "(小数)×(小数)が できるように なろう！", desc: "(小数)×(小数)の意味と計算、筆算。" }, (rng) => genDecMulDec(rng, 18), 2));
+
+  add(calcPrint({ grade: G, id: "g5-07", unitNo: 7, name: "算数5年⑦ 小数の わり算", title: "小数の わり算", subtitle: "小数 ÷ 小数", goal: "(小数)÷(小数)が できるように なろう！", desc: "(小数)÷(小数)の意味と計算、筆算。" }, (rng) => genDecDivDec(rng, 21)));
+
+  add({ grade: G, subject: "算数", id: "g5-08", unitNo: 8, name: "算数5年⑧ 速さ", title: "速さ", subtitle: "速さ・道のり・時間", goal: "速さ $=$ 道のり $÷$ 時間。 速さの もとめ方を おぼえよう！", desc: "速さの意味と求め方(時速・分速・秒速)。",
+    body: ["\\kpsection{もんだいに こたえましょう}",
+      "\\kpqfull{(1)}{120kmを 3時間で 走る車の 時速は $120\\div3=$ 時速 \\kpbox{40} km}",
+      "\\kpqfull{(2)}{時速 60kmで 2時間 走ると 道のりは $60\\times2=$ \\kpbox{120} km}",
+      "\\kpqfull{(3)}{240kmを 時速 80kmで 走ると かかる時間は $240\\div80=$ \\kpbox{3} 時間}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g5-09", unitNo: 9, name: "算数5年⑨ 図形の 角", title: "図形の 角", subtitle: "内角の 和", goal: "三角形や 四角形の 角の 大きさの 和を しらべよう！", desc: "三角形・多角形の内角の和。",
+    body: ["\\kpsection{$\\square$ に あう数を かきましょう}", "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{三角形の 3つの 角の 和は \\kpbox{180} 度}",
+      "\\kpitemx{(2)}{四角形の 4つの 角の 和は \\kpbox{360} 度}",
+      "\\kpitemx{(3)}{2つの 角が 50度、60度 の 三角形の のこりの 角は \\kpbox{70} 度}",
+      "\\kpitemx{(4)}{五角形の 角の 和は \\kpbox{540} 度}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g5-10", unitNo: 10, name: "算数5年⑩ 倍数と 約数", title: "倍数と 約数", subtitle: "公倍数・公約数", goal: "最小公倍数・最大公約数を もとめよう！", desc: "倍数・公倍数・最小公倍数、約数・公約数・最大公約数。",
+    body: ["\\kpsection{$\\square$ に あう数を かきましょう}", "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{6と 8の 最小公倍数は \\kpbox{24}}",
+      "\\kpitemx{(2)}{12と 18の 最大公約数は \\kpbox{6}}",
+      "\\kpitemx{(3)}{4と 6の 最小公倍数は \\kpbox{12}}",
+      "\\kpitemx{(4)}{16の 約数は 1, 2, 4, 8, \\kpbox{16}}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add(calcPrint({ grade: G, id: "g5-11", unitNo: 11, name: "算数5年⑪ 分数の たし算・ひき算", title: "分数の たし算・ひき算", subtitle: "通分して 計算", goal: "分母の ちがう 分数を 通分して 計算しよう！", desc: "異分母分数の加減、通分・約分。" }, (rng) => genFracDiff(rng, 12), 2));
+
+  add({ grade: G, subject: "算数", id: "g5-12", unitNo: 12, name: "算数5年⑫ 分数と 小数", title: "分数と 小数", subtitle: "なおして くらべる", goal: "分数を 小数に、小数を 分数に なおそう！", desc: "分数と小数・整数の関係。",
+    body: ["\\kpsection{$\\square$ に あう数を かきましょう}", "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{$\\frac{1}{2}$ を 小数で あらわすと \\kpbox{0.5}}",
+      "\\kpitemx{(2)}{$\\frac{3}{4}$ を 小数で あらわすと \\kpbox{0.75}}",
+      "\\kpitemx{(3)}{$0.7$ を 分数で あらわすと \\kpbox{$\\frac{7}{10}$}}",
+      "\\kpitemx{(4)}{$3\\div4$ を 分数で あらわすと \\kpbox{$\\frac{3}{4}$}}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g5-13", unitNo: 13, name: "算数5年⑬ 割合", title: "割合", subtitle: "割合・百分率", goal: "割合 $=$ くらべる量 $÷$ もとにする量。 百分率も おぼえよう！", desc: "割合の意味と求め方、百分率・歩合。",
+    body: ["\\kpsection{$\\square$ に あう数を かきましょう}", "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{20人の うち 5人の 割合は $5\\div20=$ \\kpbox{0.25}}",
+      "\\kpitemx{(2)}{$0.25$ を 百分率で あらわすと \\kpbox{25} ％}",
+      "\\kpitemx{(3)}{200円の 30％は $200\\times0.3=$ \\kpbox{60} 円}",
+      "\\kpitemx{(4)}{$0.4$ を 歩合で あらわすと \\kpbox{4} わり}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g5-14", unitNo: 14, name: "算数5年⑭ 図形の 面積", title: "図形の 面積", subtitle: "三角形・平行四辺形・台形", goal: "三角形・平行四辺形・台形の 面積を もとめよう！", desc: "三角形・平行四辺形・台形・ひし形の面積公式。",
+    body: ["\\kpsection{面積を もとめましょう}", "\\begin{kpgrid}{1}",
+      "\\kpitemx{(1)}{底辺 6cm、高さ 4cm の 三角形 $\\to$ $6\\times4\\div2=$ \\kpbox{12} cm$^2$}",
+      "\\kpitemx{(2)}{底辺 5cm、高さ 8cm の 平行四辺形 $\\to$ $5\\times8=$ \\kpbox{40} cm$^2$}",
+      "\\kpitemx{(3)}{上底 3cm、下底 7cm、高さ 4cm の 台形 $\\to$ $(3+7)\\times4\\div2=$ \\kpbox{20} cm$^2$}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g5-15", unitNo: 15, name: "算数5年⑮ 正多角形と 円", title: "正多角形と 円", subtitle: "円周 $=$ 直径 × 3.14", goal: "円周の もとめ方を おぼえよう！", desc: "正多角形、円周率、円周の求め方。",
+    body: ["\\kpsection{円周を もとめましょう (円周率は 3.14)}", "\\begin{kpgrid}{1}",
+      "\\kpitemx{(1)}{直径 10cm の 円 $\\to$ $10\\times3.14=$ \\kpbox{31.4} cm}",
+      "\\kpitemx{(2)}{直径 8cm の 円 $\\to$ $8\\times3.14=$ \\kpbox{25.12} cm}",
+      "\\kpitemx{(3)}{半径 5cm の 円 $\\to$ $10\\times3.14=$ \\kpbox{31.4} cm}",
+      "\\kpitemx{(4)}{正六角形の 角の 数は \\kpbox{6}}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g5-16", unitNo: 16, name: "算数5年⑯ 体積", title: "体積", subtitle: "直方体・立方体", goal: "直方体・立方体の 体積を もとめよう！", desc: "体積の意味と単位、直方体・立方体の体積公式。",
+    body: ["\\kpsection{体積を もとめましょう}", "\\begin{kpgrid}{1}",
+      "\\kpitemx{(1)}{たて 3cm、よこ 4cm、高さ 5cm の 直方体 $\\to$ $3\\times4\\times5=$ \\kpbox{60} cm$^3$}",
+      "\\kpitemx{(2)}{1辺 4cm の 立方体 $\\to$ $4\\times4\\times4=$ \\kpbox{64} cm$^3$}",
+      "\\kpitemx{(3)}{$1$ L $=$ \\kpbox{1000} cm$^3$}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g5-17", unitNo: 17, name: "算数5年⑰ 割合と グラフ", title: "割合と グラフ", subtitle: "百分率・円グラフ", goal: "割合を つかって、円グラフや 帯グラフを よもう！", desc: "割合(2)、円グラフ・帯グラフ。",
+    body: ["\\kpsection{40人の すきな 教科 しらべ}", "{\\large 算数 16人 / 国語 10人 / 理科 8人 / 社会 6人}\\par\\vspace{3mm}",
+      "\\kpqfull{(1)}{算数が すきな 人の 割合は $16\\div40=$ \\kpbox{0.4}（\\kpbox{40} ％）}",
+      "\\kpqfull{(2)}{国語が すきな 人の 百分率は \\kpbox{25} ％}"].join("\n") });
+
+  add(calcPrint({ grade: G, id: "g5-18", unitNo: 18, name: "算数5年⑱ 5年の まとめ", title: "5年の まとめ", subtitle: "小数・分数の 計算", goal: "5年で ならった 計算の しあげ！", desc: "5年の計算の総合復習。" }, (rng) => [...genDecMulDec(rng, 5), ...genDecDivDec(rng, 5), ...genFracDiff(rng, 6)], 2));
+
+  return P;
+}
+
+
+// =============================================================================
+// プリント一覧 (小学6年)
+// =============================================================================
+function buildG6() {
+  const P = [];
+  const add = (d) => P.push(d);
+  const G = 6;
+
+  add({ grade: G, subject: "算数", id: "g6-01", unitNo: 1, name: "算数6年① 文字と式", title: "文字と 式", subtitle: "x を つかった 式", goal: "x を つかった 式に 数を あてはめて もとめよう！", desc: "文字x,aを使った式、式の値を求める。",
+    body: ["\\kpsection{$\\square$ に あう数を かきましょう}", "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{$x+5$ で $x=8$ の とき \\kpbox{13}}",
+      "\\kpitemx{(2)}{$x\\times3$ で $x=4$ の とき \\kpbox{12}}",
+      "\\kpitemx{(3)}{$x\\times4=20$ の とき $x=$ \\kpbox{5}}",
+      "\\kpitemx{(4)}{$80\\times x$ で $x=6$ の とき \\kpbox{480}}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add(calcPrint({ grade: G, id: "g6-02", unitNo: 2, name: "算数6年② 分数と整数の かけ算・わり算", title: "分数 × ÷ 整数", subtitle: "分数と 整数", goal: "(分数)×(整数)、(分数)÷(整数)が できるように なろう！", desc: "(分数)×(整数)、(分数)÷(整数)の計算。" }, (rng) => [...genFracMulInt(rng, 11), ...genFracDivInt(rng, 10)], 3));
+
+  add(calcPrint({ grade: G, id: "g6-03", unitNo: 3, name: "算数6年③ 分数 × 分数", title: "分数 × 分数", subtitle: "分数の かけ算", goal: "(分数)×(分数)が できるように なろう！", desc: "(分数)×(分数)の意味と計算。" }, (rng) => genFracMul(rng, 18), 3));
+
+  add(calcPrint({ grade: G, id: "g6-04", unitNo: 4, name: "算数6年④ 分数 ÷ 分数", title: "分数 ÷ 分数", subtitle: "分数の わり算", goal: "(分数)÷(分数)が できるように なろう！ ぎゃくすうを かける！", desc: "(分数)÷(分数)の意味と計算、逆数。" }, (rng) => genFracDiv(rng, 18), 3));
+
+  add(calcPrint({ grade: G, id: "g6-05", unitNo: 5, name: "算数6年⑤ 分数の 計算 ミックス", title: "分数の 計算ミックス", subtitle: "× と ÷", goal: "分数の かけ算・わり算を すらすら できるように なろう！", desc: "分数の乗除の習熟。" }, (rng) => [...genFracMul(rng, 9), ...genFracDiv(rng, 9)], 3));
+
+  add({ grade: G, subject: "算数", id: "g6-06", unitNo: 6, name: "算数6年⑥ 対称な 図形", title: "対称な 図形", subtitle: "線対称・点対称", goal: "線対称・点対称の 図形を しらべよう！", desc: "線対称・点対称の定義と性質。",
+    body: ["\\kpsection{$\\square$ に あう ことば・数を かきましょう}", "\\begin{kpgrid}{1}",
+      "\\kpitemx{(1)}{1本の 直線で おって ぴったり 重なる 図形を \\kpbox{線対称} という}",
+      "\\kpitemx{(2)}{ある点を 中心に 180度 まわすと 重なる 図形を \\kpbox{点対称} という}",
+      "\\kpitemx{(3)}{正三角形には 対称の 軸が \\kpbox{3} 本 ある}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g6-07", unitNo: 7, name: "算数6年⑦ 円の 面積", title: "円の 面積", subtitle: "半径 × 半径 × 3.14", goal: "円の 面積の もとめ方を おぼえよう！", desc: "円の面積の求め方、面積公式。",
+    body: ["\\kpsection{円の 面積を もとめましょう (円周率は 3.14)}", "\\begin{kpgrid}{1}",
+      "\\kpitemx{(1)}{半径 5cm の 円 $\\to$ $5\\times5\\times3.14=$ \\kpbox{78.5} cm$^2$}",
+      "\\kpitemx{(2)}{半径 10cm の 円 $\\to$ $10\\times10\\times3.14=$ \\kpbox{314} cm$^2$}",
+      "\\kpitemx{(3)}{直径 8cm の 円 $\\to$ $4\\times4\\times3.14=$ \\kpbox{50.24} cm$^2$}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g6-08", unitNo: 8, name: "算数6年⑧ 立体の 体積", title: "立体の 体積", subtitle: "角柱・円柱", goal: "角柱・円柱の 体積 $=$ 底面積 × 高さ！", desc: "角柱・円柱の体積の求め方、体積公式。",
+    body: ["\\kpsection{体積を もとめましょう (底面積 × 高さ)}", "\\begin{kpgrid}{1}",
+      "\\kpitemx{(1)}{底面積 12cm$^2$、高さ 5cm の 角柱 $\\to$ $12\\times5=$ \\kpbox{60} cm$^3$}",
+      "\\kpitemx{(2)}{底面積 20cm$^2$、高さ 8cm の 角柱 $\\to$ \\kpbox{160} cm$^3$}",
+      "\\kpitemx{(3)}{底面の 半径 3cm($\\to$底面積 28.26cm$^2$)、高さ 10cm の 円柱 $\\to$ \\kpbox{282.6} cm$^3$}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g6-09", unitNo: 9, name: "算数6年⑨ 比とその利用", title: "比と その利用", subtitle: "比を かんたんに", goal: "比を かんたんに したり、比の値を もとめよう！", desc: "比の意味、等しい比、比の値、比の利用。",
+    body: ["\\kpsection{$\\square$ に あう 比・数を かきましょう}", "\\begin{kpgrid}{2}",
+      "\\kpitemx{(1)}{$12:18$ を かんたんに すると \\kpbox{2:3}}",
+      "\\kpitemx{(2)}{$3:4$ の 比の値は \\kpbox{$\\frac{3}{4}$}}",
+      "\\kpitemx{(3)}{$2:5=8:\\square$ の □は \\kpbox{20}}",
+      "\\kpitemx{(4)}{$15:25$ を かんたんに すると \\kpbox{3:5}}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g6-10", unitNo: 10, name: "算数6年⑩ 拡大図と 縮図", title: "拡大図と 縮図", subtitle: "形は そのまま 大きさを かえる", goal: "拡大図・縮図の かんけいを しらべよう！", desc: "拡大図・縮図の定義と性質、縮尺。",
+    body: ["\\kpsection{$\\square$ に あう数を かきましょう}", "\\begin{kpgrid}{1}",
+      "\\kpitemx{(1)}{2cm の 辺を 3倍に 拡大すると \\kpbox{6} cm}",
+      "\\kpitemx{(2)}{12cm の 辺を $\\frac{1}{4}$ に 縮小すると \\kpbox{3} cm}",
+      "\\kpitemx{(3)}{縮尺 $\\frac{1}{1000}$ の 図で 5cm は じっさいには \\kpbox{50} m}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g6-11", unitNo: 11, name: "算数6年⑪ 比例と 反比例", title: "比例と 反比例", subtitle: "y=きまった数×x", goal: "比例と 反比例の 式を つかえるように なろう！", desc: "比例・反比例の意味と性質、式・グラフ。",
+    body: ["\\kpsection{もんだいに こたえましょう}",
+      "\\kpqfull{(1)}{$y$ は $x$ に 比例し、$x=2$ の とき $y=10$。 きまった数は \\kpbox{5}（$y=5\\times x$）}",
+      "\\kpqfull{(2)}{(1)で $x=6$ の とき $y=$ \\kpbox{30}}",
+      "\\kpqfull{(3)}{$y$ は $x$ に 反比例し、$x=3$ の とき $y=8$。 $x=6$ の とき $y=$ \\kpbox{4}}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g6-12", unitNo: 12, name: "算数6年⑫ ならべ方と 組み合わせ方", title: "ならべ方と 組み合わせ方", subtitle: "場合の数", goal: "ぜんぶで なんとおり あるか 数えよう！", desc: "並べ方と組み合わせ方、場合の数。",
+    body: ["\\kpsection{なんとおり ありますか}", "\\begin{kpgrid}{1}",
+      "\\kpitemx{(1)}{1, 2, 3 の カードで できる 2けたの 整数は \\kpbox{6} とおり}",
+      "\\kpitemx{(2)}{A, B, C, D の 4人から 2人を えらぶ 組み合わせは \\kpbox{6} とおり}",
+      "\\kpitemx{(3)}{赤・青・黄 の 3色から 2色を えらぶ 組み合わせは \\kpbox{3} とおり}",
+      "\\end{kpgrid}"].join("\n") });
+
+  add({ grade: G, subject: "算数", id: "g6-13", unitNo: 13, name: "算数6年⑬ 資料の 整理", title: "資料の 整理", subtitle: "平均値・中央値・最頻値", goal: "データの 代表値(平均値・中央値・最頻値)を もとめよう！", desc: "代表値(平均値・中央値・最頻値)、度数分布。",
+    body: ["\\kpsection{つぎの 9この データに ついて}", "{\\large 2, 3, 3, 4, 5, 5, 5, 6, 9 (点)}\\par\\vspace{3mm}",
+      "\\kpqfull{(1)}{平均値は $(2+3+3+4+5+5+5+6+9)\\div9=$ \\kpbox{4.67} 点(およそ)}",
+      "\\kpqfull{(2)}{中央値(まんなかの 値)は \\kpbox{5} 点}",
+      "\\kpqfull{(3)}{最頻値(いちばん 多い 値)は \\kpbox{5} 点}"].join("\n") });
+
+  add(calcPrint({ grade: G, id: "g6-14", unitNo: 14, name: "算数6年⑭ 6年の まとめ", title: "6年の まとめ", subtitle: "分数の 四則", goal: "6年で ならった 分数の 計算の しあげ！ 中学への 橋わたし！", desc: "6年の計算の総合復習、中学への接続。" }, (rng) => [...genFracMul(rng, 6), ...genFracDiv(rng, 6), ...genFracDiff(rng, 6)], 3));
+
+  return P;
+}
+
+export const prints = [...buildG1(), ...buildG2(), ...buildG3(), ...buildG4(), ...buildG5(), ...buildG6()];
