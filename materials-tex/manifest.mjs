@@ -670,6 +670,7 @@ function calcBody(probs, section = "つぎの けいさんを しましょう") 
 }
 // 低学年向け: インライン解答(= のすぐ後ろに箱)の計算ドリル本文
 function calcBodyInline(probs, cols = 3, section = "つぎの けいさんを しましょう") {
+  // 問題数は多め。1枚に収まらず2ページにまたがってもよい。
   return `\\kpprompt{1}{${section}}\n` + grid(calcItems(probs), cols);
 }
 // 計算ドリルを1行で作る (小1・小2はインライン解答、小3以上は右の解答欄)
