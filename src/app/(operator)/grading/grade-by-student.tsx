@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { batchGrade, type BatchGradeItem } from "@/lib/actions/submission-actions";
+import { divisionForGrade, DIVISION_LABEL } from "@/lib/division";
 import type { NextWindow } from "@/lib/progress-db";
 
 export interface AnswerRow {
@@ -256,6 +257,9 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
               <div className="toolbar-left">
                 <span className="toolbar-field">生徒
                   <span className="stu-name">{g.studentName}{g.studentGrade ? ` / ${g.studentGrade}` : ""}</span>
+                  <span className={`division-badge ${divisionForGrade(g.studentGrade)}`}>
+                    {DIVISION_LABEL[divisionForGrade(g.studentGrade)]}
+                  </span>
                 </span>
                 <span className="metric-chip">{n} 教材</span>
                 <span className="toolbar-field">入力日

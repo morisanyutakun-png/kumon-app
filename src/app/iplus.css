@@ -1514,3 +1514,11 @@ body {
 [data-division="secondary"] .hero-chip { background: rgba(255,255,255,0.14); color: #fff; }
 [data-division="secondary"] .mission { border-color: #cbd5e1; }
 [data-division="secondary"] .meter-title { letter-spacing: 0.02em; }
+
+/* 部門バッジ(運営側で 小学部/中高部 を表示) */
+.division-badge {
+  display: inline-flex; align-items: center; margin-left: 6px;
+  padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: 0.02em;
+}
+.division-badge.elementary { background: #fef3c7; color: #92400e; }
+.division-badge.secondary { background: #dbeafe; color: #1e40af; }

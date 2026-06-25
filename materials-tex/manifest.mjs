@@ -208,7 +208,11 @@ function buildG1() {
     desc: "和が 10 までのたし算。くり上がりのない 1 桁どうしを反復します。",
     body: (() => {
       const rng = rngFromString("g1-04");
-      return calcBodyInline(genAdd(rng, 40, { maxSum: 10 }));
+      const dots = (n, c) => `\\textcolor{${c}}{${"$\\bullet$\\,".repeat(n)}}`;
+      const pic = (no, a, b) => `\\kpitemx{(${no})}{${dots(a, "kpblue")} あって ${dots(b, "kpink")} ふえると\\quad $\\rightarrow$\\quad ぜんぶで \\kpbox{${a + b}} こ}`;
+      const pics = [[4, 3], [5, 2], [6, 3], [3, 4]].map((p, i) => pic(i + 1, p[0], p[1])).join("\n");
+      const drill = grid(calcItems(genAdd(rng, 21, { maxSum: 10 })), 3);
+      return ["\\kpprompt{1}{えを 見て、ふえると いくつか かきましょう}", pics, "\\vspace{2.5mm}", "\\kpprompt{2}{つぎの けいさんを しましょう}", drill].join("\n");
     })(),
   });
 
@@ -223,7 +227,11 @@ function buildG1() {
     desc: "求残・求差のひき算。10 までの数からのくり下がりのないひき算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-05");
-      return calcBodyInline(genSub(rng, 40, { max: 10 }));
+      const dots = (n, c) => `\\textcolor{${c}}{${"$\\bullet$\\,".repeat(n)}}`;
+      const pic = (no, a, b) => `\\kpitemx{(${no})}{${dots(a, "kpblue")} から ${b} こ とると\\quad $\\rightarrow$\\quad のこり \\kpbox{${a - b}} こ}`;
+      const pics = [[5, 2], [6, 4], [7, 3], [8, 5]].map((p, i) => pic(i + 1, p[0], p[1])).join("\n");
+      const drill = grid(calcItems(genSub(rng, 21, { max: 10 })), 3);
+      return ["\\kpprompt{1}{えを 見て、のこりは いくつか かきましょう}", pics, "\\vspace{2.5mm}", "\\kpprompt{2}{つぎの けいさんを しましょう}", drill].join("\n");
     })(),
   });
 
@@ -238,10 +246,18 @@ function buildG1() {
     desc: "2 つの数のちがいを求めるひき算。0 のひき算もふくめて反復します。",
     body: (() => {
       const rng = rngFromString("g1-06");
-      const probs = genSub(rng, 36, { max: 10 });
-      // 0のひき算を少し混ぜる
-      probs.push({ expr: "6-0=", ans: 6 }, { expr: "9-9=", ans: 0 }, { expr: "8-0=", ans: 8 });
-      return calcBodyInline(probs);
+      const dots = (n, c) => `\\textcolor{${c}}{${"$\\bullet$\\,".repeat(n)}}`;
+      const pic = (no, a, b) =>
+        `\\kpitemx{(${no})}{${dots(a, "kpblue")} と ${dots(b, "kpink")} の ちがいは\\quad $\\rightarrow$\\quad \\kpbox{${a - b}} こ}`;
+      const pics = [[5, 2], [7, 3], [6, 4], [8, 5]].map((p, i) => pic(i + 1, p[0], p[1])).join("\n");
+      const drill = grid(calcItems(genSub(rng, 21, { max: 10 })), 3);
+      return [
+        "\\kpprompt{1}{えを 見て、ちがいは いくつか かきましょう}",
+        pics,
+        "\\vspace{2.5mm}",
+        "\\kpprompt{2}{つぎの けいさんを しましょう}",
+        drill,
+      ].join("\n");
     })(),
   });
 
@@ -374,7 +390,13 @@ function buildG1() {
     desc: "くり上がりのある(1位数)+(1位数)。10 のまとまりをつくる考え方(さくらんぼ計算)を反復します。",
     body: (() => {
       const rng = rngFromString("g1-11");
-      return calcBodyInline(genAddCarry(rng, 40, { maxSum: 14 }));
+      const mk = (no, a, b) => {
+        const need = 10 - a, rest = b - need;
+        return `\\kpitemx{(${no})}{\\raisebox{-3.5mm}{\\kptenframe{${a}}}\\ \\ $${a}+${b}=$\\ \\ ${a} に あと \\kpbox{${need}} で 10、のこり \\kpbox{${rest}}。\\ こたえ \\kpbox{${a + b}}}`;
+      };
+      const ex = [[9, 4], [8, 5], [7, 6], [9, 7]].map((p, i) => mk(i + 1, p[0], p[1])).join("\n");
+      const drill = grid(calcItems(genAddCarry(rng, 21, { maxSum: 14 })), 3);
+      return ["\\kpprompt{1}{10の まとまりを つくって けいさんしましょう}", ex, "\\vspace{2.5mm}", "\\kpprompt{2}{つぎの けいさんを しましょう}", drill].join("\n");
     })(),
   });
 
