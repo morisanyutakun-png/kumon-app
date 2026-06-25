@@ -12,7 +12,7 @@ import { Logo } from "@/components/logo";
  * 中高部ロゴ画像を差し替えるときは public/brand/logo-secondary.png を置き、
  * 下の HAS_SECONDARY_IMAGE を true にする。
  */
-const HAS_SECONDARY_IMAGE = false;
+const HAS_SECONDARY_IMAGE = true;
 
 export function Brand({
   division,
@@ -28,11 +28,11 @@ export function Brand({
     return (
       <Image
         src="/brand/logo-secondary.png"
-        alt="ノビット 中高部"
-        width={760}
-        height={300}
+        alt="ノビットスタディ 中高部"
+        width={2172}
+        height={724}
         priority
-        sizes="(max-width: 480px) 70vw, 240px"
+        sizes="(max-width: 480px) 80vw, 280px"
         className={className}
       />
     );
