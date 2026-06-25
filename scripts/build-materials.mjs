@@ -33,14 +33,29 @@ ${body}
 `;
 }
 
-function pageBody(p) {
-  const goal = p.goal ? `\\kpgoal{${p.goal}}\n` : "";
+// 1ページ分の本文を組む。idx は 0始まり、total は総ページ数。
+//   ・めあて(goal)は1ページ目のみ
+//   ・応援フッター(kpfinish)は最終ページのみ
+//   ・ページ番号ラベルは k/total
+function onePage(p, body, idx, total) {
+  const goal = idx === 0 && p.goal ? `\\kpgoal{${p.goal}}\n` : "";
   const points = p.points ?? 10;
+  const pageLabel = `${idx + 1}/${total}`;
+  const finish = idx === total - 1 ? "\\kpfinish\n" : "";
   // アイプラス風ヘッダーバー: 科目 / 学年・単元 / 配点 / ページ
-  return `\\kphead{さんすう}{${p.grade}年 ／ ${p.title}}{${points}}{1/1}
-${goal}${p.body}
-\\kpfinish
-\\kpfooter{さんすう ${p.grade}年 ｜ ${p.title}}`;
+  //   本文の各問の間と末尾に \vspace{\stretch{}} があり、\flushbottom で
+  //   問題を天地いっぱいに均等配置し、応援フッターを紙面の底へ寄せる。
+  return `\\kphead{さんすう}{${p.grade}年 ／ ${p.title}}{${points}}{${pageLabel}}
+${goal}${body}
+\\par\\vspace{\\stretch{1}}
+${finish}\\kpfooter{さんすう ${p.grade}年 ｜ ${p.title}}`;
+}
+
+// プリント全体(複数ページ対応)。p.pages があれば各要素を1ページとして
+// \clearpage で区切る。なければ p.body を1ページとして従来どおり扱う。
+function pageBody(p) {
+  const pages = Array.isArray(p.pages) && p.pages.length ? p.pages : [p.body];
+  return pages.map((body, i) => onePage(p, body, i, pages.length)).join("\n\\clearpage\n");
 }
 
 function compile(stem) {

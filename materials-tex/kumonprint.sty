@@ -12,6 +12,7 @@
 \RequirePackage{xcolor}
 \RequirePackage{multicol}
 \RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,plotmarks}
 \RequirePackage{array}
 \RequirePackage{longtable}
 \RequirePackage{enumitem}
@@ -41,6 +42,8 @@
 
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
+%% 1枚プリントを縦に均等配置して紙面いっぱいに使う(\vspace{\stretch{}} を効かせる)
+\flushbottom
 
 %% ===== ヘッダー =====
 %% \kpheader{学年ラベル}{タイトル}{ひとこと}
@@ -78,7 +81,11 @@
 }
 
 %% ===== セクション見出し =====
+%% 2つめ以降の見出しの前に伸縮グルー(\stretch)を入れ、\flushbottom で
+%% 複数セクションのプリントも紙面いっぱいに均等配置する。
+\newif\ifkpfirstsec \kpfirstsectrue
 \newcommand{\kpsection}[1]{%
+  \ifkpfirstsec\kpfirstsecfalse\else\par\vspace{\stretch{1}}\fi
   \vspace{1.4mm}\par
   \noindent\begin{tikzpicture}
     \node[fill=kpsecbg, rounded corners=7pt, inner xsep=8pt, inner ysep=5pt,
@@ -90,7 +97,7 @@
 
 %% ===== はなまる応援フッター(☆は いろを ぬろう) =====
 \newcommand{\kpfinish}{%
-  \vspace{2.5mm}\par
+  \vspace{1.2mm}\par
   \noindent\begin{tikzpicture}
     \node[fill=kpfinbg, draw=kpink, line width=1pt, rounded corners=9pt, inner sep=7pt,
           text width=\dimexpr\linewidth-16pt\relax, anchor=north west] at (0,0) {%
@@ -125,10 +132,11 @@
 }{%
   \end{multicols}
 }
-\newcommand{\kpitem}[3]{\kpcalc{#1}{#2}{#3}\par\vspace{5.4mm}}
+\newcommand{\kpitem}[3]{\kpcalc{#1}{#2}{#3}\par\vspace{4.8mm}}
 \newcommand{\kpitemx}[2]{{\sffamily\large\textcolor{kpgray}#1}\ \ {\large #2}\par\vspace{6mm}}
+%% 全幅の1問。設問の間を伸縮させ、\flushbottom で紙面いっぱいに均等配置する。
 \newcommand{\kpqfull}[2]{%
-  \noindent{\sffamily\large\textcolor{kpgray}#1}\ \begin{minipage}[t]{0.92\linewidth}\large #2\end{minipage}\par\vspace{5mm}%
+  \noindent{\sffamily\large\textcolor{kpgray}#1}\ \begin{minipage}[t]{0.92\linewidth}\large #2\end{minipage}\par\vspace{5mm}\vspace{\stretch{1}}%
 }
 
 %% ===== とけい =====
@@ -176,32 +184,51 @@
 \newenvironment{kppic}[1][0.6]{\begin{center}\begin{tikzpicture}[scale=#1]}{\end{tikzpicture}\end{center}}
 
 %% ===== フッター =====
+%% \flushbottom + pageBody 末尾の \vspace{\stretch{} } で底に来るので \vfill は不要。
 \newcommand{\kpfooter}[1]{%
-  \vfill
+  \par\vspace{2mm}
   \noindent\textcolor{kpline}{\rule{\linewidth}{0.6pt}}\par
   \vspace{1mm}
   {\sffamily\footnotesize\color{kpgray} #1 \hfill ｜ はんぷく がくしゅう プリント}
 }
 
 % =====================================================================
-% アイプラス風レイアウト (v3): ヘッダーバー + 左=問題/右=解答欄
+% アイプラス風レイアウト (v4): スタジアム型ヘッダーバー + 左=問題/右=解答欄
+%   ・左の問題と右の解答欄を 1問ごとに行対応させる
+%   ・解答欄の高さは問題の高さに連動 (最低 \kpminans)
+%   ・\vspace{\stretch{}} で 1枚を縦いっぱいに均等配置する
 % =====================================================================
 \RequirePackage{array}
 
-%% ヘッダーバー  \kphead{科目}{単元タイトル}{配点}{ページ}
-\newcommand{\kpsep}{\;\textcolor{kpline}{\rule[-1.6mm]{0.7pt}{6.4mm}}\;}
+\newsavebox{\kpLbox}      % 左(問題)の保存箱 — 高さ計測用
+\newlength{\kpLh}         % 左の総高さ
+\newlength{\kpLw}         % 左カラム幅
+\newlength{\kpRw}         % 右(解答欄)カラム幅
+\newlength{\kpminans}     % 解答欄の最低高さ
+\setlength{\kpminans}{15mm}
+\newlength{\kpdrillH}     % ドリルの解答欄(全面)の高さ
+\setlength{\kpdrillH}{182mm}
+
+%% ===== スタジアム型ヘッダーバー  \kphead{科目}{単元タイトル}{配点}{ページ} =====
+\newcommand{\kpsep}{\;\textcolor{kpline}{\rule[-1.7mm]{0.7pt}{6.6mm}}\;}
+%% 丸い学校ロゴ風バッジ(★)
+\newcommand{\kpbadge}{%
+  \tikz[baseline=-2.5mm]{%
+    \node[circle, fill=kpblue, draw=kpblued, line width=0.7pt, text=white,
+          minimum size=7.6mm, inner sep=0pt, font=\bfseries]{\textcolor{kpstar}{\large★}};}%
+}
 \newcommand{\kphead}[4]{%
   \noindent\begin{tikzpicture}
-    \node[draw=kpblue, line width=1.3pt, rounded corners=13pt, fill=kpheadbg,
-          minimum height=10.5mm, inner xsep=9pt, inner ysep=0pt,
-          text width=\dimexpr\linewidth-18pt\relax, anchor=north west, font=\sffamily] at (0,0) {%
-      \tikz[baseline=-2.3mm]{\node[circle,fill=kpblue,text=white,inner sep=1.6pt,font=\bfseries\scriptsize]{はん};}\;%
-      {\bfseries #1}\kpsep
-      #2\hfill
-      \kpsep{\bfseries ／#3}\kpsep{\small #4}%
+    \node[draw=kpblue, line width=1.3pt, rounded corners=5.6mm, fill=white,
+          minimum height=11.4mm, inner xsep=4.4mm, inner ysep=0pt,
+          text width=\dimexpr\linewidth-8.8mm\relax, anchor=north west, font=\sffamily] at (0,0) {%
+      \kpbadge\;%
+      {\bfseries\textcolor{kpblued}{#1}}\kpsep
+      {#2}\hfill
+      {\bfseries\textcolor{kpink}{／#3}}\kpsep{\small\textcolor{kpgray}{#4}}%
     };
-  \end{tikzpicture}\par\vspace{2.4mm}
-  % なまえ / てんすう
+  \end{tikzpicture}\par\vspace{2.6mm}
+  % なまえ / ひづけ / てんすう
   \noindent\begin{tikzpicture}
     \node[fill=white, draw=kpline, rounded corners=7pt, inner sep=6pt,
           text width=\dimexpr\linewidth-16pt\relax, anchor=north west] at (0,0) {%
@@ -214,34 +241,58 @@
   \end{tikzpicture}\par\vspace{3mm}
 }
 
-%% 問題と解答欄の2段組  \begin{kpsheet} ... \kpQ ... \end{kpsheet}
+%% ===== 問題/解答欄の2段組 (文章題・概念プリント用) =====
+%% \begin{kpsheet} ... \kpQ ... \end{kpsheet}
+%%   各 \kpQ は本文の縦リスト中に「左=問題 / 右=解答欄」の1行を出力し、
+%%   行間に \vspace{\stretch{1}} を入れて紙面を縦いっぱいに均等配置する。
 \newenvironment{kpsheet}{%
   \par\sffamily
-  \tabcolsep=0pt
-  \begin{longtable}{@{}p{0.60\linewidth}@{\hspace{0.02\linewidth}}p{0.36\linewidth}@{}}%
+  \setlength{\kpLw}{0.585\linewidth}%
+  \setlength{\kpRw}{0.350\linewidth}%
+  \par\nobreak\vspace{\stretch{1}}%
 }{%
-  \end{longtable}%
+  \par
 }
 %% 1問  \kpQ{番号}{問題本文}{解答欄(中身は \kpAR の列)}
-%% 列幅は longtable の p{} が決めるので、内側で再 parbox しない。
 \newcommand{\kpQ}[3]{%
-  \raisebox{0pt}[0pt][0pt]{\colorbox{kpsecbg}{\makebox[7mm][c]{\bfseries\large\textcolor{kpblued}{#1}}}}\ %
-  {\large #2}%
-  &
-  \kpAns{#3}%
-  \tabularnewline[5mm]
+  % 左(番号バッジ+問題)を保存して高さを測る
+  \sbox{\kpLbox}{\begin{minipage}[t]{\kpLw}%
+      \colorbox{kpsecbg}{\makebox[7mm][c]{\bfseries\large\textcolor{kpblued}{#1}}}\ {\large #2}%
+    \end{minipage}}%
+  \setlength{\kpLh}{\dimexpr\ht\kpLbox+\dp\kpLbox\relax}%
+  \ifdim\kpLh<\kpminans\setlength{\kpLh}{\kpminans}\fi
+  \noindent\usebox{\kpLbox}\hfill
+  \begin{minipage}[t]{\kpRw}%
+    \setlength{\fboxsep}{6pt}\setlength{\fboxrule}{0.8pt}%
+    \fcolorbox{kpbox}{white}{%
+      \begin{minipage}[t][\dimexpr\kpLh-2\fboxsep\relax]{\dimexpr\kpRw-2\fboxsep-2\fboxrule\relax}%
+        #3%
+      \end{minipage}}%
+  \end{minipage}\par
+  \nobreak\vspace{\stretch{1}}%
 }
-%% 解答欄の箱 (右セル幅いっぱい・上揃え)。参考プリント同様の素朴な四角。
-\newcommand{\kpAns}[1]{%
-  \setlength{\fboxsep}{6pt}\setlength{\fboxrule}{0.8pt}%
-  \fcolorbox{kpbox}{white}{\begin{minipage}[t]{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}%
-    \vspace{0.5mm}#1\vspace{0.5mm}%
-  \end{minipage}}%
-}
-%% 解答欄の1行  \kpAR{ラベル}{こたえ}  (ラベル空可)。ラベル+こたえを1行に。
+%% 解答欄の1行  \kpAR{ラベル}{こたえ}  (ラベル空可)。
 \newcommand{\kpAR}[2]{%
   \par\noindent{\footnotesize\textcolor{kpgray}{#1}}\ifx\relax#1\relax\else\ \fi\ifkpans\textcolor{kpink}{\bfseries #2}\else\phantom{#2}\fi\par
   \vspace{0.8mm}\textcolor{kpline}{\rule{\linewidth}{0.3pt}}\par\vspace{1.2mm}%
+}
+
+%% ===== 計算ドリル用 (左=問題リスト / 右=全面の解答欄) =====
+%% \kpdrill{左カラム(\kpLc の並び)}{右の解答欄(\kpARc の並び)}
+%%   右の解答欄を紙面いっぱいの高さ(\kpdrillH)の枠にして、参考プリント
+%%   同様に「右側ひとマスの大きな解答欄」を作る。
+\newcommand{\kpdrill}[2]{%
+  \par\sffamily
+  \noindent\begin{minipage}[t]{0.585\linewidth}%
+    #1%
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.350\linewidth}%
+    \setlength{\fboxsep}{6pt}\setlength{\fboxrule}{0.8pt}%
+    \fcolorbox{kpbox}{white}{%
+      \begin{minipage}[t][\dimexpr\kpdrillH-2\fboxsep\relax]{\dimexpr0.350\linewidth-2\fboxsep-2\fboxrule\relax}%
+        #2%
+      \end{minipage}}%
+  \end{minipage}\par
 }
 %% 解答欄のコンパイル行 (multicols で並べる計算ドリル用)。番号+こたえ。
 \newcommand{\kpARc}[2]{%
@@ -269,6 +320,72 @@
       \fill[kpblue] (\col+0.5, 1.5-\row) circle (0.34);
     }
   \end{tikzpicture}%
+}
+
+% =====================================================================
+% アイプラス風レイアウト (v5): テンプレ拡張部品
+%   ・小問の入れ子 (\kpsubq)
+%   ・図/グラフ枠 (\kpfigbox, \kpsquares, kpgraph, \kpgline, \kpgbar, \kpnumberline)
+% =====================================================================
+
+%% ----- 小問 (1つの \kpQ の中に (1)(2)… を縦に並べる) -----
+%% 左の問題本文中: \kpsubq{(1)}{小問の文}
+\newcommand{\kpsubq}[2]{%
+  \par\vspace{0.6mm}\noindent
+  \makebox[8mm][l]{\sffamily\bfseries\textcolor{kpblued}{#1}}%
+  \begin{minipage}[t]{\dimexpr\linewidth-8mm\relax}#2\end{minipage}\par\vspace{1.2mm}%
+}
+
+%% ----- 自由に かく ための 白い 枠 (図示・作図用)。\kpfigbox{高さ} -----
+\newcommand{\kpfigbox}[1]{%
+  \par\noindent\setlength{\fboxsep}{4pt}\setlength{\fboxrule}{0.8pt}%
+  \fcolorbox{kpbox}{white}{\begin{minipage}[t][#1]{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}\ \end{minipage}}\par%
+}
+
+%% ----- 方眼 (cols × rows のマス目)。\kpsquares{列}{行} -----
+\newcommand{\kpsquares}[2]{%
+  \begin{tikzpicture}[x=6mm,y=6mm,line cap=round]
+    \draw[kpline,line width=0.4pt] (0,0) grid (#1,#2);
+    \draw[kpbox,line width=0.9pt] (0,0) rectangle (#1,#2);
+  \end{tikzpicture}%
+}
+
+%% ----- 座標グラフの土台 (cols × rows、O・矢印つき) -----
+%% \begin{kpgraph}{列}{行} … \kpgx/\kpgy/\kpgline/\kpgbar … \end{kpgraph}
+%%   中の座標は「マス目単位 (0..列, 0..行)」で指定する。
+\newenvironment{kpgraph}[2]{%
+  \begin{center}\begin{tikzpicture}[x=7mm,y=7mm,line cap=round,line join=round]
+    \draw[kpline,line width=0.4pt] (0,0) grid (#1,#2);
+    \draw[kpgray,line width=1pt,-{Stealth[length=2.2mm]}] (0,0) -- (#1+0.45,0);
+    \draw[kpgray,line width=1pt,-{Stealth[length=2.2mm]}] (0,0) -- (0,#2+0.45);
+    \node[below left,font=\sffamily\scriptsize,kpgray] at (0,0) {O};
+}{%
+  \end{tikzpicture}\end{center}%
+}
+%% x軸/y軸の目盛りラベル  \kpgx{位置}{ラベル} / \kpgy{位置}{ラベル}
+\newcommand{\kpgx}[2]{\node[below,font=\sffamily\scriptsize,kpgray] at (#1,-0.12) {#2};}
+\newcommand{\kpgy}[2]{\node[left,font=\sffamily\scriptsize,kpgray] at (-0.12,#1) {#2};}
+%% 折れ線  \kpgline{(x1,y1) (x2,y2) …}  (点に●印つき)
+\newcommand{\kpgline}[1]{%
+  \draw[kpblue,line width=1.3pt] plot[mark=*,mark size=1.7pt,mark options={fill=kpblue,draw=kpblue}] coordinates {#1};%
+}
+%% 棒グラフの1本  \kpgbar{中心位置}{高さ}
+\newcommand{\kpgbar}[2]{%
+  \fill[kpcubet] (#1-0.32,0) rectangle (#1+0.32,#2);
+  \draw[kpblued,line width=0.8pt] (#1-0.32,0) rectangle (#1+0.32,#2);%
+}
+
+%% ----- 数直線。\kpnumberline{最小}{最大}{きざみ} (全幅に合わせて自動縮尺) -----
+\newcommand{\kpnumberline}[3]{%
+  \edef\kpnlb{\the\numexpr#1+#3\relax}%
+  \pgfmathsetmacro{\kpnlux}{150/(#2-#1)}%
+  \begin{center}\begin{tikzpicture}[x=\kpnlux mm,line cap=round]
+    \draw[kpgray,line width=1.1pt,-{Stealth[length=2.4mm]}] (#1-0.4,0) -- (#2+0.6,0);
+    \foreach \i in {#1,\kpnlb,...,#2}{%
+      \draw[kpgray,line width=0.9pt] (\i,0.2) -- (\i,-0.2);
+      \node[below=1pt,font=\sffamily\footnotesize,kpgray] at (\i,-0.2) {\i};%
+    }
+  \end{tikzpicture}\end{center}%
 }
 
 \endinput
