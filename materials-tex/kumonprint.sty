@@ -18,23 +18,24 @@
 \RequirePackage{enumitem}
 \RequirePackage[hmargin=15mm,vmargin=14mm]{geometry}
 
-\definecolor{kpblue}{HTML}{2563EB}
-\definecolor{kpblued}{HTML}{1D4ED8}
-\definecolor{kpgreen}{HTML}{0E9F6E}
-\definecolor{kpink}{HTML}{E11D48}
-\definecolor{kpgray}{HTML}{475569}
-\definecolor{kpline}{HTML}{C7CED6}
-\definecolor{kpbox}{HTML}{8A97A6}
-\definecolor{kpstar}{HTML}{F59E0B}
-\definecolor{kpheadbg}{HTML}{EEF5FF}
-\definecolor{kpgoalbg}{HTML}{FFF7E6}
-\definecolor{kpgoalbd}{HTML}{F4C77E}
-\definecolor{kpgoalink}{HTML}{B45309}
-\definecolor{kpsecbg}{HTML}{E7F0FF}
-\definecolor{kpfinbg}{HTML}{FFF3F7}
-\definecolor{kpcubef}{HTML}{DBEAFE}
-\definecolor{kpcubet}{HTML}{93C5FD}
-\definecolor{kpcuber}{HTML}{BFDBFE}
+%% 上質で落ち着いた配色 (深い藍 + スレート + 抑えた金/臙脂)。
+\definecolor{kpblue}{HTML}{2E4570}   % 主色: 深い藍 (バッジ・点・棒・図)
+\definecolor{kpblued}{HTML}{203255}  % 濃い藍 (見出し文字・枠)
+\definecolor{kpgreen}{HTML}{2F7D5B}  % 抑えた緑
+\definecolor{kpink}{HTML}{A23E59}    % 臙脂 (こたえ・配点のアクセント)
+\definecolor{kpgray}{HTML}{3C4757}   % 本文スレート
+\definecolor{kpline}{HTML}{D9DEE7}   % 細い罫線
+\definecolor{kpbox}{HTML}{A3AEBD}    % 解答欄の枠
+\definecolor{kpstar}{HTML}{C29A4F}   % 抑えた金 (★)
+\definecolor{kpheadbg}{HTML}{F3F5FA} % ヘッダー帯のごく淡い地
+\definecolor{kpgoalbg}{HTML}{FAF6EC} % めあての温かい紙色
+\definecolor{kpgoalbd}{HTML}{E2D2A8}
+\definecolor{kpgoalink}{HTML}{7C6328}
+\definecolor{kpsecbg}{HTML}{EAEFF6}  % 見出しの淡い地
+\definecolor{kpfinbg}{HTML}{F5F1F3}  % 仕上げ帯の淡い地
+\definecolor{kpcubef}{HTML}{E3E9F2}
+\definecolor{kpcubet}{HTML}{BBC8DD}
+\definecolor{kpcuber}{HTML}{CFD9E7}
 
 %% 解答モード判定
 \newif\ifkpans
@@ -73,9 +74,9 @@
 %% ===== きょうの めあて(もくひょう) =====
 \newcommand{\kpgoal}[1]{%
   \noindent\begin{tikzpicture}
-    \node[fill=kpgoalbg, draw=kpgoalbd, line width=1pt, rounded corners=8pt, inner sep=6pt,
-          text width=\dimexpr\linewidth-16pt\relax, anchor=north west] at (0,0) {%
-      \sffamily {\large\textcolor{kpstar}{★}}\ \textcolor{kpgoalink}{\bfseries きょうの めあて}\quad\textcolor{kpgray}{#1}%
+    \node[fill=kpgoalbg, draw=kpgoalbd, line width=0.8pt, rounded corners=5pt, inner xsep=9pt, inner ysep=6pt,
+          text width=\dimexpr\linewidth-18pt\relax, anchor=north west] at (0,0) {%
+      \sffamily\small {\textcolor{kpstar}{$\bigstar$}}\ \textcolor{kpgoalink}{\bfseries めあて}\quad\textcolor{kpgray}{#1}%
     };
   \end{tikzpicture}\par\vspace{3mm}
 }
@@ -88,22 +89,22 @@
   \ifkpfirstsec\kpfirstsecfalse\else\par\vspace{\stretch{1}}\fi
   \vspace{1.4mm}\par
   \noindent\begin{tikzpicture}
-    \node[fill=kpsecbg, rounded corners=7pt, inner xsep=8pt, inner ysep=5pt,
-          text width=\dimexpr\linewidth-16pt\relax, anchor=north west] at (0,0) {%
-      \sffamily\bfseries\large\textcolor{kpblued}{★\ #1}%
+    \node[fill=kpsecbg, rounded corners=4pt, inner xsep=9pt, inner ysep=5pt,
+          text width=\dimexpr\linewidth-18pt\relax, anchor=north west] at (0,0) {%
+      \sffamily\bfseries\large{\color{kpblued}\rule[-0.4mm]{1.7mm}{3.6mm}}\ \textcolor{kpblued}{#1}%
     };
   \end{tikzpicture}\par\vspace{2mm}
 }
 
-%% ===== はなまる応援フッター(☆は いろを ぬろう) =====
+%% ===== 仕上げの応援フッター(細めで上品に) =====
 \newcommand{\kpfinish}{%
   \vspace{1.2mm}\par
   \noindent\begin{tikzpicture}
-    \node[fill=kpfinbg, draw=kpink, line width=1pt, rounded corners=9pt, inner sep=7pt,
-          text width=\dimexpr\linewidth-16pt\relax, anchor=north west] at (0,0) {%
-      \centering\sffamily\bfseries\textcolor{kpink}{\large よく できました！}\quad
-      \textcolor{kpstar}{\Large ☆\,☆\,☆}\quad
-      \textcolor{kpgray}{\small ＼ できた かずだけ いろを ぬろう ／}%
+    \node[fill=kpfinbg, draw=kpgoalbd, line width=0.8pt, rounded corners=5pt, inner xsep=11pt, inner ysep=6pt,
+          text width=\dimexpr\linewidth-22pt\relax, anchor=north west] at (0,0) {%
+      \centering\sffamily \textcolor{kpink}{\bfseries よく できました！}\quad
+      \textcolor{kpstar}{$\star\ \star\ \star$}\quad
+      \textcolor{kpgray}{\small できた かずだけ ★に いろを ぬろう}%
     };
   \end{tikzpicture}\par
 }
@@ -211,20 +212,22 @@
 
 %% ===== スタジアム型ヘッダーバー  \kphead{科目}{単元タイトル}{配点}{ページ} =====
 \newcommand{\kpsep}{\;\textcolor{kpline}{\rule[-1.7mm]{0.7pt}{6.6mm}}\;}
-%% 丸い学校ロゴ風バッジ(★)
+%% 丸い学校ロゴ風バッジ(藍丸に白「算」+ 細い内リング)
 \newcommand{\kpbadge}{%
-  \tikz[baseline=-2.5mm]{%
-    \node[circle, fill=kpblue, draw=kpblued, line width=0.7pt, text=white,
-          minimum size=7.6mm, inner sep=0pt, font=\bfseries]{\textcolor{kpstar}{\large★}};}%
+  \tikz[baseline=-2.6mm]{%
+    \node[circle, fill=kpblue, text=white, minimum size=8mm, inner sep=0pt,
+          font=\sffamily\bfseries\small] (b) {算};
+    \draw[white, line width=0.4pt] (b.center) circle (3.05mm);
+  }%
 }
 \newcommand{\kphead}[4]{%
   \noindent\begin{tikzpicture}
-    \node[draw=kpblue, line width=1.3pt, rounded corners=5.6mm, fill=white,
-          minimum height=11.4mm, inner xsep=4.4mm, inner ysep=0pt,
-          text width=\dimexpr\linewidth-8.8mm\relax, anchor=north west, font=\sffamily] at (0,0) {%
+    \node[draw=kpblued, line width=1pt, rounded corners=5.6mm, fill=white,
+          minimum height=11.6mm, inner xsep=4.6mm, inner ysep=0pt,
+          text width=\dimexpr\linewidth-9.2mm\relax, anchor=north west, font=\sffamily] at (0,0) {%
       \kpbadge\;%
       {\bfseries\textcolor{kpblued}{#1}}\kpsep
-      {#2}\hfill
+      {\textcolor{kpgray}{#2}}\hfill
       {\bfseries\textcolor{kpink}{／#3}}\kpsep{\small\textcolor{kpgray}{#4}}%
     };
   \end{tikzpicture}\par\vspace{2.6mm}
@@ -301,11 +304,17 @@
 %% 左の番号付き計算項目 (multicols 用)。番号+式 (こたえは右の解答欄)。
 \newcommand{\kpLc}[2]{\noindent{\sffamily\footnotesize\textcolor{kpgray}{#1}}\ {#2}\par\vspace{1.7mm}}
 
+%% 番号タイル(藍の角丸塗り + 白文字)。見出しの大番号用。
+\newcommand{\kpnumtile}[1]{%
+  \tikz[baseline=-2.6mm]{\node[fill=kpblued, rounded corners=2pt, text=white,
+    minimum width=6.6mm, minimum height=6.6mm, inner sep=0pt,
+    font=\sffamily\bfseries]{#1};}%
+}
 %% アイプラス風の番号付き見出し (全幅・インライン解答用)。\kpprompt{1}{つぎの…}
 \newcommand{\kpprompt}[2]{%
   \par\vspace{0.5mm}
-  \raisebox{0pt}[0pt][0pt]{\colorbox{kpsecbg}{\makebox[7mm][c]{\bfseries\large\textcolor{kpblued}{#1}}}}\ %
-  {\sffamily\bfseries\large #2}\par\vspace{2.6mm}%
+  \kpnumtile{#1}\ {\sffamily\bfseries\large\textcolor{kpblued}{#2}}\par
+  \vspace{1.2mm}{\color{kpline}\hrule height 0.5pt}\par\vspace{2.6mm}%
 }
 %% 10のまとまり(テンフレーム)。\kptenframe{ぬる数}  (0〜10)
 \newcommand{\kptenframe}[1]{%

@@ -36,8 +36,8 @@ const ri = (rng, a, b) => a + Math.floor(rng() * (b - a + 1));
 function grid(items, cols = 2) {
   return `\\begin{kpgrid}{${cols}}\n${items.join("\n")}\n\\end{kpgrid}`;
 }
-function calcItems(probs) {
-  return probs.map((p, i) => `\\kpitem{(${i + 1})}{$${p.expr}$}{${p.ans}}`);
+function calcItems(probs, offset = 0) {
+  return probs.map((p, i) => `\\kpitem{(${i + 1 + offset})}{$${p.expr}$}{${p.ans}}`);
 }
 // 重複を避けつつ count 問つくる
 function uniqueProbs(rng, count, make) {
@@ -705,20 +705,49 @@ function calcBody(probs, section = "つぎの けいさんを しましょう") 
     .join("\n");
   return `\\kpprompt{1}{${section}}\n\\begin{kpsheet}\n${rows}\n\\end{kpsheet}`;
 }
-// 計算ドリル本文(インライン解答: = のすぐ後ろに解答箱)。問題数が多い計算ドリル用。
+// 1ページに並べる問題数(インライン解答グリッド)。3列/2列で行数をそろえる。
+function drillPerPage(cols) {
+  return cols >= 3 ? 36 : 24;
+}
+// 計算ドリル本文(インライン解答: = のすぐ後ろに解答箱)。1ページ分。
 //   \kpitem のグリッドで紙面いっぱいに並べる(参考プリント同様の密度)。
-//   1ページに収まる上限で切る(3列=最大39問≒13行 / 2列=最大26問≒13行)。
 function calcBodyInline(probs, cols = 3, section = "つぎの けいさんを しましょう") {
-  const cap = cols >= 3 ? 39 : 26;
-  const items = probs.slice(0, cap);
+  const items = probs.slice(0, drillPerPage(cols));
   return `\\kpprompt{1}{${section}}\n` + grid(calcItems(items), cols);
 }
-// 計算ドリルを1行で作る。問題数が多いので全学年インライン解答グリッドで紙面を埋める。
+// 問題リストを1ページ分ずつのグリッドに分け、ページ配列にする(複数ページ対応)。
+function calcPages(probs, cols, section) {
+  const per = drillPerPage(cols);
+  const chunks = [];
+  for (let i = 0; i < probs.length; i += per) chunks.push(probs.slice(i, i + per));
+  if (chunks.length === 0) chunks.push([]);
+  return chunks.map((ch, pi) => `\\kpprompt{1}{${section}}\n` + grid(calcItems(ch, pi * per), cols));
+}
+// 計算ドリルを作る。量を重視して、ジェネレータを繰り返し呼び重複排除した
+// 大きな問題プール(既定で約2ページ分)を作り、複数ページに分割する。
 //   cols 未指定なら 3列(短い式)。分数など幅広の式は呼び出し側で 2 を渡す。
-function calcPrint(def, gen, cols = 3, section = "つぎの けいさんを しましょう") {
+//   pages: めざすページ数(既定2)。小さい数のドリルなどユニーク数が足りなければ
+//          自動的に作れる分だけ(1ページ等)になる。
+function calcPrint(def, gen, cols = 3, section = "つぎの けいさんを しましょう", { pages = 2 } = {}) {
   const rng = rngFromString(def.id);
-  const probs = gen(rng);
-  return { subject: "算数", ...def, body: calcBodyInline(probs, cols, section) };
+  const target = drillPerPage(cols) * pages;
+  const seen = new Set();
+  const pool = [];
+  let guard = 0;
+  while (pool.length < target && guard++ < 40) {
+    const batch = gen(rng);
+    let added = 0;
+    for (const p of batch) {
+      if (!seen.has(p.expr)) {
+        seen.add(p.expr);
+        pool.push(p);
+        added++;
+      }
+    }
+    if (added === 0) break; // ユニークが尽きた
+  }
+  const items = pool.slice(0, target);
+  return { subject: "算数", ...def, pages: calcPages(items, cols, section) };
 }
 
 // アイプラス風の概念・文章題プリント本文。
