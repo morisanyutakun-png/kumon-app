@@ -1,0 +1,160 @@
+% =====================================================================
+%  iplus-figs.sty  ―  解説用 ミニ図形ツールキット（TikZ）
+%  iplus-sheet.sty の後に読み込む。accent 色を使うので分野色に追従。
+%  使い方:  \figbox[<scale>]{ <tikz本体> }
+% =====================================================================
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{iplus-figs}[2026/06/26 iplus solution figure toolkit]
+\RequirePackage{tikz}
+\RequirePackage{needspace}
+\RequirePackage{wrapfig}
+\usetikzlibrary{arrows.meta,calc}
+% 図の安全配置用：図ボックスを一時保存して幅・高さを測る
+\newsavebox{\ipfsolfigbox}
+\newsavebox{\ipfsolfigCbox}
+
+% --- ミニ図の枠（中央寄せ・細線・小フォント） -------------------------
+\newcommand{\figbox}[2][0.42]{\par\vspace{1pt}%
+  {\centering\begin{tikzpicture}[scale=#1,>={Stealth[length=1.3mm]},
+       line width=0.5pt,font=\tiny,baseline=0pt]#2\end{tikzpicture}\par}\vspace{1pt}}
+
+% --- 整数位置の小目盛りを自動で打つ補助（軸の縮尺を可視化） -----------
+% 目盛り長は座標単位 0.13（どの scale でも軸に対して一定割合）
+\newcommand{\ipftlen}{0.13}
+\newcommand{\figxticks}[2]{% #1 xmin #2 xmax の整数に小目盛り
+  \pgfmathtruncatemacro{\ipfa}{ceil(#1)}\pgfmathtruncatemacro{\ipfb}{floor(#2)}%
+  \ifnum\ipfa>\ipfb\else
+   \foreach \ipft in {\ipfa,...,\ipfb}{\ifnum\ipft=0\else
+     \draw[black!30,line width=0.4pt](\ipft,-\ipftlen)--(\ipft,\ipftlen);\fi}\fi}
+\newcommand{\figyticks}[2]{% #1 ymin #2 ymax の整数に小目盛り
+  \pgfmathtruncatemacro{\ipfa}{ceil(#1)}\pgfmathtruncatemacro{\ipfb}{floor(#2)}%
+  \ifnum\ipfa>\ipfb\else
+   \foreach \ipft in {\ipfa,...,\ipfb}{\ifnum\ipft=0\else
+     \draw[black!30,line width=0.4pt](-\ipftlen,\ipft)--(\ipftlen,\ipft);\fi}\fi}
+
+% --- 座標軸（小目盛りつき）  #1 xmin #2 xmax #3 ymin #4 ymax ----------
+\newcommand{\figaxes}[4]{%
+  \figxticks{#1}{#2}\figyticks{#3}{#4}%
+  \draw[->,black!55,line width=0.5pt] (#1,0)--(#2,0) node[below,black,inner sep=1.5pt]{$x$};
+  \draw[->,black!55,line width=0.5pt] (0,#3)--(0,#4) node[left,black,inner sep=1.5pt]{$y$};
+  \node[black!60,below left,inner sep=1pt] at (0,0){O};}
+% 始線つき（極座標・複素数平面用）  実軸/虚軸ラベルは任意指定
+\newcommand{\figaxeslab}[6]{%
+  \figxticks{#1}{#2}\figyticks{#3}{#4}%
+  \draw[->,black!55,line width=0.5pt] (#1,0)--(#2,0) node[below,black,inner sep=1.5pt]{#5};
+  \draw[->,black!55,line width=0.5pt] (0,#3)--(0,#4) node[left,black,inner sep=1.5pt]{#6};
+  \node[black!60,below left,inner sep=1pt] at (0,0){O};}
+
+% --- 数値ラベルつきの目盛り（重要な値だけ明示） ----------------------
+% \figxtick{x}{ラベル}  x軸上に目盛り＋数字（下側）
+\newcommand{\figxtick}[2]{\draw[black!55,line width=0.55pt](#1,-0.15)--(#1,0.15);%
+  \node[below,black!75,font=\scriptsize,inner sep=1.6pt] at (#1,-0.13){#2};}
+% \figytick{y}{ラベル}  y軸上に目盛り＋数字（左側）
+\newcommand{\figytick}[2]{\draw[black!55,line width=0.55pt](-0.15,#1)--(0.15,#1);%
+  \node[left,black!75,font=\scriptsize,inner sep=1.6pt] at (-0.13,#1){#2};}
+% \figguide{x}{y}  原点格子へ向かう破線ガイド（点(x,y)から両軸へ）
+\newcommand{\figguide}[2]{\draw[black!35,dashed,line width=0.4pt]%
+  (#1,#2)--(#1,0) (#1,#2)--(0,#2);}
+% \figgrid{xmin}{xmax}{ymin}{ymax}  薄い方眼（任意で先に置く）
+\newcommand{\figgrid}[4]{%
+  \pgfmathtruncatemacro{\ipfa}{ceil(#1)}\pgfmathtruncatemacro{\ipfb}{floor(#2)}%
+  \pgfmathtruncatemacro{\ipfc}{ceil(#3)}\pgfmathtruncatemacro{\ipfd}{floor(#4)}%
+  \ifnum\ipfa>\ipfb\else\foreach \ipfi in {\ipfa,...,\ipfb}{%
+    \draw[black!9,line width=0.3pt](\ipfi,#3)--(\ipfi,#4);}\fi
+  \ifnum\ipfc>\ipfd\else\foreach \ipfj in {\ipfc,...,\ipfd}{%
+    \draw[black!9,line width=0.3pt](#1,\ipfj)--(#2,\ipfj);}\fi}
+% \figptlab{x}{y}{anchor}{ラベル}  点＋座標ラベル
+\newcommand{\figptlab}[4]{\fill[accentd](#1,#2)circle(1.6pt);%
+  \node[#3,accentd,font=\scriptsize,inner sep=1.6pt] at (#1,#2){#4};}
+
+% --- 点・補助 --------------------------------------------------------
+\newcommand{\figdot}[2]{\fill[accentd] (#1,#2) circle (1.6pt);}
+\newcommand{\figfocus}[2]{\fill[accent] (#1,#2) circle (1.6pt);} % 焦点
+
+% --- 2次曲線 --------------------------------------------------------
+% 楕円  #1 a  #2 b （中心原点）
+\newcommand{\figellipse}[2]{\draw[accent,line width=0.9pt] (0,0) ellipse (#1 and #2);}
+% 放物線 y^2=4px 風: 右開き、x=y^2/(4p) を y∈[-Y,Y] で  #1 p  #2 Y
+\newcommand{\figparaR}[2]{\draw[accent,line width=0.9pt,samples=40,smooth]
+  plot[domain=-#2:#2]({(\x*\x)/(4*#1)},\x);}
+% 放物線 x^2=4py 風: 上開き  #1 p  #2 X
+\newcommand{\figparaU}[2]{\draw[accent,line width=0.9pt,samples=40,smooth]
+  plot[domain=-#2:#2](\x,{(\x*\x)/(4*#1)});}
+% 双曲線 x^2/a^2-y^2/b^2=1 の左右2枝  #1 a #2 b #3 xmax
+\newcommand{\fighyperLR}[3]{%
+  \draw[accent,line width=0.9pt,samples=30,smooth]
+    plot[domain=#1:#3]({\x},{(#2/#1)*sqrt(\x*\x-(#1)*(#1))});
+  \draw[accent,line width=0.9pt,samples=30,smooth]
+    plot[domain=#1:#3]({\x},{-(#2/#1)*sqrt(\x*\x-(#1)*(#1))});
+  \draw[accent,line width=0.9pt,samples=30,smooth]
+    plot[domain=#1:#3]({-\x},{(#2/#1)*sqrt(\x*\x-(#1)*(#1))});
+  \draw[accent,line width=0.9pt,samples=30,smooth]
+    plot[domain=#1:#3]({-\x},{-(#2/#1)*sqrt(\x*\x-(#1)*(#1))});
+  \draw[black!30,dashed] ({-#3},{-(#2/#1)*#3})--({#3},{(#2/#1)*#3});
+  \draw[black!30,dashed] ({-#3},{(#2/#1)*#3})--({#3},{-(#2/#1)*#3});}
+
+% --- 面積（塗りつぶし） ---------------------------------------------
+% 関数 f の x∈[a,b] と x軸で囲む領域を塗る  #1 a #2 b #3 関数式(\x)
+\newcommand{\figareaX}[3]{\fill[accent!15]
+  (#1,0) -- plot[domain=#1:#2,samples=40,smooth] (\x,{#3}) -- (#2,0) -- cycle;}
+
+% --- 回転体（x軸まわり）の略図 ---------------------------------------
+% 曲線 y=f(x) を x∈[0,b] で描き、両端に回転を示す破線楕円  #1 b #2 f(\x) #3 端の半径r
+\newcommand{\figrevX}[3]{%
+  \fill[accent!12] (0,0)--plot[domain=0:#1,samples=30,smooth](\x,{#2})--(#1,0)--cycle;
+  \fill[accent!12] (0,0)--plot[domain=0:#1,samples=30,smooth](\x,{-(#2)})--(#1,0)--cycle;
+  \draw[accent,line width=0.8pt,samples=30,smooth] plot[domain=0:#1](\x,{#2});
+  \draw[accent,line width=0.8pt,samples=30,smooth] plot[domain=0:#1](\x,{-(#2)});
+  \draw[black!40,dashed] (#1,0) ellipse (0.16*#1 and #3);}
+
+% --- 複素数平面 -----------------------------------------------------
+\newcommand{\figcplane}[4]{\figaxeslab{#1}{#2}{#3}{#4}{\,実}{\,虚}}
+% 原点からの位置ベクトル  #1 x #2 y #3 ラベル
+\newcommand{\figvec}[3]{\draw[->,accent,line width=0.9pt] (0,0)--(#1,#2)
+  node[accentd,above right,inner sep=1pt]{#3};\fill[accent](#1,#2)circle(1.5pt);}
+% 垂直二等分線（2点 #1,#2 と #3,#4 の）を直線 #5..#6(x範囲) で薄く
+\newcommand{\figcircle}[3]{\draw[accent,line width=0.9pt] (#1,#2) circle (#3);}
+
+% --- 解答内の回り込み図（右に配置・キャプションつき） ----------------
+% \solfig[幅]{tikz本体}{キャプション}
+% 図ボックスを先に組んで実寸を測り，
+%   ・回り込み幅＝図の実幅（はみ出し＝オーバーフルを防ぐ）
+%   ・\needspace で図の高さ分の余白がなければ改ページ（フッター／ロゴとの重なりを防ぐ）
+% 第1オプション引数は後方互換のため受け取るが，実幅を優先するため無視する。
+\newcommand{\solfig}[3][\relax]{%
+  \ifdefined\stependif\stependif\fi
+  \sbox{\ipfsolfigbox}{\setlength{\fboxsep}{3pt}\fcolorbox{accent!35}{accentl!40}{%
+      \begin{tikzpicture}[scale=0.6,>={Stealth[length=1.5mm]},
+         line width=0.55pt,font=\scriptsize,baseline=0pt]#2\end{tikzpicture}}}%
+  \par\needspace{\dimexpr\ht\ipfsolfigbox+\dp\ipfsolfigbox+2\baselineskip\relax}%
+  \begin{wrapfigure}{r}{\dimexpr\wd\ipfsolfigbox+3.5mm\relax}%
+   \vspace{-3mm}%
+   \begin{flushright}%
+    \usebox{\ipfsolfigbox}%
+    \\[2pt]{\scriptsize\color{accentd}#3}%
+   \end{flushright}\vspace{-2mm}%
+  \end{wrapfigure}}
+% 大きめの中央図（独立行）  \solfigC{tikz}{cap}
+\newcommand{\solfigC}[2]{%
+  \ifdefined\stependif\stependif\fi
+  \sbox{\ipfsolfigCbox}{\setlength{\fboxsep}{2pt}\fcolorbox{accent!35}{white}{%
+    \begin{tikzpicture}[scale=0.5,>={Stealth[length=1.4mm]},
+       line width=0.5pt,font=\tiny,baseline=0pt]#1\end{tikzpicture}}}%
+  \par\needspace{\dimexpr\ht\ipfsolfigCbox+\dp\ipfsolfigCbox+2\baselineskip\relax}%
+  \vspace{1mm}{\centering
+  \usebox{\ipfsolfigCbox}\\[1pt]
+  {\tiny\color{accentd}#2}\par}\vspace{1mm}}
+
+% --- インライン図（行内に並べる用） ---------------------------------
+\newcommand{\figin}[2][0.3]{\begin{tikzpicture}[scale=#1,
+   >={Stealth[length=1.3mm]},line width=0.5pt,font=\tiny,baseline=0pt]#2\end{tikzpicture}}
+% 図セル（図＋小キャプション）
+\newcommand{\figcell}[2]{\begin{minipage}[t]{0.31\linewidth}\centering
+   #1\\[1pt]{\tiny\color{accentd}#2}\end{minipage}}
+% 解説ページ下部の図ストリップ（アクセント罫線＋見出し＋図の行）
+\newcommand{\figrow}[1]{\par\vspace{2.5mm}
+  \noindent{\color{accent}\rule{\linewidth}{0.4pt}}\par\vspace{0.6mm}
+  \noindent{\gtfamily\scriptsize\color{accentd}\rule{1.8mm}{1.8mm}\ 図で確認}\par\vspace{1mm}
+  \noindent #1 \par\vspace{1mm}}
+
+\endinput

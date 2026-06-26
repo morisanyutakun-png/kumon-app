@@ -1,0 +1,208 @@
+% =====================================================================
+%  iplus-sheet.sty  ―  アイプラス／ノビットスタディ 類題プリント 共通デザイン
+%  ---------------------------------------------------------------
+%  方針：角張った（スクエア）幾何アクセント＋分野ごとの1色アクセント。
+%        各分野プリントは本ファイルを読み込み、accent 系3色を差し替える
+%        だけで色系統を切り替えられる（識別性）。
+%        ブランド表記は \sheetbrand（既定「高校数学」）を再定義して切替。
+%  ---------------------------------------------------------------
+%  コンパイル: lualatex（luatexja / haranoaji フォント）
+% =====================================================================
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{iplus-sheet}[2026/06/26 iplus worksheet design system]
+
+\RequirePackage{amsmath,amssymb}
+\RequirePackage{tikz}
+\usetikzlibrary{calc,arrows.meta}
+\RequirePackage{array}
+\RequirePackage{xcolor}
+\RequirePackage{colortbl}
+\RequirePackage{geometry}
+\RequirePackage{graphicx}
+\RequirePackage{wrapfig}
+\RequirePackage{amsmath}
+
+% ヘッダー左の分野表記（小学部は \renewcommand で「小学さんすう」等に）。
+\providecommand{\sheetbrand}{高校数学}
+% ロゴ画像ファイル名（プロジェクト直下に配置）。差し替え可。
+\newcommand{\logofile}{logo_nobit}
+
+% ===== 分野アクセント色（既定＝藍・インディゴ） ========================
+\definecolor{accent}{RGB}{0,115,119}    % 主アクセント（統一カラー＝関数ティール）
+\definecolor{accentd}{RGB}{0,74,77}     % 濃色（影・締め色）
+\definecolor{accentl}{RGB}{224,242,242} % 淡色（解答カード地色）
+\definecolor{inkgray}{RGB}{60,60,66}    % 本文寄りの黒
+% 3色まとめて差し替えるためのショートカット  #1 主 #2 濃 #3 淡（"R,G,B"）
+\newcommand{\setaccent}[3]{%
+  \definecolor{accent}{RGB}{#1}%
+  \definecolor{accentd}{RGB}{#2}%
+  \definecolor{accentl}{RGB}{#3}%
+  \arrayrulecolor{accent}}
+\arrayrulecolor{accent}
+
+% ===== ページ体裁 =====================================================
+\geometry{top=9mm,bottom=9mm,left=11mm,right=11mm}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\linespread{1.18}
+\setlength{\fboxrule}{0.5pt}
+\setlength{\tabcolsep}{0pt}
+\renewcommand{\arraystretch}{1.0}
+
+% ----- 標準寸法（問題ページ：左=問題, 右=解答欄） ----------------------
+\newlength{\Lw}\setlength{\Lw}{114mm}   % 問題欄
+\newlength{\Gw}\setlength{\Gw}{6mm}     % 列間
+\newlength{\Rw}\setlength{\Rw}{66mm}    % 解答欄
+% ----- 解答ページ寸法（左=解答, 右=解説） -----------------------------
+\newlength{\ALw}\setlength{\ALw}{58mm}
+\newlength{\AGw}\setlength{\AGw}{7mm}
+\newlength{\ARw}\setlength{\ARw}{113mm}
+
+% ===== 角張ったアクセント小物 =========================================
+% 番号チップ（白抜き文字・正方形・アクセント色＋角の影で層状の角張り感）
+\newcommand{\qnum}[1]{%
+  \tikz[baseline=(c.base)]{%
+    \fill[accentd] (0.8mm,-0.8mm) rectangle (6.2mm,4.6mm);
+    \node[fill=accent,text=white,font=\gtfamily\bfseries,
+          inner sep=0pt,minimum size=5.4mm,anchor=south west](c) at (0,0){#1};}}
+% 装飾モチーフ：右肩上がりの三連スクエア（角張り・幾何学）
+\newcommand{\sqmotif}{%
+  \tikz[baseline=0pt]{%
+    \fill[accentl] (0,0) rectangle (1.6mm,1.6mm);
+    \fill[accent!55] (2.1mm,0.6mm) rectangle (3.7mm,2.2mm);
+    \fill[accent] (4.2mm,1.2mm) rectangle (5.8mm,2.8mm);}}
+% セット表示（角張りチップ）  #1 = セット A/B/C   #2 = 枚 1/2/3  →  "A-1"
+\newcommand{\setmark}[2]{\gtfamily\small セット\hspace{1mm}%
+  \tikz[baseline=(n.base)]{%
+    \node[fill=accent,text=white,font=\gtfamily\bfseries,
+          inner xsep=1.7mm,inner ysep=0.7mm,minimum height=4.8mm](n){#1-#2};}}
+
+% ===== ヘッダー左の「のびる矢印」マーク（ノビット由来） ================
+% 指定座標を中心に、右肩上がりの矢印＋きらめきを白で描く。
+\newcommand{\nobitmark}{%
+  \draw[white,line width=1.2pt,line cap=round,
+        -{Stealth[length=1.7mm,width=2.1mm]}]
+       (2.5mm,2.7mm) .. controls (4.6mm,2.6mm) and (5.4mm,4.2mm) ..
+       (7.0mm,6.5mm);
+  \fill[white] (7.95mm,8.05mm)--(8.18mm,7.55mm)--(8.7mm,7.32mm)--
+       (8.18mm,7.09mm)--(7.95mm,6.59mm)--(7.72mm,7.09mm)--
+       (7.2mm,7.32mm)--(7.72mm,7.55mm)--cycle;}
+
+% ===== ヘッダー（角張り・アクセント） =================================
+% #1 タイトル  #2 配点("／10" 等)  #3 進行表示("リトライ 1/3" 等)
+\newcommand{\sheetheadcore}[3]{%
+\begin{tikzpicture}
+  % 左：濃色のソリッド・スクエアブロック（SR バッジ／二層）
+  \fill[accentd] (0,0) rectangle (10mm,10mm);
+  \fill[accent]  (0,0) rectangle (10mm,8.4mm);
+  \nobitmark
+  % 本体枠（角は立てる）。下辺を太いアクセントで締める
+  \draw[line width=0.8pt,accent] (0,0) rectangle (\textwidth,10mm);
+  \fill[accent] (10mm,0) rectangle (\textwidth,0.9mm);
+  \node[anchor=west,inner sep=0pt] at (12mm,5.2mm)
+        {\gtfamily\bfseries\color{accentd}\sheetbrand};
+  \draw[line width=0.6pt,accent] (32mm,1.4mm)--(32mm,8.6mm);
+  \node[anchor=west,inner sep=0pt] at (34.6mm,5.2mm)
+        {\color{accent}\rule{2.2mm}{2.2mm}\hspace{1.6mm}\color{black}\large #1};
+  \draw[line width=0.6pt,accent] (\textwidth-52mm,1.4mm)--(\textwidth-52mm,8.6mm);
+  \node[anchor=center] at (\textwidth-43mm,5mm){\gtfamily\bfseries\color{accentd}#2};
+  \draw[line width=0.6pt,accent] (\textwidth-34mm,1.4mm)--(\textwidth-34mm,8.6mm);
+  \node[anchor=center] at (\textwidth-17mm,5mm){\small\gtfamily #3};
+\end{tikzpicture}}
+\newcommand{\sheethead}[3]{\sheetheadcore{#1}{#2}{#3}\par\vspace{6mm}}
+
+% ===== フッター（ノビットスタディ ロゴ） =============================
+%  ・logo ファイルがあれば画像を右下に配置（推奨）。
+%  ・無い場合はテキストで代替。
+\newcommand{\footerbar}{%
+\noindent{\color{accent}\rule{\textwidth}{0.8pt}}\par\vspace{1mm}
+\noindent\raisebox{1.1mm}{\sqmotif}\hfill
+\IfFileExists{\logofile.pdf}%
+  {\raisebox{-0.5mm}{\includegraphics[height=6.5mm]{\logofile.pdf}}}%
+  {\IfFileExists{\logofile.png}%
+    {\raisebox{-0.5mm}{\includegraphics[height=6.5mm]{\logofile.png}}}%
+    {{\gtfamily\bfseries\color{accentd}\large ノビットスタディ}}}\par}
+\newcommand{\footerlogo}{\vfill\footerbar}
+% ===== フロー型レイアウト（fancyhdr 走り出し見出し・自動改ページ） ====
+% \useflow を呼ぶと、以後 \setsheet{タイトル}{配点}{進行} で各ページ上下に
+% ヘッダー（\sheetheadcore）とフッター（\footerbar）が自動で入る。
+\newcommand{\HDa}{}\newcommand{\HDb}{}\newcommand{\HDc}{}
+\newcommand{\setsheet}[3]{\renewcommand{\HDa}{#1}\renewcommand{\HDb}{#2}\renewcommand{\HDc}{#3}}
+\newcommand{\useflow}{%
+  \RequirePackage{fancyhdr}%
+  \geometry{top=9mm,bottom=16mm,headheight=11mm,headsep=4mm,
+            footskip=9.5mm,includehead,includefoot}%
+  \fancypagestyle{ipflow}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}%
+    \renewcommand{\footrulewidth}{0pt}%
+    \fancyhead[L]{\sheetheadcore{\HDa}{\HDb}{\HDc}}%
+    \fancyfoot[L]{\parbox[t]{\textwidth}{\footerbar}}}%
+  \pagestyle{ipflow}\thispagestyle{ipflow}}
+
+% ===== 解答記入欄（空欄・アクセント枠） ===============================
+% 解答欄の下に必ず確保する余白（次の大問の番号チップとの間隔）。
+\newlength{\ansbelow}\setlength{\ansbelow}{2.5mm}
+\newcommand{\ans}[1]{\par\vspace{2.5pt}%
+  {\color{accent}\framebox[\linewidth][l]{\rule{0pt}{#1}}}%
+  \par\rule{0pt}{\ansbelow}}
+% 番号ラベル付き解答欄（問題側・空欄）  #1 番号  #2 箱の高さ
+\newcommand{\ansbox}[2]{{\qnum{#1}}\ans{#2}}
+% 番号＋枝番分割の空欄  #1 番号 #2 枝番ならび(\gr) #3 未使用
+\newcommand{\ansgrid}[3]{{\qnum{#1}}\par\vspace{2.5pt}%
+ \noindent\begin{tabular}{@{}|@{\hspace{2mm}}c@{\hspace{2mm}}|p{\dimexpr\Rw-12.5mm\relax}|@{}}%
+ \hline #2 \hline\end{tabular}\par\rule{0pt}{\ansbelow}}
+% #1 ラベル  #2 半行高（行の総高は 2×#2−1.5mm に圧縮し，紙面に余裕を確保）
+\newcommand{\gr}[2]{\rule[\dimexpr-#2+0.75mm\relax]{0pt}{\dimexpr#2+#2-1.5mm\relax}#1 & \\\hline}
+% 枝番ごとに独立した枠＋下余白を積む  #1 枝番ラベル  #2 枠の高さ
+\newlength{\subgap}\setlength{\subgap}{5mm}
+\newcommand{\subbox}[2]{\noindent
+  \makebox[7mm][l]{\normalsize #1}%
+  {\color{accent}\framebox[\dimexpr\linewidth-7mm\relax][l]{\rule{0pt}{#2}}}\par\vspace{\subgap}}
+
+% ===== 解答ページ用：埋まった解答カード（淡色地・アクセント枠） ======
+% #1 高さ #2 中身
+\newcommand{\ansf}[2]{\par\vspace{2.5pt}{\setlength{\fboxsep}{5pt}%
+ \fcolorbox{accent}{accentl}{\parbox[c][#1][c]{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{\centering #2}}}}
+
+% 解説見出し  例: \kaisetu  →  [ 解 説 ]
+\newcommand{\kaisetu}{{\bfseries\color{accent}[\,解\ \ 説\,]}}
+
+% =====================================================================
+%  詳しい解答・解説用（フロー型。複数ページにまたがってよい）
+% =====================================================================
+% 連続する \step を1つの論述段落として流し込むためのフラグと終端処理。
+\newif\ifipfinstep \ipfinstepfalse
+% 開いている論述段落を閉じ、左字下げを戻す（各ブロックマクロ冒頭で呼ぶ）。
+\newcommand{\stependif}{\ifipfinstep\par\setlength{\leftskip}{0pt}\ipfinstepfalse\fi}
+% 枝番のぶら下げインデント  \subq{(1)}{本文}
+\newcommand{\subq}[2]{\stependif\par\addvspace{4pt}%
+  \hangindent=2.9em\hangafter=1\noindent
+  \hspace{0.9em}\hbox to 2.0em{#1\hfil}\ignorespaces #2\par}
+% 大問見出し（解答ブロックの先頭）  \solq{1}{放物線の焦点・準線}
+\newcommand{\solq}[2]{\stependif\par\addvspace{6.5mm}\noindent
+  {\qnum{#1}}\hspace{2.5mm}{\gtfamily\bfseries\large\color{accentd}#2}\par\vspace{2.4mm}}
+% 解答ステップ：連続する \step は箇条書きにせず、1つの論述段落として流す。
+\newcommand{\step}[1]{%
+  \ifipfinstep\hspace{0.25em}\else
+    \par\addvspace{3pt}\setlength{\leftskip}{1.6em}\noindent\ipfinsteptrue\fi
+  \ignorespaces#1\unskip}
+% 最終解答の強調（淡色地・アクセント枠の行内ボックス）
+\newcommand{\answ}[1]{\stependif\par\nobreak\vspace{2.4mm}\nobreak\noindent
+  {\setlength{\fboxsep}{6pt}\fcolorbox{accent}{accentl}{%
+   \,{\gtfamily\bfseries\color{white}\colorbox{accent}{\,答\,}}\ \ {\large #1}\,}}\par\vspace{0.8mm}}
+% 方針（解き方の見通し。各大問の最初に置く）
+\newcommand{\hoshin}[1]{\stependif\par\vspace{1.5mm}\noindent
+  {\setlength{\fboxsep}{3.5pt}\colorbox{accentd}{\color{white}\gtfamily\bfseries\,方針\,}}%
+  \ \,#1\par\vspace{1pt}}
+% ポイント（要点メモ。淡色地・全幅）
+\newcommand{\point}[1]{\stependif\par\vspace{2mm}\noindent
+  {\setlength{\fboxsep}{6pt}%
+   \fcolorbox{accent!45}{accentl}{\parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}{%
+     {\gtfamily\bfseries\color{accentd}\rule[-0.1ex]{1.5mm}{1.5mm}\ ポイント}\ \ #1}}}\par\vspace{1mm}}
+% 補足（小さめの注。左にぶら下げ）
+\newcommand{\note}[1]{\stependif\par\vspace{1pt}\noindent
+  \hangindent=1.8em\hangafter=0{\small\color{accentd}（注）}\,{\small #1}}
+% 大問間の区切り（細い藍の点線）
+\newcommand{\soldiv}{\stependif\par\addvspace{4.5mm}\noindent
+  {\color{accent!40}\rule{\linewidth}{0.4pt}}\par}
+
+\endinput
