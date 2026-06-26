@@ -80,4 +80,21 @@ export const db: DB = new Proxy({} as DB, {
   },
 }) as DB;
 
+/**
+ * DB を「起こす」ための軽量 ping (select 1)。
+ * Neon は数分アイドルで自動サスペンドし、スリープからの初回クエリは起床に
+ * 数秒かかる。ログイン画面表示時などに先に叩いておくと、実ログイン時には
+ * 温まっていてタイムアウト(関数制限)による「無言の空回り」を避けられる。
+ * 失敗は握りつぶす(あくまで保温目的)。
+ */
+export async function pingDb(): Promise<boolean> {
+  try {
+    const { sql } = await import("drizzle-orm");
+    await db.execute(sql`select 1`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export { schema };
