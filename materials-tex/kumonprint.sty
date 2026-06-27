@@ -267,7 +267,8 @@
 \newlength{\kpRw}
 \newlength{\kpminans}\setlength{\kpminans}{15mm}
 
-\newcommand{\kpqlabel}[1]{\colorbox{accent}{\makebox[6.6mm][c]{\gtfamily\bfseries\textcolor{white}{#1}}}}
+\newcommand{\kpqlabel}[1]{\colorbox{accent}{\makebox[8mm][c]{\gtfamily\bfseries\textcolor{white}{#1}}}}
+\newlength{\kpqgut}\setlength{\kpqgut}{11mm}  % 番号ラベルの左ガター幅
 
 \newenvironment{kpsheet}{%
   \par\setlength{\kpLw}{0.585\linewidth}\setlength{\kpRw}{0.350\linewidth}%
@@ -277,8 +278,10 @@
 }
 %% 1問  \kpQ{番号}{問題本文}{解答欄(中身は \kpAR の列)}
 \newcommand{\kpQ}[3]{%
+  % 番号は左の固定ガター、問題文は右ブロック(折り返しは番号の下に来ずに揃う)。
   \sbox{\kpLbox}{\begin{minipage}[t]{\kpLw}%
-      \kpqlabel{#1}\ {\large #2}%
+      \begin{minipage}[t]{\kpqgut}\kpqlabel{#1}\end{minipage}%
+      \begin{minipage}[t]{\dimexpr\kpLw-\kpqgut\relax}{\large #2}\end{minipage}%
     \end{minipage}}%
   \setlength{\kpLh}{\dimexpr\ht\kpLbox+\dp\kpLbox\relax}%
   \ifdim\kpLh<\kpminans\setlength{\kpLh}{\kpminans}\fi
