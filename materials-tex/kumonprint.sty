@@ -269,8 +269,9 @@
 \newlength{\kpRw}
 \newlength{\kpminans}\setlength{\kpminans}{15mm}
 
-\newcommand{\kpqlabel}[1]{\colorbox{accent}{\makebox[8mm][c]{\gtfamily\bfseries\textcolor{white}{#1}}}}
-\newlength{\kpqgut}\setlength{\kpqgut}{11mm}  % 番号ラベルの左ガター幅
+% 番号ラベル。padding を固定(他所の \fboxsep の影響を受けない)してガター内に収める。
+\newcommand{\kpqlabel}[1]{{\setlength{\fboxsep}{2pt}\colorbox{accent}{\makebox[7.5mm][c]{\gtfamily\bfseries\textcolor{white}{#1}}}}}
+\newlength{\kpqgut}\setlength{\kpqgut}{12mm}  % 番号ラベルの左ガター幅(ラベル+余白)
 
 \newenvironment{kpsheet}{%
   \par\setlength{\kpLw}{0.585\linewidth}\setlength{\kpRw}{0.350\linewidth}%
