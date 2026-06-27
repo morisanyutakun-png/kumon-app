@@ -640,25 +640,14 @@ function buildG1() {
     unitNo: 20,
     name: "算数1年⑳ えで かぞえよう",
     title: "えで かぞえよう",
-    subtitle: "りんご・ボールを かぞえる",
-    goal: "くだものや ボールが いくつ あるか、かぞえて すうじで かこう！",
+    subtitle: "いろいろな ものを かぞえる",
+    goal: "くだものや どうぶつ、のりものが いくつ あるか、かぞえて すうじで かこう！",
     desc: "具体物(半具体物)を数えて数量をとらえる。並んだ絵の計数。",
     body: (() => {
-      const apples = (n) => { let s = ""; for (let i = 0; i < n; i++) s += `\\kpapple{${i * 1.05}}{0}`; return s; };
-      const balls = (n, col) => { let s = ""; for (let i = 0; i < n; i++) s += `\\kpball{${i * 1.05}}{0}{${col}}`; return s; };
-      const q = (no, tk, ans) =>
-        `\\kpqfull{(${no})}{\\raisebox{-3mm}{\\begin{tikzpicture}[scale=0.52]${tk}\\end{tikzpicture}}\\quad こたえ \\kpbox{${ans}} こ}`;
-      return [
-        "\\kpsection{いくつ ありますか。かぞえて かきましょう}",
-        q(1, apples(5), 5),
-        q(2, balls(7, "kpblue"), 7),
-        q(3, apples(8), 8),
-        q(4, balls(6, "red!70"), 6),
-        q(5, apples(9), 9),
-        q(6, balls(4, "kpgreen"), 4),
-        q(7, balls(8, "kpblue"), 8),
-        q(8, apples(7), 7),
-      ].join("\n");
+      // くだもの・どうぶつ・のりもの・たのしい から いろいろ。数は10まで。
+      const mix = [["berry", 4], ["dog", 6], ["car", 5], ["fish", 8], ["bear", 3], ["flower", 7], ["orange", 9], ["heart", 6]];
+      const rows = mix.map(([t, n], i) => countQ(i + 1, t, n)).join("\n");
+      return ["\\kpprompt{1}{いくつ あるかな。かぞえて かこう}", `\\begin{kpsheet}\n${rows}\n\\end{kpsheet}`].join("\n");
     })(),
   });
 
