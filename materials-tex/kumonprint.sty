@@ -262,7 +262,9 @@
 %   行間に \vspace{\stretch{1}} を入れて紙面を縦いっぱいに均等配置する。
 % =====================================================================
 \newsavebox{\kpLbox}
+\newsavebox{\kpRbox}
 \newlength{\kpLh}
+\newlength{\kpRh}
 \newlength{\kpLw}
 \newlength{\kpRw}
 \newlength{\kpminans}\setlength{\kpminans}{15mm}
@@ -283,11 +285,15 @@
       \begin{minipage}[t]{\kpqgut}\kpqlabel{#1}\end{minipage}%
       \begin{minipage}[t]{\dimexpr\kpLw-\kpqgut\relax}{\large #2}\end{minipage}%
     \end{minipage}}%
+  % 右(解答欄の中身)の自然高さも測り、左右の高い方に箱を合わせる。
+  \setlength{\fboxsep}{6pt}\setlength{\fboxrule}{0.8pt}%
+  \sbox{\kpRbox}{\begin{minipage}[t]{\dimexpr\kpRw-2\fboxsep-2\fboxrule\relax}#3\end{minipage}}%
   \setlength{\kpLh}{\dimexpr\ht\kpLbox+\dp\kpLbox\relax}%
+  \setlength{\kpRh}{\dimexpr\ht\kpRbox+\dp\kpRbox+2\fboxsep\relax}%
+  \ifdim\kpLh<\kpRh\setlength{\kpLh}{\kpRh}\fi
   \ifdim\kpLh<\kpminans\setlength{\kpLh}{\kpminans}\fi
   \noindent\usebox{\kpLbox}\hfill
   \begin{minipage}[t]{\kpRw}%
-    \setlength{\fboxsep}{6pt}\setlength{\fboxrule}{0.8pt}%
     \fcolorbox{accent}{white}{%
       \begin{minipage}[t][\dimexpr\kpLh-2\fboxsep\relax]{\dimexpr\kpRw-2\fboxsep-2\fboxrule\relax}%
         #3%
