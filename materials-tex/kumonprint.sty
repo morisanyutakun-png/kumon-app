@@ -176,10 +176,13 @@
 }
 %% ----- 低学年向け かわいい絵(数える用)。各 \kp○{x}{y} を tikzpicture 内で -----
 \usetikzlibrary{shapes.geometric}
+%% 座標基準の5角星(縮尺に追従。半径 約0.44 で他の絵とサイズを揃える)。
 \newcommand{\kpstar}[2]{%
-  \node[star, star points=5, star point ratio=0.46, fill=kpstar,
-        draw=kpstar!55!black, line width=0.5pt, minimum size=8mm, inner sep=0pt,
-        transform shape] at (#1,#2) {};}
+  \fill[kpstar, draw=kpstar!55!black, line width=0.4pt]
+    ($(#1,#2)+(90:0.44)$) -- ($(#1,#2)+(126:0.19)$) -- ($(#1,#2)+(162:0.44)$) --
+    ($(#1,#2)+(198:0.19)$) -- ($(#1,#2)+(234:0.44)$) -- ($(#1,#2)+(270:0.19)$) --
+    ($(#1,#2)+(306:0.44)$) -- ($(#1,#2)+(342:0.19)$) -- ($(#1,#2)+(18:0.44)$) --
+    ($(#1,#2)+(54:0.19)$) -- cycle;}
 \newcommand{\kpheart}[2]{%
   \fill[red!65] (#1,#2-0.34) .. controls (#1-0.5,#2+0.12) and (#1-0.26,#2+0.46) ..
      (#1,#2+0.2) .. controls (#1+0.26,#2+0.46) and (#1+0.5,#2+0.12) .. (#1,#2-0.34) -- cycle;

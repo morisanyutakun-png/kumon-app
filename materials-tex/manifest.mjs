@@ -42,19 +42,23 @@ function calcItems(probs, offset = 0) {
 // 低学年の「数える」用: 指定の絵を n こ 横に並べた小さな図を返す。
 //   type: apple / star / heart / flower / fish / ball / cube / dot
 const SHAPE_LABEL = { apple: "りんご", star: "ほし", heart: "ハート", flower: "おはな", fish: "おさかな", ball: "ボール", cube: "つみき", dot: "" };
-function shapeRow(type, n, scale = 0.5) {
+function shapeRow(type, n, scale = 0.55) {
+  // 横の間隔は全種類でそろえ(中心間 1.25)、絵が重ならないようにする。
+  const STEP = 1.25;
+  const x = (i) => (i * STEP).toFixed(2);
   const draw = {
-    apple: (i) => `\\kpapple{${i * 1.05}}{0}`,
-    star: (i) => `\\kpstar{${i * 1.05}}{0}`,
-    heart: (i) => `\\kpheart{${i * 1.05}}{0}`,
-    flower: (i) => `\\kpflower{${i * 1.1}}{0}`,
-    fish: (i) => `\\kpfish{${i * 1.2}}{0}`,
-    ball: (i) => `\\kpball{${i * 1.05}}{0}{cyan!55!blue!70}`,
-    dot: (i) => `\\fill[accent] (${i * 0.7},0) circle (0.22);`,
+    apple: (i) => `\\kpapple{${x(i)}}{0}`,
+    star: (i) => `\\kpstar{${x(i)}}{0}`,
+    heart: (i) => `\\kpheart{${x(i)}}{0}`,
+    flower: (i) => `\\kpflower{${x(i)}}{0}`,
+    fish: (i) => `\\kpfish{${x(i)}}{0}`,
+    ball: (i) => `\\kpball{${x(i)}}{0}{cyan!55!blue!70}`,
+    dot: (i) => `\\fill[accent] (${x(i)},0) circle (0.26);`,
   }[type];
   let s = "";
   for (let i = 0; i < n; i++) s += draw(i);
-  return `\\raisebox{-2.2mm}{\\begin{tikzpicture}[scale=${scale}]${s}\\end{tikzpicture}}`;
+  // 縦位置(高さ)をそろえるため、中心を基準に固定枠で囲って配置。
+  return `\\raisebox{-2.4mm}{\\begin{tikzpicture}[scale=${scale}]${s}\\end{tikzpicture}}`;
 }
 // 重複を避けつつ count 問つくる
 function uniqueProbs(rng, count, make) {
