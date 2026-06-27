@@ -75,7 +75,9 @@ function shapeRow(type, n, scale = 0.55) {
   }
   let s = "";
   for (let i = 0; i < n; i++) s += draw(i);
-  return `\\raisebox{-2.4mm}{\\begin{tikzpicture}[scale=${scale}]${s}\\end{tikzpicture}}`;
+  // 各図の中心をベースラインに合わせ、さらに少し持ち上げて行の中央に置く
+  // (形ごとの高さ差があっても文字と縦position が揃う)。
+  return `\\raisebox{0.4ex}{\\begin{tikzpicture}[scale=${scale}, baseline=(current bounding box.center)]${s}\\end{tikzpicture}}`;
 }
 // 1問分(数える)を作る。左=絵+問い / 右=解答欄。
 function countQ(no, type, n) {
@@ -532,18 +534,18 @@ function buildG1() {
     goal: "おはなしを よんで、たしざんか ひきざんか かんがえよう！",
     desc: "場面を読み取り、たし算かひき算かを自分で決めて(演算決定)、式と答えを書きます。",
     body: (() => {
-      const Q = (no, text, eq, ans, unit) =>
-        `\\kpqfull{(${no})}{${text}\\par\\vspace{2.5mm}しき \\ \\kpblank{${eq}} \\qquad こたえ \\ \\kpbox{${ans}}\\,${unit}}`;
-      return [
-        "\\kpsection{しきを かいて こたえましょう}",
-        Q(1, "あめが 6こ あります。4こ もらいました。ぜんぶで なんこに なりましたか。", "6+4=10", "10", "こ"),
-        Q(2, "こうえんに こどもが 8にん います。3にん かえりました。のこりは なんにんですか。", "8-3=5", "5", "にん"),
-        Q(3, "あかい はなが 5ほん、しろい はなが 7ほん さいています。あわせて なんぼんですか。", "5+7=12", "12", "ほん"),
-        Q(4, "どんぐりを 13こ ひろいました。5こ つかいました。のこりは なんこですか。", "13-5=8", "8", "こ"),
-        Q(5, "バスに 7にん のっています。ていりゅうじょで 4にん のってきました。みんなで なんにんですか。", "7+4=11", "11", "にん"),
-        Q(6, "おかしが 12こ あります。5こ たべました。のこりは なんこですか。", "12-5=7", "7", "こ"),
-        Q(7, "あかい ふうせんが 9こ、あおい ふうせんが 6こ あります。あわせて なんこですか。", "9+6=15", "15", "こ"),
-      ].join("\n");
+      const items = [
+        ["あめが 6こ あります。4こ もらいました。ぜんぶで なんこに なりましたか。", "6+4=10", "10 こ"],
+        ["こうえんに こどもが 8にん います。3にん かえりました。のこりは なんにんですか。", "8-3=5", "5 にん"],
+        ["あかい はなが 5ほん、しろい はなが 7ほん さいています。あわせて なんぼんですか。", "5+7=12", "12 ほん"],
+        ["どんぐりを 13こ ひろいました。5こ つかいました。のこりは なんこですか。", "13-5=8", "8 こ"],
+        ["バスに 7にん のっています。ていりゅうじょで 4にん のってきました。みんなで なんにんですか。", "7+4=11", "11 にん"],
+        ["おかしが 12こ あります。5こ たべました。のこりは なんこですか。", "12-5=7", "7 こ"],
+      ];
+      const rows = items
+        .map(([q, eq, a], i) => `\\kpQ{(${i + 1})}{${q}}{\\kpAR{しき}{$${eq}$}\\kpAR{こたえ}{${a}}}`)
+        .join("\n");
+      return `\\kpprompt{1}{おはなしを よんで、しきと こたえを かきましょう}\n\\begin{kpsheet}\n${rows}\n\\end{kpsheet}`;
     })(),
   });
 
@@ -613,24 +615,16 @@ function buildG1() {
     goal: "つみきが ぜんぶで いくつ あるか かぞえて、すうじで かこう！",
     desc: "具体物(立体)を数えて数量をとらえる。10〜15程度までの計数。",
     body: (() => {
-      const pile = (cols, scale = 0.42) => {
+      const pile = (cols, scale = 0.4) => {
         let tk = "";
         cols.forEach((h, c) => { for (let y = 0; y < h; y++) tk += `\\kpcube{${c}}{${y}}`; });
-        return `\\begin{tikzpicture}[scale=${scale}]${tk}\\end{tikzpicture}`;
+        return `\\raisebox{-3mm}{\\begin{tikzpicture}[scale=${scale}]${tk}\\end{tikzpicture}}`;
       };
-      const cell = (cols, i) => {
-        const total = cols.reduce((a, b) => a + b, 0);
-        return `\\begin{minipage}[b]{0.22\\linewidth}\\centering (${i + 1})\\par\\vspace{1mm}${pile(cols)}\\par\\vspace{1.5mm}\\kpbox{${total}} こ\\end{minipage}`;
-      };
-      const a = [[3], [2, 2], [1, 2], [2, 1, 2]];
-      const b = [[3, 2], [2, 3, 1], [3, 3], [2, 2, 2, 1]];
-      return [
-        "\\kpsection{つみきは いくつ ありますか}",
-        "\\begin{center}", a.map(cell).join("\\hfill"), "\\end{center}",
-        "\\vspace{4mm}",
-        "\\kpsection{おおきい やまも かぞえて みよう}",
-        "\\begin{center}", b.map((c, i) => cell(c, i + 4)).join("\\hfill"), "\\end{center}",
-      ].join("\n");
+      const piles = [[3], [2, 2], [1, 2], [2, 1, 2], [3, 2], [2, 3, 1], [3, 3]];
+      return iplusBody(
+        piles.map((cols) => ({ q: `${pile(cols)}\\ \\ つみきは いくつ あるかな。`, a: `${cols.reduce((x, y) => x + y, 0)} こ` })),
+        { section: "つみきは いくつ あるかな。かぞえて かこう" },
+      );
     })(),
   });
 
@@ -806,25 +800,24 @@ function buildG2() {
   // ① ひょうとグラフ
   add({ grade: G, subject: "算数", id: "g2-01", unitNo: 1, name: "算数2年① ひょうと グラフ", title: "ひょうと グラフ", subtitle: "かずを よみとる",
     goal: "ひょうや グラフを よんで、かずを くらべて みよう！", desc: "簡単な事柄を表やグラフに表し、数を読み取る。",
-    body: [
-      "\\kpsection{すきな くだもの しらべ}",
-      "{\\large りんご … 4にん ／ みかん … 6にん ／ ぶどう … 3にん ／ いちご … 5にん}\\par\\vspace{1mm}",
-      "\\begin{kpgraph}{5}{7}\\kpgx{1}{り}\\kpgx{2}{み}\\kpgx{3}{ぶ}\\kpgx{4}{い}\\kpgy{2}{2}\\kpgy{4}{4}\\kpgy{6}{6}\\kpgbar{1}{4}\\kpgbar{2}{6}\\kpgbar{3}{3}\\kpgbar{4}{5}\\end{kpgraph}",
-      "\\kpqfull{(1)}{いちばん おおい くだものは どれですか。 \\quad こたえ \\kpbox{みかん}}",
-      "\\kpqfull{(2)}{いちばん すくない くだものは どれですか。 \\quad こたえ \\kpbox{ぶどう}}",
-      "\\kpqfull{(3)}{りんごと いちごは あわせて なんにんですか。 \\quad こたえ \\kpbox{9} にん}",
-      "\\kpqfull{(4)}{みかんは ぶどうより なんにん おおいですか。 \\quad こたえ \\kpbox{3} にん}",
-      "\\kpqfull{(5)}{ぜんぶで なんにん しらべましたか。 \\quad こたえ \\kpbox{18} にん}",
-      "\\kpqfull{(6)}{りんごは ぶどうより なんにん おおいですか。 \\quad こたえ \\kpbox{1} にん}",
-    ].join("\n") });
+    body: iplusBody([
+      { q: "いちばん おおい くだものは どれですか。", a: "みかん" },
+      { q: "いちばん すくない くだものは どれですか。", a: "ぶどう" },
+      { q: "りんごと いちごは あわせて なんにんですか。", a: "9 にん" },
+      { q: "みかんは ぶどうより なんにん おおいですか。", a: "3 にん" },
+      { q: "ぜんぶで なんにん しらべましたか。", a: "18 にん" },
+      { q: "りんごは ぶどうより なんにん おおいですか。", a: "1 にん" },
+    ], { section: "ひょうと グラフを よんで こたえましょう", intro: "{\\large すきな くだもの しらべ\\quad りんご … 4にん ／ みかん … 6にん ／ ぶどう … 3にん ／ いちご … 5にん}\\par\\vspace{1mm}\\begin{kpgraph}{5}{7}\\kpgx{1}{り}\\kpgx{2}{み}\\kpgx{3}{ぶ}\\kpgx{4}{い}\\kpgy{2}{2}\\kpgy{4}{4}\\kpgy{6}{6}\\kpgbar{1}{4}\\kpgbar{2}{6}\\kpgbar{3}{3}\\kpgbar{4}{5}\\end{kpgraph}" }) });
 
   // ② 時こくと時間(1)
   add({ grade: G, subject: "算数", id: "g2-02", unitNo: 2, name: "算数2年② 時こくと 時間 (1)", title: "とけいを よもう", subtitle: "なんじ なんぷん",
     goal: "とけいの ながいはりを よんで「なんじ なんぷん」が わかるように なろう！", desc: "時刻の読み方(何時何分)。1日の時間、午前・午後。",
     body: (() => {
-      const clocks = [[3, 15, "3じ15ふん"], [8, 40, "8じ40ぷん"], [10, 5, "10じ5ふん"], [6, 30, "6じ30ぷん"], [1, 50, "1じ50ぷん"], [12, 20, "12じ20ぷん"]];
-      const cell = ([h, m, ans], i) => `\\begin{minipage}[t]{0.3\\linewidth}\\centering (${i + 1})\\par \\kpclock{${h}}{${m}}\\par\\vspace{1mm}\\kpbox{${ans}}\\end{minipage}`;
-      return ["\\kpsection{なんじ なんぷんですか}", "\\vspace{\\stretch{1}}", "\\begin{center}", clocks.slice(0, 3).map(cell).join("\\hfill"), "\\par\\vspace{6mm}\\vspace{\\stretch{1}}", clocks.slice(3).map((c, i) => cell(c, i + 3)).join("\\hfill"), "\\end{center}"].join("\n");
+      const clocks = [[3, 15, "3 じ 15 ふん"], [8, 40, "8 じ 40 ぷん"], [10, 5, "10 じ 5 ふん"], [6, 30, "6 じ 30 ぷん"], [1, 50, "1 じ 50 ぷん"], [12, 20, "12 じ 20 ぷん"]];
+      return iplusBody(
+        clocks.map(([h, m, ans]) => ({ q: `\\raisebox{-7mm}{\\kpclock{${h}}{${m}}}`, a: ans })),
+        { section: "とけいを よんで、なんじ なんぷんか こたえましょう" },
+      );
     })() });
 
   // ③ 2けたのたし算(暗算)
@@ -838,48 +831,39 @@ function buildG2() {
 
   // ⑥ 1000までの数
   add({ grade: G, subject: "算数", id: "g2-06", unitNo: 6, name: "算数2年⑥ 1000までの 数", title: "1000までの 数", subtitle: "数の しくみ", goal: "100が いくつ、10が いくつ…で 数を かんがえよう！", desc: "1000までの数の構成・読み方・書き方。",
-    body: [
-      "\\kpsection{$\\square$ に あう 数を かきましょう}",
-      "\\begin{kpgrid}{2}",
-      "\\kpitemx{(1)}{100が 3こ、10が 5こ、1が 8こで \\kpbox{358}}",
-      "\\kpitemx{(2)}{100が 6こ、10が 0こ、1が 4こで \\kpbox{604}}",
-      "\\kpitemx{(3)}{100が 7こで \\kpbox{700}}",
-      "\\kpitemx{(4)}{472は 100が \\kpbox{4} こ、10が \\kpbox{7} こ、1が \\kpbox{2} こ}",
-      "\\kpitemx{(5)}{990より 10 大きい数は \\kpbox{1000}}",
-      "\\kpitemx{(6)}{640は 10を \\kpbox{64} こ あつめた数}",
-      "\\end{kpgrid}",
-    ].join("\n") });
+    body: iplusBody([
+      { q: "100が 3こ、10が 5こ、1が 8こ で いくつですか。", a: "358" },
+      { q: "100が 6こ、10が 0こ、1が 4こ で いくつですか。", a: "604" },
+      { q: "100が 7こ で いくつですか。", a: "700" },
+      { q: "472は 100が 何こ、10が 何こ、1が 何こ ですか。", a: "100が4こ・10が7こ・1が2こ" },
+      { q: "990より 10 大きい数は いくつですか。", a: "1000" },
+      { q: "640は 10を 何こ あつめた数ですか。", a: "64 こ" },
+    ], { section: "数の しくみを かんがえましょう" }) });
 
   // ⑦ 大きい数のたし算とひき算
   add(calcPrint({ grade: G, id: "g2-07", unitNo: 7, name: "算数2年⑦ 大きい数の たし算と ひき算", title: "大きい数の けいさん", subtitle: "3けたの たし算・ひき算", goal: "3けたの たし算・ひき算を ひっ算で できるように なろう！", desc: "(3位数)±(2,3位数)の筆算。" }, (rng) => [...genAddN(rng, 18, { min: 105, max: 899 }), ...genSubN(rng, 18, { min: 120, max: 999 })], 2));
 
   // ⑧ 長さ(1) cm mm
   add({ grade: G, subject: "算数", id: "g2-08", unitNo: 8, name: "算数2年⑧ 長さ (1) cm と mm", title: "長さ (cm と mm)", subtitle: "1cm = 10mm", goal: "cm と mm の かんけいを おぼえて、長さを あらわそう！", desc: "長さの単位cm,mm。1cm=10mm。",
-    body: [
-      "\\kpsection{$\\square$ に あう数を かきましょう}",
-      "\\begin{kpgrid}{2}",
-      "\\kpitemx{(1)}{1 cm $=$ \\kpbox{10} mm}",
-      "\\kpitemx{(2)}{4 cm $=$ \\kpbox{40} mm}",
-      "\\kpitemx{(3)}{3 cm 5 mm $=$ \\kpbox{35} mm}",
-      "\\kpitemx{(4)}{60 mm $=$ \\kpbox{6} cm}",
-      "\\kpitemx{(5)}{8 cm 2 mm $=$ \\kpbox{82} mm}",
-      "\\kpitemx{(6)}{47 mm $=$ \\kpbox{4} cm \\kpbox{7} mm}",
-      "\\end{kpgrid}",
-    ].join("\n") });
+    body: iplusBody([
+      { q: "1 cm は 何 mm ですか。", a: "10 mm" },
+      { q: "4 cm は 何 mm ですか。", a: "40 mm" },
+      { q: "3 cm 5 mm は 何 mm ですか。", a: "35 mm" },
+      { q: "60 mm は 何 cm ですか。", a: "6 cm" },
+      { q: "8 cm 2 mm は 何 mm ですか。", a: "82 mm" },
+      { q: "47 mm は 何 cm 何 mm ですか。", a: "4 cm 7 mm" },
+    ], { section: "長さ(cm と mm)を もとめましょう" }) });
 
   // ⑨ 水のかさ
   add({ grade: G, subject: "算数", id: "g2-09", unitNo: 9, name: "算数2年⑨ 水の かさ", title: "水の かさ", subtitle: "L・dL・mL", goal: "L・dL・mL の かんけいを おぼえよう！", desc: "かさの単位L,dL,mL。1L=10dL=1000mL。",
-    body: [
-      "\\kpsection{$\\square$ に あう数を かきましょう}",
-      "\\begin{kpgrid}{2}",
-      "\\kpitemx{(1)}{1 L $=$ \\kpbox{10} dL}",
-      "\\kpitemx{(2)}{1 dL $=$ \\kpbox{100} mL}",
-      "\\kpitemx{(3)}{1 L $=$ \\kpbox{1000} mL}",
-      "\\kpitemx{(4)}{3 L 2 dL $=$ \\kpbox{32} dL}",
-      "\\kpitemx{(5)}{50 dL $=$ \\kpbox{5} L}",
-      "\\kpitemx{(6)}{2 L $=$ \\kpbox{2000} mL}",
-      "\\end{kpgrid}",
-    ].join("\n") });
+    body: iplusBody([
+      { q: "1 L は 何 dL ですか。", a: "10 dL" },
+      { q: "1 dL は 何 mL ですか。", a: "100 mL" },
+      { q: "1 L は 何 mL ですか。", a: "1000 mL" },
+      { q: "3 L 2 dL は 何 dL ですか。", a: "32 dL" },
+      { q: "50 dL は 何 L ですか。", a: "5 L" },
+      { q: "2 L は 何 mL ですか。", a: "2000 mL" },
+    ], { section: "水の かさを もとめましょう" }) });
 
   // ⑩ 三角形と四角形
   add({ grade: G, subject: "算数", id: "g2-10", unitNo: 10, name: "算数2年⑩ 三角形と 四角形", title: "三角形と 四角形", subtitle: "へん・ちょうてん・直角", goal: "三角形や 四角形の かたちを しらべよう！", desc: "三角形・四角形の意味、辺・頂点、直角。",
@@ -889,17 +873,14 @@ function buildG2() {
         "\\draw[kpgreen,line width=1.2pt] (2.4,0) rectangle (3.9,1.3);" +
         "\\draw[kpink,line width=1.2pt] (4.6,0)--(6.4,0)--(6.0,1.2)--(4.9,1.2)--cycle;" +
         "\\end{tikzpicture}";
-      return [
-        "\\kpsection{かたちを しらべましょう}",
-        `\\begin{center}${pic}\\end{center}\\vspace{3mm}`,
-        "\\kpqfull{(1)}{三角形の ちょうてんは いくつ ありますか。 \\quad こたえ \\kpbox{3} つ}",
-        "\\kpqfull{(2)}{四角形の へんは いくつ ありますか。 \\quad こたえ \\kpbox{4} つ}",
-        "\\kpqfull{(3)}{まんなかの かたちのように、4つの かどが みんな 直角な 四角形を なんと いいますか。 \\quad こたえ \\kpbox{長方形}}",
-        "\\kpqfull{(4)}{三角形の へんは いくつ ありますか。 \\quad こたえ \\kpbox{3} つ}",
-        "\\kpqfull{(5)}{四角形の ちょうてんは いくつ ありますか。 \\quad こたえ \\kpbox{4} つ}",
-        "\\kpqfull{(6)}{4つの かどが みんな 直角で、4つの へんが みんな 同じ 四角形を なんと いいますか。 \\quad こたえ \\kpbox{正方形}}",
-        "\\kpqfull{(7)}{三角じょうぎの 直角の かどは いくつ ありますか。 \\quad こたえ \\kpbox{1} つ}",
-      ].join("\n");
+      return iplusBody([
+        { q: "三角形の ちょうてんは いくつ ありますか。", a: "3 つ" },
+        { q: "四角形の へんは いくつ ありますか。", a: "4 つ" },
+        { q: "まんなかの かたちのように、4つの かどが みんな 直角な 四角形を なんと いいますか。", a: "長方形" },
+        { q: "三角形の へんは いくつ ありますか。", a: "3 つ" },
+        { q: "四角形の ちょうてんは いくつ ありますか。", a: "4 つ" },
+        { q: "4つの かどが みんな 直角で、4つの へんが みんな 同じ 四角形を なんと いいますか。", a: "正方形" },
+      ], { section: "かたちを しらべましょう", intro: `\\begin{center}${pic}\\end{center}` });
     })() });
 
   // ⑪ かけ算(1)
@@ -913,82 +894,70 @@ function buildG2() {
 
   // ⑭ 分数
   add({ grade: G, subject: "算数", id: "g2-14", unitNo: 14, name: "算数2年⑭ 分数", title: "分数", subtitle: "1/2・1/3・1/4", goal: "ぜんたいを おなじ 大きさに わけた 1つぶんを 分数で あらわそう！", desc: "分数の意味(1/2,1/3,1/4)。",
-    body: [
-      "\\kpsection{$\\square$ に あう 分数や 数を かきましょう}",
-      "\\begin{kpgrid}{2}",
-      "\\kpitemx{(1)}{ぜんたいを 2つに わけた 1つぶんは \\kpbox{$\\frac{1}{2}$}}",
-      "\\kpitemx{(2)}{ぜんたいを 4つに わけた 1つぶんは \\kpbox{$\\frac{1}{4}$}}",
-      "\\kpitemx{(3)}{ぜんたいを 3つに わけた 1つぶんは \\kpbox{$\\frac{1}{3}$}}",
-      "\\kpitemx{(4)}{$\\frac{1}{4}$ が 4こで \\kpbox{1}}",
-      "\\end{kpgrid}",
-    ].join("\n") });
+    body: iplusBody([
+      { q: "ぜんたいを 2つに わけた 1つぶんを 分数で かきましょう。", a: "$\\frac{1}{2}$" },
+      { q: "ぜんたいを 4つに わけた 1つぶんを 分数で かきましょう。", a: "$\\frac{1}{4}$" },
+      { q: "ぜんたいを 3つに わけた 1つぶんを 分数で かきましょう。", a: "$\\frac{1}{3}$" },
+      { q: "$\\frac{1}{4}$ が 4こ で いくつですか。", a: "1" },
+    ], { section: "分数で あらわしましょう" }) });
 
   // ⑮ 時こくと時間(2)
   add({ grade: G, subject: "算数", id: "g2-15", unitNo: 15, name: "算数2年⑮ 時こくと 時間 (2)", title: "時間の けいさん", subtitle: "1時間 = 60分", goal: "1時間=60分。 時間の かんけいを おぼえよう！", desc: "時間の計算。1時間=60分。",
-    body: [
-      "\\kpsection{$\\square$ に あう数を かきましょう}",
-      "\\begin{kpgrid}{2}",
-      "\\kpitemx{(1)}{1 時間 $=$ \\kpbox{60} 分}",
-      "\\kpitemx{(2)}{70 分 $=$ \\kpbox{1} 時間 \\kpbox{10} 分}",
-      "\\kpitemx{(3)}{2 時間 $=$ \\kpbox{120} 分}",
-      "\\kpitemx{(4)}{午前 9時から 午前 11時までは \\kpbox{2} 時間}",
-      "\\end{kpgrid}",
-    ].join("\n") });
+    body: iplusBody([
+      { q: "1 時間 は 何分ですか。", a: "60 分" },
+      { q: "70 分 は 何時間何分ですか。", a: "1 時間 10 分" },
+      { q: "2 時間 は 何分ですか。", a: "120 分" },
+      { q: "午前 9時から 午前 11時までは 何時間ですか。", a: "2 時間" },
+    ], { section: "時間を もとめましょう" }) });
 
   // ⑯ 10000までの数
   add({ grade: G, subject: "算数", id: "g2-16", unitNo: 16, name: "算数2年⑯ 10000までの 数", title: "10000までの 数", subtitle: "千のくらい", goal: "千のくらいまでの 大きい数を かんがえよう！", desc: "10000までの数の構成・読み方・書き方。",
-    body: [
-      "\\kpsection{$\\square$ に あう数を かきましょう}",
-      "\\begin{kpgrid}{2}",
-      "\\kpitemx{(1)}{1000が 3こ、100が 5こ、10が 2こ、1が 7こで \\kpbox{3527}}",
-      "\\kpitemx{(2)}{2840は 1000が \\kpbox{2} こ、100が \\kpbox{8} こ、10が \\kpbox{4} こ}",
-      "\\kpitemx{(3)}{9000より 1000 大きい数は \\kpbox{10000}}",
-      "\\kpitemx{(4)}{6000は 1000を \\kpbox{6} こ あつめた数}",
-      "\\end{kpgrid}",
-    ].join("\n") });
+    body: iplusBody([
+      { q: "1000が 3こ、100が 5こ、10が 2こ、1が 7こ で いくつですか。", a: "3527" },
+      { q: "2840は 1000が 何こ、100が 何こ、10が 何こ ですか。", a: "1000が2こ・100が8こ・10が4こ" },
+      { q: "9000より 1000 大きい数は いくつですか。", a: "10000" },
+      { q: "6000は 1000を 何こ あつめた数ですか。", a: "6 こ" },
+    ], { section: "数の しくみを かんがえましょう" }) });
 
   // ⑰ 長さ(2) m
   add({ grade: G, subject: "算数", id: "g2-17", unitNo: 17, name: "算数2年⑰ 長さ (2) m", title: "長さ (m)", subtitle: "1m = 100cm", goal: "m と cm の かんけいを おぼえよう！", desc: "長さの単位m。1m=100cm。",
-    body: [
-      "\\kpsection{$\\square$ に あう数を かきましょう}",
-      "\\begin{kpgrid}{2}",
-      "\\kpitemx{(1)}{1 m $=$ \\kpbox{100} cm}",
-      "\\kpitemx{(2)}{2 m 50 cm $=$ \\kpbox{250} cm}",
-      "\\kpitemx{(3)}{300 cm $=$ \\kpbox{3} m}",
-      "\\kpitemx{(4)}{1 m 8 cm $=$ \\kpbox{108} cm}",
-      "\\end{kpgrid}",
-    ].join("\n") });
+    body: iplusBody([
+      { q: "1 m は 何 cm ですか。", a: "100 cm" },
+      { q: "2 m 50 cm は 何 cm ですか。", a: "250 cm" },
+      { q: "300 cm は 何 m ですか。", a: "3 m" },
+      { q: "1 m 8 cm は 何 cm ですか。", a: "108 cm" },
+    ], { section: "長さ(m と cm)を もとめましょう" }) });
 
   // ⑱ たし算とひき算(文章題)
   add({ grade: G, subject: "算数", id: "g2-18", unitNo: 18, name: "算数2年⑱ たし算と ひき算 (ぶんしょうだい)", title: "ぶんしょうだい", subtitle: "たし算・ひき算", goal: "おはなしを よんで、しきを かいて こたえよう！", desc: "場面を読み取り加減の式を立てる。",
     body: (() => {
-      const Q = (no, text, eq, ans, unit) => `\\kpqfull{(${no})}{${text}\\par\\vspace{2.5mm}しき \\ \\kpblank{${eq}} \\qquad こたえ \\ \\kpbox{${ans}}\\,${unit}}`;
-      return [
-        "\\kpsection{しきを かいて こたえましょう}",
-        Q(1, "あめが 45こ あります。28こ もらいました。ぜんぶで なんこですか。", "45+28=73", "73", "こ"),
-        Q(2, "りんごが 52こ ありました。17こ たべました。のこりは なんこですか。", "52-17=35", "35", "こ"),
-        Q(3, "いろえんぴつが 1はこ 12本 あります。3はこでは なん本ですか。", "$12\\times3=36$", "36", "本"),
-        Q(4, "おりがみが 60まい あります。24まい つかいました。のこりは なんまいですか。", "60-24=36", "36", "まい"),
-        Q(5, "あかい 花が 38本、しろい 花が 26本 あります。あわせて なん本ですか。", "38+26=64", "64", "本"),
-        Q(6, "1ふくろに あめが 8こ 入っています。5ふくろでは なんこですか。", "$8\\times5=40$", "40", "こ"),
-      ].join("\n");
+      // 左=おはなし / 右=「しき」と「こたえ」の解答欄(g1と同じ右列配置)。
+      const items = [
+        ["あめが 45こ あります。28こ もらいました。ぜんぶで なんこですか。", "45+28=73", "73 こ"],
+        ["りんごが 52こ ありました。17こ たべました。のこりは なんこですか。", "52-17=35", "35 こ"],
+        ["いろえんぴつが 1はこ 12本 あります。3はこでは なん本ですか。", "12\\times3=36", "36 本"],
+        ["おりがみが 60まい あります。24まい つかいました。のこりは なんまいですか。", "60-24=36", "36 まい"],
+        ["あかい 花が 38本、しろい 花が 26本 あります。あわせて なん本ですか。", "38+26=64", "64 本"],
+        ["1ふくろに あめが 8こ 入っています。5ふくろでは なんこですか。", "8\\times5=40", "40 こ"],
+      ];
+      const rows = items
+        .map(([q, eq, a], i) => `\\kpQ{(${i + 1})}{${q}}{\\kpAR{しき}{$${eq}$}\\kpAR{こたえ}{${a}}}`)
+        .join("\n");
+      return `\\kpprompt{1}{おはなしを よんで、しきと こたえを かきましょう}\n\\begin{kpsheet}\n${rows}\n\\end{kpsheet}`;
     })() });
 
   // ⑲ はこの形
   add({ grade: G, subject: "算数", id: "g2-19", unitNo: 19, name: "算数2年⑲ はこの 形", title: "はこの 形", subtitle: "めん・へん・ちょうてん", goal: "はこの 形の めん・へん・ちょうてんの 数を しらべよう！", desc: "箱の形の構成要素(面・辺・頂点)。",
     body: (() => {
       const cube = "\\begin{tikzpicture}[scale=0.9]\\kpcube{0}{0}\\end{tikzpicture}";
-      return [
-        "\\kpsection{はこの 形を しらべましょう}",
-        `\\begin{center}${cube}\\end{center}\\vspace{3mm}`,
-        "\\kpqfull{(1)}{はこの 形の めんは いくつ ありますか。 \\quad こたえ \\kpbox{6} つ}",
-        "\\kpqfull{(2)}{ちょうてんは いくつ ありますか。 \\quad こたえ \\kpbox{8} つ}",
-        "\\kpqfull{(3)}{へんは いくつ ありますか。 \\quad こたえ \\kpbox{12} つ}",
-        "\\kpqfull{(4)}{さいころの ように、めんが みんな 正方形の はこの 形を なんと いいますか。 \\quad こたえ \\kpbox{立方体}}",
-        "\\kpqfull{(5)}{1つの ちょうてんに あつまる へんは 何本ですか。 \\quad こたえ \\kpbox{3} 本}",
-        "\\kpqfull{(6)}{むかいあう めんは 何くみ ありますか。 \\quad こたえ \\kpbox{3} くみ}",
-        "\\kpqfull{(7)}{長さの 同じ へんは 何本ずつ ありますか(直方体)。 \\quad こたえ \\kpbox{4} 本ずつ}",
-      ].join("\n");
+      return iplusBody([
+        { q: "はこの 形の めんは いくつ ありますか。", a: "6 つ" },
+        { q: "ちょうてんは いくつ ありますか。", a: "8 つ" },
+        { q: "へんは いくつ ありますか。", a: "12 つ" },
+        { q: "さいころの ように、めんが みんな 正方形の はこの 形を なんと いいますか。", a: "立方体" },
+        { q: "1つの ちょうてんに あつまる へんは 何本ですか。", a: "3 本" },
+        { q: "むかいあう めんは 何くみ ありますか。", a: "3 くみ" },
+      ], { section: "はこの 形を しらべましょう", intro: `\\begin{center}${cube}\\end{center}` });
     })() });
 
   // ⑳ 2年のまとめ
