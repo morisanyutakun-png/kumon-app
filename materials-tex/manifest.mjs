@@ -39,6 +39,23 @@ function grid(items, cols = 2) {
 function calcItems(probs, offset = 0) {
   return probs.map((p, i) => `\\kpitem{(${i + 1 + offset})}{$${p.expr}$}{${p.ans}}`);
 }
+// 低学年の「数える」用: 指定の絵を n こ 横に並べた小さな図を返す。
+//   type: apple / star / heart / flower / fish / ball / cube / dot
+const SHAPE_LABEL = { apple: "りんご", star: "ほし", heart: "ハート", flower: "おはな", fish: "おさかな", ball: "ボール", cube: "つみき", dot: "" };
+function shapeRow(type, n, scale = 0.5) {
+  const draw = {
+    apple: (i) => `\\kpapple{${i * 1.05}}{0}`,
+    star: (i) => `\\kpstar{${i * 1.05}}{0}`,
+    heart: (i) => `\\kpheart{${i * 1.05}}{0}`,
+    flower: (i) => `\\kpflower{${i * 1.1}}{0}`,
+    fish: (i) => `\\kpfish{${i * 1.2}}{0}`,
+    ball: (i) => `\\kpball{${i * 1.05}}{0}{cyan!55!blue!70}`,
+    dot: (i) => `\\fill[accent] (${i * 0.7},0) circle (0.22);`,
+  }[type];
+  let s = "";
+  for (let i = 0; i < n; i++) s += draw(i);
+  return `\\raisebox{-2.2mm}{\\begin{tikzpicture}[scale=${scale}]${s}\\end{tikzpicture}}`;
+}
 // 重複を避けつつ count 問つくる
 function uniqueProbs(rng, count, make) {
   const seen = new Set();
@@ -111,10 +128,13 @@ function buildG1() {
     desc: "1〜10 の数を、ものの個数と対応させて数え、数字で書けるようにします。",
     body: (() => {
       const rng = rngFromString("g1-01");
-      const dots = (n) => `\\textcolor{accent}{${"$\\bullet$\\,".repeat(n)}}`;
-      const counts = [3, 5, 4, 7, 6, 8];
-      const cRows = counts
-        .map((n, i) => `\\kpQ{(${i + 1})}{${dots(n)}\\ は いくつ あるかな。}{\\kpAR{}{${n} こ}}`)
+      // いろいろな かわいい 絵を かぞえる(小1が たのしめる ように)。
+      const cItems = [
+        ["apple", 3, "こ"], ["star", 5, "こ"], ["heart", 4, "こ"],
+        ["fish", 6, "ひき"], ["flower", 5, "本"], ["ball", 8, "こ"],
+      ];
+      const cRows = cItems
+        .map(([t, n, u], i) => `\\kpQ{(${i + 1})}{${shapeRow(t, n)}\\ \\ ${SHAPE_LABEL[t]}は いくつ あるかな。}{\\kpAR{}{${n} ${u}}}`)
         .join("\n");
       const seq = uniqueProbs(rng, 4, () => {
         const a = ri(rng, 1, 6);
