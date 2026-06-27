@@ -307,12 +307,36 @@
   \par\noindent{\footnotesize\textcolor{inkgray}{#1}}\ifx\relax#1\relax\else\ \fi\ifkpans\textcolor{kpink}{\bfseries #2}\else\phantom{#2}\fi\par
   \vspace{0.8mm}\textcolor{kpline}{\rule{\linewidth}{0.3pt}}\par\vspace{1.2mm}%
 }
-%% 解答欄のコンパイル行(multicols 用)。番号+こたえ。
+%% 解答欄のコンパイル行(右の解答欄ボックス内・multicols 用)。番号+書く線。
 \newcommand{\kpARc}[2]{%
-  \noindent{\scriptsize\textcolor{inkgray}{#1}}\,\ifkpans\textcolor{kpink}{\bfseries #2}\else\phantom{99}\fi\par\vspace{2.0mm}%
+  {\baselineskip13pt\noindent{\scriptsize\textcolor{inkgray}{#1}}\ \ifkpans\textcolor{kpink}{\bfseries #2}\else\phantom{9}\fi\par}%
+  \vspace{0.2mm}\textcolor{kpline}{\rule{\linewidth}{0.3pt}}\par\vspace{1.4mm}%
 }
 %% 左の番号付き計算項目(multicols 用)。
-\newcommand{\kpLc}[2]{\noindent{\gtfamily\footnotesize\textcolor{accent}{#1}}\ {#2}\par\vspace{1.7mm}}
+\newcommand{\kpLc}[2]{{\baselineskip16pt\noindent{\gtfamily\footnotesize\textcolor{accent}{#1}}\ {\large #2}\par}\vspace{2.2mm}}
+
+%% ===== 計算ドリル用レイアウト(左=問題リスト / 右=番号つき解答欄) =====
+%% 参考プリント同様、右側にまとめて答えを書く欄を置く。問題リストは手組みの
+%% ミニページ列(multicol 不使用)なので sbox で高さを測れる。解答欄の高さは
+%% 左の問題リストに合わせる。
+\newcommand{\kpdrill}[2]{%
+  \par\setlength{\fboxsep}{6pt}\setlength{\fboxrule}{0.8pt}%
+  \setlength{\kpRw}{\dimexpr0.350\linewidth-2\fboxsep-2\fboxrule\relax}%
+  \sbox{\kpLbox}{\begin{minipage}[t]{0.585\linewidth}#1\end{minipage}}%
+  \sbox{\kpRbox}{\begin{minipage}[t]{\kpRw}%
+      {\gtfamily\footnotesize\textcolor{accentd}{こたえ}}\par\vspace{1.5mm}#2\end{minipage}}%
+  \setlength{\kpLh}{\dimexpr\ht\kpLbox+\dp\kpLbox\relax}%
+  \setlength{\kpRh}{\dimexpr\ht\kpRbox+\dp\kpRbox\relax}%
+  \ifdim\kpLh<\kpRh\setlength{\kpLh}{\kpRh}\fi
+  \ifdim\kpLh<60mm\setlength{\kpLh}{60mm}\fi
+  \noindent
+  \begin{minipage}[t][\kpLh]{0.585\linewidth}#1\end{minipage}\hfill
+  \begin{minipage}[t]{0.350\linewidth}%
+    \fcolorbox{accent}{white}{\begin{minipage}[t][\kpLh]{\kpRw}%
+        {\gtfamily\footnotesize\textcolor{accentd}{こたえ}}\par\vspace{1.5mm}#2%
+      \end{minipage}}%
+  \end{minipage}\par%
+}
 
 %% 番号タイル(角張りアクセント = iplus \qnum)。見出しの大番号用。
 \newcommand{\kpnumtile}[1]{\qnum{#1}}

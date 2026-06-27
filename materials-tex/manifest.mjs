@@ -84,6 +84,36 @@ function countQ(no, type, n) {
   const u = SHAPE_UNIT[type] ?? "こ";
   return `\\kpQ{(${no})}{${shapeRow(type, n)}\\ \\ ${SHAPE_LABEL[type]}は いくつ あるかな。}{\\kpAR{}{${n} ${u}}}`;
 }
+// 大問セクション(右側に解答欄を持つ kpsheet)。no=大問番号 / rows=\kpQ の配列。
+function sheetSection(no, title, rows) {
+  return `\\kpprompt{${no}}{${title}}\n\\begin{kpsheet}\n${rows.join("\n")}\n\\end{kpsheet}`;
+}
+// 計算セクション(各問の「=」の うしろに 解答ボックス。多段組み)。
+function calcGridSection(no, title, probs, cols = 3) {
+  const items = probs.map((p, i) => `\\kpitem{(${i + 1})}{$${p.expr}$}{${p.ans}}`);
+  return `\\kpprompt{${no}}{${title}}\n${grid(items, cols)}`;
+}
+// 番号付き計算問題1問(右解答欄つき・g1-01 と同じ右列レイアウト)。
+function calcQ(no, p) {
+  return `\\kpQ{(${no})}{$${p.expr}$}{\\kpAR{}{${p.ans}}}`;
+}
+// 絵を使った たし算/ひき算 の1問(右解答欄つき)。
+//   op: "+" あわせて / "-take" のこり / "-diff" ちがい
+function picCalcQ(no, type, a, b, op) {
+  const u = SHAPE_UNIT[type] ?? "こ";
+  let q, ans;
+  if (op === "+") {
+    ans = a + b;
+    q = `${shapeRow(type, a)}\\ \\ と ${shapeRow(type, b)}\\ \\ を あわせると なんこに なりますか。`;
+  } else if (op === "-take") {
+    ans = a - b;
+    q = `${shapeRow(type, a)}\\ \\ から ${b}こ とると、のこりは なんこですか。`;
+  } else {
+    ans = a - b;
+    q = `${shapeRow(type, a)}\\ \\ と ${shapeRow(type, b)}\\ \\ の かずの ちがいは なんこですか。`;
+  }
+  return `\\kpQ{(${no})}{${q}}{\\kpAR{}{${ans} ${u}}}`;
+}
 // 重複を避けつつ count 問つくる
 function uniqueProbs(rng, count, make) {
   const seen = new Set();
@@ -187,29 +217,21 @@ function buildG1() {
     body: (() => {
       const rng = rngFromString("g1-02");
       // 「N は A と □」型
-      const partOf = uniqueProbs(rng, 8, () => {
+      const partOf = uniqueProbs(rng, 6, () => {
         const n = ri(rng, 5, 10);
         const a = ri(rng, 1, n - 1);
-        return { expr: `${n}\\ \\text{は}\\ ${a}\\ \\text{と}`, ans: n - a };
+        return { expr: `${n} は ${a} と いくつですか。`, ans: `${n - a}` };
       });
       // 「□ と B で N」型
-      const makeN = uniqueProbs(rng, 6, () => {
+      const makeN = uniqueProbs(rng, 5, () => {
         const n = ri(rng, 5, 10);
         const b = ri(rng, 1, n - 1);
-        return { expr: `\\kpbox{${n - b}}\\ \\text{と}\\ ${b}\\ \\text{で}\\ ${n}`, ans: null };
+        return { expr: `□ と ${b} で ${n} に なる □は いくつですか。`, ans: `${n - b}` };
       });
-      return [
-        "\\kpsection{あう かずを かきましょう}",
-        grid(
-          partOf.map((p, i) => `\\kpitem{(${i + 1})}{$${p.expr}$}{${p.ans}}`),
-          2,
-        ),
-        "\\kpsection{$\\square$ に あう かずを かきましょう}",
-        grid(
-          makeN.map((p, i) => `\\kpitemx{(${i + 1})}{$${p.expr}$}`),
-          2,
-        ),
-      ].join("\n");
+      return iplusBody(
+        [...partOf, ...makeN].map((p) => ({ q: p.expr, a: p.ans })),
+        { section: "□に あう かずを かきましょう" },
+      );
     })(),
   });
 
@@ -224,17 +246,12 @@ function buildG1() {
     desc: "合併・増加の場面のたし算。和が 6 までの 1 桁どうしのたし算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-03");
-      const dots = (n, c) => `\\textcolor{${c}}{${"$\\bullet$\\,".repeat(n)}}`;
-      const pic = (no, a, b) =>
-        `\\kpitemx{(${no})}{${dots(a, "kpblue")} と ${dots(b, "kpink")}\\quad $\\rightarrow$\\quad あわせて \\kpbox{${a + b}} こ}`;
-      const pics = [[2, 1], [3, 2], [2, 3], [4, 2]].map((p, i) => pic(i + 1, p[0], p[1])).join("\n");
-      const drill = grid(calcItems(genAdd(rng, 18, { maxSum: 6 })), 3);
+      const pics = [["apple", 2, 1], ["berry", 3, 2], ["star", 2, 3], ["ball", 4, 2]]
+        .map((p, i) => picCalcQ(i + 1, p[0], p[1], p[2], "+"));
+      const calc = genAdd(rng, 12, { maxSum: 6 });
       return [
-        "\\kpprompt{1}{えを 見て、あわせて いくつか かきましょう}",
-        pics,
-        "\\vspace{2.5mm}",
-        "\\kpprompt{2}{つぎの けいさんを しましょう}",
-        drill,
+        sheetSection(1, "えを 見て、あわせると なんこに なるか こたえましょう", pics),
+        calcGridSection(2, "つぎの けいさんを しましょう", calc),
       ].join("\n");
     })(),
   });
@@ -250,11 +267,13 @@ function buildG1() {
     desc: "和が 10 までのたし算。くり上がりのない 1 桁どうしを反復します。",
     body: (() => {
       const rng = rngFromString("g1-04");
-      const dots = (n, c) => `\\textcolor{${c}}{${"$\\bullet$\\,".repeat(n)}}`;
-      const pic = (no, a, b) => `\\kpitemx{(${no})}{${dots(a, "kpblue")} あって ${dots(b, "kpink")} ふえると\\quad $\\rightarrow$\\quad ぜんぶで \\kpbox{${a + b}} こ}`;
-      const pics = [[4, 3], [5, 2], [6, 3], [3, 4]].map((p, i) => pic(i + 1, p[0], p[1])).join("\n");
-      const drill = grid(calcItems(genAdd(rng, 21, { maxSum: 10 })), 3);
-      return ["\\kpprompt{1}{えを 見て、ふえると いくつか かきましょう}", pics, "\\vspace{2.5mm}", "\\kpprompt{2}{つぎの けいさんを しましょう}", drill].join("\n");
+      const pics = [["apple", 4, 3], ["orange", 5, 4], ["rabbit", 6, 2], ["star", 3, 5]]
+        .map((p, i) => picCalcQ(i + 1, p[0], p[1], p[2], "+"));
+      const calc = genAdd(rng, 12, { maxSum: 10 });
+      return [
+        sheetSection(1, "えを 見て、ぜんぶで なんこに なるか こたえましょう", pics),
+        calcGridSection(2, "つぎの けいさんを しましょう", calc),
+      ].join("\n");
     })(),
   });
 
@@ -269,11 +288,13 @@ function buildG1() {
     desc: "求残・求差のひき算。10 までの数からのくり下がりのないひき算を確実にします。",
     body: (() => {
       const rng = rngFromString("g1-05");
-      const dots = (n, c) => `\\textcolor{${c}}{${"$\\bullet$\\,".repeat(n)}}`;
-      const pic = (no, a, b) => `\\kpitemx{(${no})}{${dots(a, "kpblue")} から ${b} こ とると\\quad $\\rightarrow$\\quad のこり \\kpbox{${a - b}} こ}`;
-      const pics = [[5, 2], [6, 4], [7, 3], [8, 5]].map((p, i) => pic(i + 1, p[0], p[1])).join("\n");
-      const drill = grid(calcItems(genSub(rng, 21, { max: 10 })), 3);
-      return ["\\kpprompt{1}{えを 見て、のこりは いくつか かきましょう}", pics, "\\vspace{2.5mm}", "\\kpprompt{2}{つぎの けいさんを しましょう}", drill].join("\n");
+      const pics = [["apple", 5, 2], ["fish", 6, 4], ["berry", 7, 3], ["car", 8, 5]]
+        .map((p, i) => picCalcQ(i + 1, p[0], p[1], p[2], "-take"));
+      const calc = genSub(rng, 12, { max: 10 });
+      return [
+        sheetSection(1, "えを 見て、のこりは なんこか こたえましょう", pics),
+        calcGridSection(2, "つぎの けいさんを しましょう", calc),
+      ].join("\n");
     })(),
   });
 
@@ -288,17 +309,12 @@ function buildG1() {
     desc: "2 つの数のちがいを求めるひき算。0 のひき算もふくめて反復します。",
     body: (() => {
       const rng = rngFromString("g1-06");
-      const dots = (n, c) => `\\textcolor{${c}}{${"$\\bullet$\\,".repeat(n)}}`;
-      const pic = (no, a, b) =>
-        `\\kpitemx{(${no})}{${dots(a, "kpblue")} と ${dots(b, "kpink")} の ちがいは\\quad $\\rightarrow$\\quad \\kpbox{${a - b}} こ}`;
-      const pics = [[5, 2], [7, 3], [6, 4], [8, 5]].map((p, i) => pic(i + 1, p[0], p[1])).join("\n");
-      const drill = grid(calcItems(genSub(rng, 21, { max: 10 })), 3);
+      const pics = [["apple", 5, 2], ["berry", 7, 3], ["star", 6, 4], ["ball", 8, 5]]
+        .map((p, i) => picCalcQ(i + 1, p[0], p[1], p[2], "-diff"));
+      const calc = genSub(rng, 12, { max: 10 });
       return [
-        "\\kpprompt{1}{えを 見て、ちがいは いくつか かきましょう}",
-        pics,
-        "\\vspace{2.5mm}",
-        "\\kpprompt{2}{つぎの けいさんを しましょう}",
-        drill,
+        sheetSection(1, "えを 見て、かずの ちがいは なんこか こたえましょう", pics),
+        calcGridSection(2, "つぎの けいさんを しましょう", calc),
       ].join("\n");
     })(),
   });
@@ -372,27 +388,12 @@ function buildG1() {
     desc: "「何時」「何時半」の時計を読みます。日常生活と時刻を結びつけます。",
     body: (() => {
       const clocks = [
-        [3, 0, "3じ"],
-        [8, 0, "8じ"],
-        [6, 30, "6じはん"],
-        [10, 0, "10じ"],
-        [1, 30, "1じはん"],
-        [12, 0, "12じ"],
+        [3, 0, "3じ"], [8, 0, "8じ"], [6, 30, "6じはん"],
+        [10, 0, "10じ"], [1, 30, "1じはん"], [12, 0, "12じ"],
       ];
-      const cell = ([h, m, ans], i) =>
-        `\\begin{minipage}[t]{0.3\\linewidth}\\centering (${i + 1})\\par \\kpclock{${h}}{${m}}\\par\\vspace{1mm}\\kpbox{${ans}}\\end{minipage}`;
-      return [
-        "\\kpsection{いま なんじですか。とけいを よみましょう}",
-        "\\vspace{\\stretch{1}}",
-        "\\begin{center}",
-        clocks.slice(0, 3).map(cell).join("\\hfill"),
-        "\\par\\vspace{6mm}\\vspace{\\stretch{1}}",
-        clocks
-          .slice(3)
-          .map((c, i) => cell(c, i + 3))
-          .join("\\hfill"),
-        "\\end{center}",
-      ].join("\n");
+      const rows = clocks.map(([h, m, ans], i) =>
+        `\\kpQ{(${i + 1})}{\\raisebox{-9mm}{\\kpclock{${h}}{${m}}}\\ \\ いま なんじですか。}{\\kpAR{}{${ans}}}`);
+      return sheetSection(1, "とけいを よんで、なんじか こたえましょう", rows);
     })(),
   });
 
@@ -437,13 +438,15 @@ function buildG1() {
     desc: "くり上がりのある(1位数)+(1位数)。10 のまとまりをつくる考え方(さくらんぼ計算)を反復します。",
     body: (() => {
       const rng = rngFromString("g1-11");
-      const mk = (no, a, b) => {
-        const need = 10 - a, rest = b - need;
-        return `\\kpitemx{(${no})}{\\raisebox{-3.5mm}{\\kptenframe{${a}}}\\ \\ $${a}+${b}=$\\ \\ ${a} に あと \\kpbox{${need}} で 10、のこり \\kpbox{${rest}}。\\ こたえ \\kpbox{${a + b}}}`;
-      };
-      const ex = [[9, 4], [8, 5], [7, 6], [9, 7]].map((p, i) => mk(i + 1, p[0], p[1])).join("\n");
-      const drill = grid(calcItems(genAddCarry(rng, 21, { maxSum: 14 })), 3);
-      return ["\\kpprompt{1}{10の まとまりを つくって けいさんしましょう}", ex, "\\vspace{2.5mm}", "\\kpprompt{2}{つぎの けいさんを しましょう}", drill].join("\n");
+      const ex = [[9, 4], [8, 5], [7, 6]].map(([a, b], i) => {
+        const need = 10 - a;
+        return `\\kpQ{(${i + 1})}{\\raisebox{-7mm}{\\kptenframe{${a}}}\\ \\ $${a}+${b}$ を、${a} に あと ${need} で 10 を つくって けいさんしましょう。}{\\kpAR{}{${a + b}}}`;
+      });
+      const calc = genAddCarry(rng, 12, { maxSum: 14 });
+      return [
+        sheetSection(1, "10の まとまりを つくって けいさんしましょう", ex),
+        calcGridSection(2, "つぎの けいさんを しましょう", calc),
+      ].join("\n");
     })(),
   });
 
@@ -730,23 +733,43 @@ function calcBody(probs, section = "つぎの けいさんを しましょう") 
     .join("\n");
   return `\\kpprompt{1}{${section}}\n\\begin{kpsheet}\n${rows}\n\\end{kpsheet}`;
 }
-// 1ページに並べる問題数(インライン解答グリッド)。3列/2列で行数をそろえる。
+// 左の問題リストの列数(短い式=2列 / 分数など幅広=1列)。
+function drillLeftCols(cols) {
+  return cols >= 3 ? 2 : 1;
+}
+// 1ページに並べる問題数(=のうしろに解答ボックスを置く多段組み)。
 function drillPerPage(cols) {
-  return cols >= 3 ? 36 : 24;
+  return cols >= 3 ? 30 : 24;
 }
-// 計算ドリル本文(インライン解答: = のすぐ後ろに解答箱)。1ページ分。
-//   \kpitem のグリッドで紙面いっぱいに並べる(参考プリント同様の密度)。
+// 配列を縦割り(列メジャー)で ncol 列の横並びミニページにする。
+// multicol はミニページ/ボックス内で balance しないため手組みする。
+function colBlock(items, ncol, render) {
+  const per = Math.ceil(items.length / ncol);
+  const w = (0.96 / ncol).toFixed(3);
+  const cols = [];
+  for (let c = 0; c < ncol; c++) {
+    const slice = items.slice(c * per, (c + 1) * per);
+    const body = slice.map((it, j) => render(it, c * per + j)).join("");
+    cols.push(`\\begin{minipage}[t]{${w}\\linewidth}${body}\\end{minipage}`);
+  }
+  return cols.join("\\hfill");
+}
+// ドリル1ページ分の TeX(各問の「=」の うしろに 解答ボックスを置く。多段組み)。
+function drillPageTeX(probs, cols, section, offset = 0) {
+  const items = probs.map((p, i) => `\\kpitem{(${i + 1 + offset})}{$${p.expr}$}{${p.ans}}`);
+  return `\\kpprompt{1}{${section}}\n${grid(items, cols)}`;
+}
+// 計算ドリル本文(1ページ分・右側に解答欄)。
 function calcBodyInline(probs, cols = 3, section = "つぎの けいさんを しましょう") {
-  const items = probs.slice(0, drillPerPage(cols));
-  return `\\kpprompt{1}{${section}}\n` + grid(calcItems(items), cols);
+  return drillPageTeX(probs.slice(0, drillPerPage(cols)), cols, section, 0);
 }
-// 問題リストを1ページ分ずつのグリッドに分け、ページ配列にする(複数ページ対応)。
+// 問題リストを1ページ分ずつに分け、ページ配列にする(複数ページ対応)。
 function calcPages(probs, cols, section) {
   const per = drillPerPage(cols);
   const chunks = [];
   for (let i = 0; i < probs.length; i += per) chunks.push(probs.slice(i, i + per));
   if (chunks.length === 0) chunks.push([]);
-  return chunks.map((ch, pi) => `\\kpprompt{1}{${section}}\n` + grid(calcItems(ch, pi * per), cols));
+  return chunks.map((ch, pi) => drillPageTeX(ch, cols, section, pi * per));
 }
 // 計算ドリルを作る。量を重視して、ジェネレータを繰り返し呼び重複排除した
 // 大きな問題プール(既定で約2ページ分)を作り、複数ページに分割する。
