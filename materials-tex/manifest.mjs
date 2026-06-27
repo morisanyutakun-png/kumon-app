@@ -111,24 +111,23 @@ function buildG1() {
     desc: "1〜10 の数を、ものの個数と対応させて数え、数字で書けるようにします。",
     body: (() => {
       const rng = rngFromString("g1-01");
-      const dotsRow = (n) =>
-        `\\textcolor{kpblue}{${"$\\bullet$ ".repeat(n)}}\\quad $\\rightarrow$\\quad \\kpbox{${n}} こ`;
-      const counts = [3, 5, 4, 7, 6, 9, 8, 10];
-      const items = counts
-        .map((n, i) => `\\kpitemx{(${i + 1})}{${dotsRow(n)}}`)
+      const dots = (n) => `\\textcolor{accent}{${"$\\bullet$\\,".repeat(n)}}`;
+      const counts = [3, 5, 4, 7, 6, 8];
+      const cRows = counts
+        .map((n, i) => `\\kpQ{(${i + 1})}{${dots(n)}\\ は いくつ あるかな。}{\\kpAR{}{${n} こ}}`)
         .join("\n");
       const seq = uniqueProbs(rng, 4, () => {
         const a = ri(rng, 1, 6);
         return { expr: `${a},\\ ${a + 1},\\ \\square,\\ ${a + 3}`, ans: a + 2 };
       });
+      const sRows = seq
+        .map((p, i) => `\\kpQ{(${i + 1})}{$${p.expr}$ \\ の $\\square$ に あう かず。}{\\kpAR{}{${p.ans}}}`)
+        .join("\n");
       return [
-        "\\kpsection{いくつ ありますか。すうじで かきましょう}",
-        `\\begin{kpgrid}{2}\n${items}\n\\end{kpgrid}`,
-        "\\kpsection{$\\square$ に あう かずを かきましょう}",
-        grid(
-          seq.map((p, i) => `\\kpitem{(${i + 1})}{$${p.expr}$}{${p.ans}}`),
-          2,
-        ),
+        "\\kpprompt{1}{いくつ あるかな。すうじで かこう}",
+        `\\begin{kpsheet}\n${cRows}\n\\end{kpsheet}`,
+        "\\kpprompt{2}{$\\square$ に あう かずを かこう}",
+        `\\begin{kpsheet}\n${sRows}\n\\end{kpsheet}`,
       ].join("\n");
     })(),
   });
@@ -273,16 +272,17 @@ function buildG1() {
     body: (() => {
       const animals = "$\\bigstar\\ \\bigstar\\ \\bigstar\\ \\bigstar\\ \\bigstar\\ \\bigstar\\ \\bigstar$";
       return [
-        "\\kpsection{ひだりから かぞえて こたえましょう}",
+        "\\kpprompt{1}{ひだりから かぞえて こたえましょう}",
         `\\begin{center}{\\Large ${animals}}\\end{center}\\vspace{1mm}`,
-        "{\\large ★が ひだりから ならんで います。}\\par\\vspace{4mm}",
-        "\\kpqfull{(1)}{ひだりから 3ばんめの ★を ○で かこみましょう。それは みぎから かぞえると なんばんめですか。 \\quad こたえ \\kpbox{5} ばんめ}",
-        "\\kpqfull{(2)}{★は ぜんぶで なんこ ありますか。 \\quad こたえ \\kpbox{7} こ}",
-        "\\kpqfull{(3)}{ひだりから 5こを ○で かこむと、のこりは なんこですか。 \\quad こたえ \\kpbox{2} こ}",
-        "\\kpqfull{(4)}{みぎから 2ばんめは、ひだりから かぞえると なんばんめですか。 \\quad こたえ \\kpbox{6} ばんめ}",
-        "\\kpqfull{(5)}{みぎから 4ばんめは、ひだりから かぞえると なんばんめですか。 \\quad こたえ \\kpbox{4} ばんめ}",
-        "\\kpqfull{(6)}{ひだりから 2こを ○で かこむと、のこりは なんこですか。 \\quad こたえ \\kpbox{5} こ}",
-        "\\kpqfull{(7)}{みぎから 1ばんめは、ひだりから かぞえると なんばんめですか。 \\quad こたえ \\kpbox{7} ばんめ}",
+        "{\\large ★が ひだりから ならんで います。}\\par\\vspace{2mm}",
+        "\\begin{kpsheet}",
+        "\\kpQ{(1)}{ひだりから 3ばんめの ★を ○で かこみましょう。それは みぎから かぞえると なんばんめですか。}{\\kpAR{}{5 ばんめ}}",
+        "\\kpQ{(2)}{★は ぜんぶで なんこ ありますか。}{\\kpAR{}{7 こ}}",
+        "\\kpQ{(3)}{ひだりから 5こを ○で かこむと、のこりは なんこですか。}{\\kpAR{}{2 こ}}",
+        "\\kpQ{(4)}{みぎから 2ばんめは、ひだりから かぞえると なんばんめですか。}{\\kpAR{}{6 ばんめ}}",
+        "\\kpQ{(5)}{みぎから 4ばんめは、ひだりから かぞえると なんばんめですか。}{\\kpAR{}{4 ばんめ}}",
+        "\\kpQ{(6)}{みぎから 1ばんめは、ひだりから かぞえると なんばんめですか。}{\\kpAR{}{7 ばんめ}}",
+        "\\end{kpsheet}",
       ].join("\n");
     })(),
   });
@@ -527,15 +527,16 @@ function buildG1() {
         "\\draw[kpgreen,line width=1.2pt] (8.8,0.5) circle (0.5);" +
         "\\end{tikzpicture}";
       return [
-        "\\kpsection{かたちを かぞえましょう}",
-        `\\begin{center}${shapeRow}\\end{center}\\vspace{4mm}`,
-        "\\kpqfull{(1)}{しかく(\\textcolor{kpblue}{$\\blacksquare$})は いくつ ありますか。 \\quad こたえ \\kpbox{2} つ}",
-        "\\kpqfull{(2)}{まる(\\textcolor{kpgreen}{$\\bullet$})は いくつ ありますか。 \\quad こたえ \\kpbox{3} つ}",
-        "\\kpqfull{(3)}{さんかく(\\textcolor{kpink}{$\\blacktriangle$})は いくつ ありますか。 \\quad こたえ \\kpbox{2} つ}",
-        "\\kpqfull{(4)}{いちばん おおい かたちは どれですか。 \\quad こたえ \\kpbox{まる}}",
-        "\\kpqfull{(5)}{かたちは ぜんぶで いくつ ありますか。 \\quad こたえ \\kpbox{7} つ}",
-        "\\kpqfull{(6)}{まるは さんかくより いくつ おおいですか。 \\quad こたえ \\kpbox{1} つ}",
-        "\\kpqfull{(7)}{しかくと さんかくを あわせると いくつ ありますか。 \\quad こたえ \\kpbox{4} つ}",
+        "\\kpprompt{1}{かたちを かぞえましょう}",
+        `\\begin{center}${shapeRow}\\end{center}\\vspace{3mm}`,
+        "\\begin{kpsheet}",
+        "\\kpQ{(1)}{しかく(\\textcolor{accent}{$\\blacksquare$})は いくつ ありますか。}{\\kpAR{}{2 つ}}",
+        "\\kpQ{(2)}{まる(\\textcolor{kpgreen}{$\\bullet$})は いくつ ありますか。}{\\kpAR{}{3 つ}}",
+        "\\kpQ{(3)}{さんかく(\\textcolor{kpink}{$\\blacktriangle$})は いくつ ありますか。}{\\kpAR{}{2 つ}}",
+        "\\kpQ{(4)}{いちばん おおい かたちは どれですか。}{\\kpAR{}{まる}}",
+        "\\kpQ{(5)}{かたちは ぜんぶで いくつ ありますか。}{\\kpAR{}{7 つ}}",
+        "\\kpQ{(6)}{しかくと さんかくを あわせると いくつ ありますか。}{\\kpAR{}{4 つ}}",
+        "\\end{kpsheet}",
       ].join("\n");
     })(),
   });
