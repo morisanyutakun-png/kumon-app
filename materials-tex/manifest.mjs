@@ -41,24 +41,46 @@ function calcItems(probs, offset = 0) {
 }
 // 低学年の「数える」用: 指定の絵を n こ 横に並べた小さな図を返す。
 //   type: apple / star / heart / flower / fish / ball / cube / dot
-const SHAPE_LABEL = { apple: "りんご", star: "ほし", heart: "ハート", flower: "おはな", fish: "おさかな", ball: "ボール", cube: "つみき", dot: "" };
+const SHAPE_LABEL = {
+  apple: "りんご", orange: "みかん", berry: "いちご",
+  cat: "ねこ", dog: "いぬ", rabbit: "うさぎ", bear: "くま",
+  car: "くるま", fish: "おさかな",
+  star: "ほし", heart: "ハート", flower: "おはな", ball: "ボール", cube: "つみき", dot: "",
+};
+// 数える単位(助数詞)。題材に合わせて自然に。
+const SHAPE_UNIT = {
+  apple: "こ", orange: "こ", berry: "こ", ball: "こ", star: "こ", heart: "こ",
+  flower: "本", cat: "ひき", dog: "ひき", rabbit: "わ", bear: "ひき", fish: "ひき", car: "だい",
+};
+// テーマ別の題材プール(くだもの/どうぶつ/のりもの…)。
+const SHAPE_THEMES = {
+  くだもの: ["apple", "orange", "berry"],
+  どうぶつ: ["cat", "dog", "rabbit", "bear", "fish"],
+  のりもの: ["car"],
+  たのしい: ["star", "heart", "flower", "ball"],
+};
 function shapeRow(type, n, scale = 0.55) {
   // 横の間隔は全種類でそろえ(中心間 1.25)、絵が重ならないようにする。
   const STEP = 1.25;
   const x = (i) => (i * STEP).toFixed(2);
-  const draw = {
-    apple: (i) => `\\kpapple{${x(i)}}{0}`,
-    star: (i) => `\\kpstar{${x(i)}}{0}`,
-    heart: (i) => `\\kpheart{${x(i)}}{0}`,
-    flower: (i) => `\\kpflower{${x(i)}}{0}`,
-    fish: (i) => `\\kpfish{${x(i)}}{0}`,
-    ball: (i) => `\\kpball{${x(i)}}{0}{cyan!55!blue!70}`,
-    dot: (i) => `\\fill[accent] (${x(i)},0) circle (0.26);`,
-  }[type];
+  const named = ["apple", "orange", "berry", "cat", "dog", "rabbit", "bear", "car", "fish", "star", "heart", "flower"];
+  let draw;
+  if (named.includes(type)) {
+    const cmd = "\\kp" + type;
+    draw = (i) => `${cmd}{${x(i)}}{0}`;
+  } else if (type === "ball") {
+    draw = (i) => `\\kpball{${x(i)}}{0}{cyan!55!blue!70}`;
+  } else {
+    draw = (i) => `\\fill[accent] (${x(i)},0) circle (0.26);`;
+  }
   let s = "";
   for (let i = 0; i < n; i++) s += draw(i);
-  // 縦位置(高さ)をそろえるため、中心を基準に固定枠で囲って配置。
   return `\\raisebox{-2.4mm}{\\begin{tikzpicture}[scale=${scale}]${s}\\end{tikzpicture}}`;
+}
+// 1問分(数える)を作る。左=絵+問い / 右=解答欄。
+function countQ(no, type, n) {
+  const u = SHAPE_UNIT[type] ?? "こ";
+  return `\\kpQ{(${no})}{${shapeRow(type, n)}\\ \\ ${SHAPE_LABEL[type]}は いくつ あるかな。}{\\kpAR{}{${n} ${u}}}`;
 }
 // 重複を避けつつ count 問つくる
 function uniqueProbs(rng, count, make) {
@@ -132,14 +154,9 @@ function buildG1() {
     desc: "1〜10 の数を、ものの個数と対応させて数え、数字で書けるようにします。",
     body: (() => {
       const rng = rngFromString("g1-01");
-      // いろいろな かわいい 絵を かぞえる(小1が たのしめる ように)。
-      const cItems = [
-        ["apple", 3, "こ"], ["star", 5, "こ"], ["heart", 4, "こ"],
-        ["fish", 6, "ひき"], ["flower", 5, "本"], ["ball", 8, "こ"],
-      ];
-      const cRows = cItems
-        .map(([t, n, u], i) => `\\kpQ{(${i + 1})}{${shapeRow(t, n)}\\ \\ ${SHAPE_LABEL[t]}は いくつ あるかな。}{\\kpAR{}{${n} ${u}}}`)
-        .join("\n");
+      // いろいろな 題材(くだもの・どうぶつ・のりもの…)を かぞえる。数は10まで。
+      const cMix = [["apple", 3], ["cat", 5], ["car", 4], ["orange", 7], ["rabbit", 6], ["star", 9]];
+      const cRows = cMix.map(([t, n], i) => countQ(i + 1, t, n)).join("\n");
       const seq = uniqueProbs(rng, 4, () => {
         const a = ri(rng, 1, 6);
         return { expr: `${a},\\ ${a + 1},\\ \\square,\\ ${a + 3}`, ans: a + 2 };

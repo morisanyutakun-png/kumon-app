@@ -198,6 +198,62 @@
     \fill[cyan!55!blue!60] (0,0) ellipse (0.4 and 0.26);
     \fill[white] (-0.18,0.06) circle (0.06);\fill[black] (-0.18,0.06) circle (0.03);
   \end{scope}}
+%% くだもの: みかん / いちご
+\newcommand{\kporange}[2]{%
+  \begin{scope}[shift={(#1,#2)}]
+    \fill[orange] (0,0) circle (0.36);
+    \fill[white,opacity=0.4] (-0.12,0.12) circle (0.07);
+    \fill[green!55!black] (0.02,0.34) ellipse (0.11 and 0.06);
+  \end{scope}}
+\newcommand{\kpberry}[2]{%
+  \begin{scope}[shift={(#1,#2)}]
+    \fill[red!75] (0,0.18) .. controls (0.42,0.1) and (0.24,-0.4) .. (0,-0.34)
+       .. controls (-0.24,-0.4) and (-0.42,0.1) .. (0,0.18) -- cycle;
+    \foreach \p in {(-0.12,0.02),(0.12,0.02),(0,-0.12),(-0.16,-0.16),(0.16,-0.16)}{\fill[yellow!85!white] \p circle (0.022);}
+    \fill[green!55!black] (-0.14,0.2)--(0.14,0.2)--(0,0.34)--cycle;
+  \end{scope}}
+%% どうぶつ(顔): ねこ / いぬ / うさぎ / くま
+\newcommand{\kpcat}[2]{%
+  \begin{scope}[shift={(#1,#2)}]
+    \fill[gray!45] (-0.3,0.22)--(-0.1,0.5)--(0.02,0.2)--cycle;
+    \fill[gray!45] (0.3,0.22)--(0.1,0.5)--(-0.02,0.2)--cycle;
+    \fill[gray!45] (0,0) circle (0.33);
+    \fill[black] (-0.12,0.05) circle (0.035) (0.12,0.05) circle (0.035);
+    \fill[pink] (0,-0.05) circle (0.028);
+    \draw[black,line width=0.3pt] (-0.3,-0.02)--(-0.16,0.02) (0.3,-0.02)--(0.16,0.02);
+  \end{scope}}
+\newcommand{\kpdog}[2]{%
+  \begin{scope}[shift={(#1,#2)}]
+    \fill[brown!60] (-0.3,0.18) ellipse (0.12 and 0.2);
+    \fill[brown!60] (0.3,0.18) ellipse (0.12 and 0.2);
+    \fill[brown!45] (0,0) circle (0.33);
+    \fill[black] (-0.12,0.06) circle (0.035) (0.12,0.06) circle (0.035);
+    \fill[black] (0,-0.08) circle (0.045);
+  \end{scope}}
+\newcommand{\kprabbit}[2]{%
+  \begin{scope}[shift={(#1,#2)}]
+    \fill[pink!30!white,draw=pink!60!gray,line width=0.3pt] (-0.13,0.5) ellipse (0.08 and 0.26);
+    \fill[pink!30!white,draw=pink!60!gray,line width=0.3pt] (0.13,0.5) ellipse (0.08 and 0.26);
+    \fill[pink!20!white,draw=pink!50!gray,line width=0.3pt] (0,0) circle (0.3);
+    \fill[black] (-0.11,0.04) circle (0.032) (0.11,0.04) circle (0.032);
+    \fill[pink] (0,-0.07) circle (0.026);
+  \end{scope}}
+\newcommand{\kpbear}[2]{%
+  \begin{scope}[shift={(#1,#2)}]
+    \fill[brown!55!gray] (-0.26,0.28) circle (0.13) (0.26,0.28) circle (0.13);
+    \fill[brown!45!gray] (0,0) circle (0.33);
+    \fill[black] (-0.12,0.06) circle (0.034) (0.12,0.06) circle (0.034);
+    \fill[brown!75!black] (0,-0.06) circle (0.09);\fill[black] (0,-0.04) circle (0.04);
+  \end{scope}}
+%% のりもの: くるま
+\newcommand{\kpcar}[2]{%
+  \begin{scope}[shift={(#1,#2)}]
+    \fill[red!70] (-0.45,-0.1) rectangle (0.45,0.12);
+    \fill[red!70] (-0.26,0.12)--(0.26,0.12)--(0.18,0.32)--(-0.18,0.32)--cycle;
+    \fill[cyan!30!white] (-0.16,0.14)--(0.16,0.14)--(0.12,0.28)--(-0.12,0.28)--cycle;
+    \fill[black] (-0.26,-0.12) circle (0.1) (0.26,-0.12) circle (0.1);
+    \fill[gray!60] (-0.26,-0.12) circle (0.045) (0.26,-0.12) circle (0.045);
+  \end{scope}}
 \newenvironment{kppic}[1][0.6]{\begin{center}\begin{tikzpicture}[scale=#1]}{\end{tikzpicture}\end{center}}
 
 % =====================================================================
