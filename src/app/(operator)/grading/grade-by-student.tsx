@@ -402,7 +402,7 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
                   const c = state[a.submissionId];
                   return (
                     <div key={a.submissionId} className={`sheet-cell score-cell${rowError(c) ? " is-required-missing" : ""}`} data-sheet-row="review-score">
-                      <input type="number" step="0.5" inputMode="decimal" value={c.score} placeholder="点" disabled={c.skip || c.noAssign} data-gx={ci} data-gy={1} onChange={(e) => set(a.submissionId, { score: e.target.value })} />
+                      <input type="text" inputMode="decimal" value={c.score} placeholder="点" disabled={c.skip} data-gx={ci} data-gy={1} onChange={(e) => set(a.submissionId, { score: e.target.value })} />
                     </div>
                   );
                 })}
@@ -414,7 +414,7 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
                   const needMax = !c.skip && !c.noAssign && c.score.trim() !== "" && c.maxScore.trim() === "";
                   return (
                     <div key={a.submissionId} className={`sheet-cell score-cell${rowError(c) ? " is-required-missing" : ""}`} data-sheet-row="review-max-score">
-                      <input type="number" step="0.5" inputMode="decimal" value={c.maxScore} placeholder="満点" disabled={c.skip || c.noAssign} className={needMax ? "need-fill" : ""} data-gx={ci} data-gy={2} onChange={(e) => set(a.submissionId, { maxScore: e.target.value })} />
+                      <input type="text" inputMode="decimal" value={c.maxScore} placeholder="満点" disabled={c.skip} className={needMax ? "need-fill" : ""} data-gx={ci} data-gy={2} onChange={(e) => set(a.submissionId, { maxScore: e.target.value })} />
                     </div>
                   );
                 })}
@@ -490,41 +490,13 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
                   );
                 })}
 
-                {/* 課題なし */}
-                <div className="sheet-row-label" data-row-label="no-assignment">課題なし</div>
-                {g.answers.map((a, ci) => {
-                  const c = state[a.submissionId];
-                  return (
-                    <div key={a.submissionId} className="sheet-cell check-cell" data-sheet-row="no-assignment" data-on={c.noAssign}>
-                      <label className="single-check">
-                        <input type="checkbox" checked={c.noAssign} data-gx={ci} data-gy={6} data-cell-type="checkbox" onChange={(e) => set(a.submissionId, { noAssign: e.target.checked, pass: false, retest: false })} />
-                        <span>課題なし</span>
-                      </label>
-                    </div>
-                  );
-                })}
-
-                {/* 新教材 */}
-                <div className="sheet-row-label" data-row-label="new-material">新教材</div>
-                {g.answers.map((a, ci) => {
-                  const c = state[a.submissionId];
-                  return (
-                    <div key={a.submissionId} className="sheet-cell check-cell" data-sheet-row="new-material" data-on={c.newMat}>
-                      <label className="single-check">
-                        <input type="checkbox" checked={c.newMat} data-gx={ci} data-gy={7} data-cell-type="checkbox" onChange={(e) => set(a.submissionId, { newMat: e.target.checked })} />
-                        <span>新教材</span>
-                      </label>
-                    </div>
-                  );
-                })}
-
                 {/* 備考 */}
                 <div className="sheet-row-label" data-row-label="remark">備考</div>
                 {g.answers.map((a, ci) => {
                   const c = state[a.submissionId];
                   return (
                     <div key={a.submissionId} className="sheet-cell remark-cell" data-sheet-row="remark">
-                      <input type="text" value={c.remark} placeholder="備考(次回課題に ※追記)" data-gx={ci} data-gy={8} onChange={(e) => set(a.submissionId, { remark: e.target.value })} />
+                      <input type="text" value={c.remark} placeholder="備考(次回課題に ※追記)" data-gx={ci} data-gy={6} onChange={(e) => set(a.submissionId, { remark: e.target.value })} />
                     </div>
                   );
                 })}
