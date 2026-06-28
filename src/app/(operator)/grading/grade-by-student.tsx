@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { batchGrade, type BatchGradeItem } from "@/lib/actions/submission-actions";
@@ -139,6 +139,58 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
   const [sent, setSent] = useState<Record<string, boolean>>({});
   const [, startTransition] = useTransition();
 
+  // ===== 表の倍率(PHP entry.php と同じ挙動) =====
+  // 既定は「列幅(172px固定)のまま画面幅に収める自動フィット」。さらに手動倍率
+  // (userZoom)を − / ＋ / ⌘ホイール で掛けられる。% クリックで自動フィットに戻す。
+  const sheetsRef = useRef<HTMLDivElement>(null);
+  const [userZoom, setUserZoom] = useState<number>(() => {
+    if (typeof window === "undefined") return 1;
+    const v = parseFloat(localStorage.getItem("entryUserZoom") || "1");
+    return Number.isFinite(v) && v > 0 ? Math.min(3, Math.max(0.4, v)) : 1;
+  });
+  const fitAll = useCallback(() => {
+    const root = sheetsRef.current;
+    if (!root) return;
+    root.querySelectorAll<HTMLElement>("[data-entry-sheet]").forEach((sheet) => {
+      const wrap = sheet.closest<HTMLElement>(".mastery-sheet-wrap");
+      if (!wrap) return;
+      sheet.style.setProperty("zoom", "1");
+      const naturalW = sheet.scrollWidth;
+      const availW = wrap.clientWidth;
+      let base = 1;
+      if (naturalW > availW && naturalW > 0) base = Math.max(0.5, availW / naturalW);
+      sheet.style.setProperty("zoom", String(base * userZoom));
+    });
+  }, [userZoom]);
+  useEffect(() => {
+    fitAll();
+    requestAnimationFrame(fitAll);
+    window.addEventListener("resize", fitAll);
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && sheetsRef.current) {
+      ro = new ResizeObserver(() => fitAll());
+      ro.observe(sheetsRef.current);
+    }
+    return () => { window.removeEventListener("resize", fitAll); ro?.disconnect(); };
+  }, [fitAll, groups]);
+  const changeZoom = useCallback((z: number) => {
+    const v = Math.min(3, Math.max(0.4, Math.round(z * 100) / 100));
+    setUserZoom(v);
+    try { localStorage.setItem("entryUserZoom", String(v)); } catch { /* ignore */ }
+  }, []);
+  // ⌘/Ctrl + ホイール(トラックパッドのピンチ)で倍率変更。
+  useEffect(() => {
+    const root = sheetsRef.current;
+    if (!root) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      changeZoom(userZoom * (e.deltaY < 0 ? 1.06 : 0.94));
+    };
+    root.addEventListener("wheel", onWheel, { passive: false });
+    return () => root.removeEventListener("wheel", onWheel);
+  }, [changeZoom, userZoom]);
+
   if (groups.length === 0) {
     return <p className="empty">採点できる生徒はいません（1日分の課題がそろうと表示されます）。</p>;
   }
@@ -237,7 +289,7 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
   }
 
   return (
-    <div className="gstudents entry-grade">
+    <div className="gstudents entry-grade" ref={sheetsRef}>
       <p className="hint" style={{ marginBottom: 12 }}>
         生徒ごとに「添削結果入力表」で採点します（採点可能 {groups.length} 名）。各教材に <b>合格</b> / <b>未実施</b> / <b>再テスト</b> をチェック（スペース可）、得点を入れると<b>正答率</b>を自動計算。<b>「結果を反映」</b>で生徒に届きます。矢印キーでセル移動。
       </p>
@@ -247,7 +299,7 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
         const isSent = !!sent[g.studentId];
         const n = g.answers.length;
         const errN = g.answers.filter((a) => rowError(state[a.submissionId])).length;
-        const gridStyle = { gridTemplateColumns: `108px repeat(${n}, minmax(172px, 1fr))` } as React.CSSProperties;
+        const gridStyle = { gridTemplateColumns: `108px repeat(${n}, 172px)` } as React.CSSProperties;
 
         // 行を順に描く: 各行 = ラベル + 列セル
         return (
@@ -289,7 +341,8 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
 
             {/* ===== 添削結果入力表(列=教材 / 行=項目) ===== */}
             <div className="mastery-sheet-wrap">
-              <div className="mastery-sheet" style={gridStyle}>
+              <div className="mastery-sheet-scroll">
+              <div className="mastery-sheet" data-entry-sheet style={gridStyle}>
                 {/* 教材ヘッダー */}
                 <div className="sheet-row-label row-name">教材</div>
                 {g.answers.map((a) => {
@@ -476,6 +529,7 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
                   );
                 })}
               </div>
+              </div>
             </div>
 
             {errN > 0 && (
@@ -484,6 +538,13 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
           </section>
         );
       })}
+
+      {/* 表の倍率コントロール(PHP entry.php と同じ。− [%] ＋ / % で自動フィットに戻す) */}
+      <div className="sheet-zoombar">
+        <button type="button" title="縮小" onClick={() => changeZoom(userZoom - 0.1)}>－</button>
+        <button type="button" className="sheet-zoom-reset" title="クリックで既定の大きさに戻す" suppressHydrationWarning onClick={() => changeZoom(1)}>{Math.round(userZoom * 100)}%</button>
+        <button type="button" title="拡大" onClick={() => changeZoom(userZoom + 0.1)}>＋</button>
+      </div>
     </div>
   );
 }
