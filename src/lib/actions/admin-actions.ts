@@ -19,6 +19,7 @@ import {
   users,
 } from "@/db/schema";
 import { requireAdmin, requireOperator } from "@/lib/access";
+import { assignPurchasedSubjects } from "@/lib/assign-purchased";
 import { saveFile } from "@/lib/blob";
 import { initialSessionRange } from "@/lib/progress-db";
 
@@ -977,4 +978,41 @@ export async function resetStaffPassword(userId: string, fd: FormData) {
     .set({ passwordHash: await bcrypt.hash(password, 10), pwPlain: password })
     .where(eq(users.id, userId));
   revalidatePath("/staff");
+}
+
+/**
+ * 購入科目(yuta-eng)に一致する教材を、その生徒へ一括割り当てする(運営の手動操作)。
+ * 既に割り当て済みの教材はスキップ。割り当てロジックは assignPurchasedSubjects に集約し、
+ * 将来の自動割り当て(provision の activate)からも再利用できるようにしている。
+ */
+export async function assignPurchasedSubjectsAction(studentId: string): Promise<{
+  ok?: true;
+  assigned?: number;
+  skipped?: number;
+  matched?: number;
+  subjects?: string[];
+  error?: string;
+}> {
+  const p = await requireOperator();
+  const [s] = await db
+    .select({ id: students.id })
+    .from(students)
+    .where(and(eq(students.id, studentId), eq(students.organizationId, p.organizationId)))
+    .limit(1);
+  if (!s) return { error: "生徒が見つかりません。" };
+
+  const r = await assignPurchasedSubjects({
+    organizationId: p.organizationId,
+    studentId,
+    assignedById: p.id,
+  });
+  revalidatePath(`/grades/${studentId}`);
+  revalidatePath("/assignments");
+
+  if (r.reason === "no_subscription") return { error: "この生徒には購入科目情報(申込連携)がありません。" };
+  if (r.reason === "no_subjects") return { error: "購入科目が登録されていません。" };
+  if (r.reason === "no_materials") {
+    return { error: `購入科目(${r.subjects.join("・")})に一致する教材が未登録です。先に該当教科の教材を登録してください。` };
+  }
+  return { ok: true, assigned: r.assigned, skipped: r.skipped, matched: r.matched, subjects: r.subjects };
 }

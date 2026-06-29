@@ -284,3 +284,11 @@ E2E は主要フロー (生徒/教材登録 → 課題割当 → 答案提出 �
 ```
 npm run db:migrate      # もしくは npm run db:push
 ```
+
+### 購入科目の教材割り当て
+決済時の購入科目（`subscriptions` / `subscription_subjects`）を、その生徒への教材割り当てに反映できる。
+
+- **対応表**: `src/lib/subject-map.ts` の `YUTA_SUBJECT_LABEL`（yuta-eng 科目ID → `materials.subject` ラベル。例 `physics→物理`, `math-2bc→数学IIBC`）。中高部教材は、この表のラベルに合わせて `subject` を付けて登録すると自動でマッチする（運用に応じて編集可）。
+- **手動（既定・推奨）**: 運営の生徒画面 `/grades/[studentId]` に「購入科目」と **「購入科目の教材を割り当て」** ボタンを表示。押すと購入科目に一致する教科の教材を一括割り当て（既割り当てはスキップ。assignment と初回 submission を対で作成）。
+- **自動（任意・既定OFF）**: `PROVISION_AUTO_ASSIGN=1` を設定すると、`/setup` の本登録（activate）時に同じロジックで自動割り当て（失敗しても本登録は継続）。手動・自動は共通コア `src/lib/assign-purchased.ts` を再利用。
+- **前提**: いずれも、割り当て先の中高部教材が `materials` に登録済みであること（未登録なら「該当教材なし」と表示）。

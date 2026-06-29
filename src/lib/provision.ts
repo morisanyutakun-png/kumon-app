@@ -313,7 +313,7 @@ export async function activateAccount(opts: {
   tokenId?: string;
 }): Promise<{ email: string }> {
   const passwordHash = await bcrypt.hash(opts.password, 10);
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [user] = await tx
       .update(users)
       .set({ passwordHash, status: "active" })
@@ -330,4 +330,31 @@ export async function activateAccount(opts: {
     }
     return { email: user.email };
   });
+
+  // 将来用の自動割り当て(既定OFF)。中高部教材が登録済みで、本登録時に購入科目の教材を
+  // 自動で割り当てたい運用にしたくなったら PROVISION_AUTO_ASSIGN=1 を設定する。
+  // 手動割り当て(運営の「購入科目の教材を割り当て」ボタン)と同じコアを再利用する。
+  if (process.env.PROVISION_AUTO_ASSIGN === "1") {
+    try {
+      const [st] = await db
+        .select({ id: students.id, organizationId: students.organizationId })
+        .from(students)
+        .where(eq(students.userId, opts.userId))
+        .limit(1);
+      if (st) {
+        const { assignPurchasedSubjects } = await import("./assign-purchased");
+        const r = await assignPurchasedSubjects({
+          organizationId: st.organizationId,
+          studentId: st.id,
+          assignedById: null,
+        });
+        console.info(`[provision] 自動割り当て assigned=${r.assigned} matched=${r.matched} reason=${r.reason ?? "ok"}`);
+      }
+    } catch (e) {
+      // 自動割り当て失敗は本登録自体を妨げない(運営が手動で割り当て可能)。
+      console.error(`[provision] 自動割り当て失敗: ${e instanceof Error ? e.message : "unknown"}`);
+    }
+  }
+
+  return result;
 }
