@@ -249,25 +249,23 @@ E2E は主要フロー (生徒/教材登録 → 課題割当 → 答案提出 �
 
 決済は **yuta-eng** 側で完了し、本アプリは **アカウント発行（ログインできるようにする）** だけを担当する。
 
-### 連携の流れ
+### 連携の流れ（システム生成パスワード方式）
 1. ユーザーは決済成功後 `/{このアプリ}/setup?session_id=cs_xxx` に戻る。
 2. `/setup` がサーバー側で yuta-eng の照会API（`GET /api/provision/session`、ヘッダ `x-nobit-secret`）を呼び、`paid:true` を確認。
-3. 確認できたら **冪等に仮アカウントを発行**（`students` ＋ `users(role=student, status=pending)` ＋ `subscriptions`）し、一回限り・72時間有効の `setup_token` を発行。
-4. 生徒がその場でパスワードを設定 → **既存方式（bcryptjs）でハッシュ化して `status=active`** にし、`setup_token` を使用済みに → **そのまま自動ログイン**して `/`（→ `/home`）へ。
-5. 画面を閉じても登録漏れしないよう、yuta-eng は同じJSONを **Webhook**（`POST /api/provision`、ヘッダ `x-nobit-secret`）でも送る。受信時に同じ発行処理を行い、パスワード設定リンクを**メール送信**（Resend）する。メールのリンクは `/setup?token=<setup_token>`。
+3. 確認できたら **冪等にアカウントを発行**：パスワードを**自動生成**し、`users(role=student, status=active, passwordHash, pwPlain)` ＋ `students(active)` ＋ `subscriptions` を作成。`/setup` は **ログインID（メール）＋生成パスワード** を画面に表示し、「ログインする」ボタンを出す。
+4. 画面を閉じても届くよう、yuta-eng は同じJSONを **Webhook**（`POST /api/provision`、ヘッダ `x-nobit-secret`）でも送る。受信時に同じ発行処理を行い、**ログイン情報（メール＋生成パスワード＋ログインURL）を Resend でメール送信**する。
+5. 生徒は メール＋パスワードでログイン。運営は **生徒管理 `/students`** で各生徒のログイン（メール）とパスワード（`pwPlain`・管理者表示）を確認・伝達できる。
 
 ### アカウント方式（既存認証に準拠）
-- 認証は **NextAuth v5（JWT）＋ Credentials ＋ bcryptjs**。`users.passwordHash` で照合。
+- 認証は **NextAuth v5（JWT）＋ Credentials ＋ bcryptjs**。`users.passwordHash` で照合（生成パスワードは `pwPlain` にも保存し運営が確認・伝達。既存の保護者/職員と同方針）。
 - 発行されるのは **生徒本人がメール＋パスワードでログインする `users(role=student)`** で、学習進捗用の `students` 行と相互参照（`students.userId`）。`auth.ts` はメールログイン時に `students.userId` から `studentId` をセッションに載せる。
-- `status=pending` の仮アカウントはログイン不可（パスワード未設定）。`/setup` で `active` 化される。
 
 ### 冪等性・エッジケース
-- キーは **メールアドレス**（`users.email` ・ `subscriptions.email` が一意）。
-- 既に `active`（本登録済み）のメールが来たら何もせず「ログインへ」を案内。
-- `pending` の再来は契約情報を更新し token を再発行。
-- 同じ `session_id` / `token` で2回開いても二重登録しない（token は使用済み判定）。
-- 照会APIが 402/404/エラーならフォームを出さずエラーと問い合わせ導線を表示。
-- メール送信に失敗してもアカウント作成は継続（`/setup` での設定は可能）。
+- キーは **メールアドレス**（`users.email` ・ `subscriptions.email` が一意）。新規は `users` を `onConflictDoNothing(email)`、`subscriptions` を `onConflictDoUpdate(email)` で競合安全に。
+- **Webhook と `/setup` が同時に来ても 500 にしない**（ユニーク制約違反は既存パスへ退避）。同じ email / session を2回処理しても二重作成しない。
+- 既に `active` のメールが来たら再作成せず、保存済みパスワード（あれば）を返して案内。
+- 照会APIが 402/404/エラーならログイン情報を出さずエラーと問い合わせ導線を表示（`/setup` は想定外例外でも 500 にせず復旧UI＋ `app/setup/error.tsx`）。
+- **メール送信は try/catch で必ず分離**。`RESEND_API_KEY` 未設定や送信失敗でも `/setup` は正常表示し、アカウント発行・ログインは継続（失敗はログのみ）。送信元は要 Resend ドメイン認証（`SETUP_EMAIL_FROM`）。
 
 ### 必要な環境変数（Vercel / `.env`）
 | 変数 | 用途 |
@@ -290,5 +288,5 @@ npm run db:migrate      # もしくは npm run db:push
 
 - **対応表**: `src/lib/subject-map.ts` の `YUTA_SUBJECT_LABEL`（yuta-eng 科目ID → `materials.subject` ラベル。例 `physics→物理`, `math-2bc→数学IIBC`）。中高部教材は、この表のラベルに合わせて `subject` を付けて登録すると自動でマッチする（運用に応じて編集可）。
 - **手動（既定・推奨）**: 運営の生徒画面 `/grades/[studentId]` に「購入科目」と **「購入科目の教材を割り当て」** ボタンを表示。押すと購入科目に一致する教科の教材を一括割り当て（既割り当てはスキップ。assignment と初回 submission を対で作成）。
-- **自動（任意・既定OFF）**: `PROVISION_AUTO_ASSIGN=1` を設定すると、`/setup` の本登録（activate）時に同じロジックで自動割り当て（失敗しても本登録は継続）。手動・自動は共通コア `src/lib/assign-purchased.ts` を再利用。
+- **自動（任意・既定OFF）**: `PROVISION_AUTO_ASSIGN=1` を設定すると、アカウント発行時（`maybeAutoAssign`）に同じロジックで自動割り当て（失敗しても発行は継続）。手動・自動は共通コア `src/lib/assign-purchased.ts` を再利用。
 - **前提**: いずれも、割り当て先の中高部教材が `materials` に登録済みであること（未登録なら「該当教材なし」と表示）。

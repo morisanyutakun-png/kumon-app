@@ -100,13 +100,23 @@ class ProvisionConflict extends Error {
   }
 }
 
+/** 読みやすい生成パスワード(紛らわしい文字を除外)。crypto 乱数で生成。 */
+function genPassword(n = 10): string {
+  const chars = "abcdefghijkmnpqrstuvwxyz23456789";
+  const bytes = randomBytes(n);
+  let s = "";
+  for (let i = 0; i < n; i++) s += chars[bytes[i] % chars.length];
+  return s;
+}
+
 export interface ProvisionResult {
-  /** created=新規発行 / pending_reused=既存の仮アカウントを再利用 / already_active=本登録済み */
-  status: "created" | "pending_reused" | "already_active";
+  /** created=新規発行(生成PWあり) / already_active=既に有効 */
+  status: "created" | "already_active";
   email: string;
   userId?: string;
-  /** /setup で使う生トークン(created / pending_reused のときのみ)。 */
-  setupToken?: string;
+  /** 生成したログインパスワード(平文)。メール送信・画面表示用。
+   *  created のとき必ず、already_active のときは保存済み pwPlain があれば返す。 */
+  password?: string;
   subscriptionId?: string;
 }
 
@@ -144,13 +154,17 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
   };
 
   // 逐次の一般ケース(既に作成済み)を先に処理。
-  const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-  if (existing) return existingPath(existing.id, existing.status, contract, subjectIds, email);
+  const [existing] = await db
+    .select({ id: users.id, status: users.status, pwPlain: users.pwPlain })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+  if (existing) return existingPath(existing.id, existing.status, existing.pwPlain, contract, subjectIds, email);
 
-  // 新規作成。Webhook と /setup が同時に来ても 500 にしないよう ON CONFLICT で競合安全にする:
-  //  - users は onConflictDoNothing → 競合(=他方が先に作成)なら user が返らない → 既存パスへ退避
-  //    (DO NOTHING は競合行のロック解放まで待ってから no-op するため、退避時には相手が確定済み)
-  //  - subscriptions は email 一意 → onConflictDoUpdate、subscription_subjects は onConflictDoNothing
+  // 新規作成: パスワードを生成し、即ログイン可能(active)なアカウントを作る。
+  // Webhook と /setup が同時に来ても 500 にしないよう ON CONFLICT で競合安全にする。
+  const password = genPassword();
+  const passwordHash = await bcrypt.hash(password, 10);
   let createdUserId: string;
   let createdSubId: string | undefined;
   try {
@@ -162,20 +176,21 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
           email,
           name: studentName || email,
           role: "student",
-          passwordHash: "", // pending: 未設定。/setup で設定するまでログイン不可。
-          status: "pending",
+          passwordHash,
+          pwPlain: password, // 運営が生徒管理で確認/伝達する用途(既存の保護者/職員と同方針)。
+          status: "active",
         })
         .onConflictDoNothing({ target: users.email })
         .returning({ id: users.id });
       if (!user) throw new ProvisionConflict(); // 既存 → ロールバックして既存パスへ
       const [student] = await tx
         .insert(students)
-        .values({ organizationId: orgId, name: studentName || email, grade, active: false })
+        .values({ organizationId: orgId, name: studentName || email, grade, active: true })
         .returning({ id: students.id });
       await tx.update(students).set({ userId: user.id }).where(eq(students.id, student.id));
       const [sub] = await tx
         .insert(subscriptions)
-        .values({ ...contract, userId: user.id, studentId: student.id, status: "pending" })
+        .values({ ...contract, userId: user.id, studentId: student.id, status: "active", activatedAt: new Date() })
         .onConflictDoUpdate({
           target: subscriptions.email,
           set: { ...contract, userId: user.id, studentId: student.id },
@@ -194,36 +209,73 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
   } catch (e) {
     if (e instanceof ProvisionConflict) {
       // 競合: 別の実行(Webhook 等)が先に作成済み → 既存として扱う。
-      const [u2] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-      if (u2) return existingPath(u2.id, u2.status, contract, subjectIds, email);
+      const [u2] = await db
+        .select({ id: users.id, status: users.status, pwPlain: users.pwPlain })
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+      if (u2) return existingPath(u2.id, u2.status, u2.pwPlain, contract, subjectIds, email);
     }
     throw e; // 想定外は投げる(/setup 側で復旧UIに変換)
   }
 
-  const setupToken = await issueSetupToken(createdUserId);
-  return { status: "created", email, userId: createdUserId, setupToken, subscriptionId: createdSubId };
+  await maybeAutoAssign(createdUserId);
+  return { status: "created", email, userId: createdUserId, password, subscriptionId: createdSubId };
 }
 
-/** 既存(pending=再利用 / active=登録済み)の生徒に対する応答。 */
+/** 既存ユーザーに対する応答。active=そのまま / 旧pending=生成PWで有効化。契約情報は最新へ更新。 */
 async function existingPath(
   userId: string,
   status: string,
+  existingPw: string | null,
   contract: typeof subscriptions.$inferInsert,
   subjectIds: string[],
   email: string,
 ): Promise<ProvisionResult> {
-  if (status === "active") {
-    return { status: "already_active", email, userId };
-  }
-  // pending を再利用: 契約情報を更新し、token を再発行。
   await upsertSubscription(contract, userId, subjectIds);
-  const setupToken = await issueSetupToken(userId);
   const [sub] = await db
     .select({ id: subscriptions.id })
     .from(subscriptions)
     .where(eq(subscriptions.email, email))
     .limit(1);
-  return { status: "pending_reused", email, userId, setupToken, subscriptionId: sub?.id };
+
+  if (status === "active") {
+    // 既に有効。保存済み平文があれば画面表示/再送用に返す(無ければ返さない)。
+    return { status: "already_active", email, userId, password: existingPw ?? undefined, subscriptionId: sub?.id };
+  }
+
+  // 旧 pending を有効化(生成パスワードを設定)。
+  const password = genPassword();
+  const passwordHash = await bcrypt.hash(password, 10);
+  await db.transaction(async (tx) => {
+    await tx
+      .update(users)
+      .set({ passwordHash, pwPlain: password, status: "active" })
+      .where(eq(users.id, userId));
+    await tx.update(students).set({ active: true }).where(eq(students.userId, userId));
+    if (sub) await tx.update(subscriptions).set({ status: "active", activatedAt: new Date() }).where(eq(subscriptions.id, sub.id));
+  });
+  await maybeAutoAssign(userId);
+  return { status: "created", email, userId, password, subscriptionId: sub?.id };
+}
+
+/** 将来用の自動割り当て(既定OFF / PROVISION_AUTO_ASSIGN=1)。失敗しても発行は妨げない。 */
+async function maybeAutoAssign(userId: string): Promise<void> {
+  if (process.env.PROVISION_AUTO_ASSIGN !== "1") return;
+  try {
+    const [st] = await db
+      .select({ id: students.id, organizationId: students.organizationId })
+      .from(students)
+      .where(eq(students.userId, userId))
+      .limit(1);
+    if (st) {
+      const { assignPurchasedSubjects } = await import("./assign-purchased");
+      const r = await assignPurchasedSubjects({ organizationId: st.organizationId, studentId: st.id, assignedById: null });
+      console.info(`[provision] 自動割り当て assigned=${r.assigned} matched=${r.matched} reason=${r.reason ?? "ok"}`);
+    }
+  } catch (e) {
+    console.error(`[provision] 自動割り当て失敗: ${e instanceof Error ? e.message : "unknown"}`);
+  }
 }
 
 /** pending 再利用時に契約情報を email キーで upsert し、科目を貼り直す。 */

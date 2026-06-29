@@ -6,7 +6,7 @@
  *
  * 手動(運営ボタン)・将来の自動割り当ての両方から呼べる純粋なコアにしてある。
  *   - 手動:   admin-actions の assignPurchasedSubjectsAction(operator の user.id を渡す)
- *   - 自動:   provision の activateAccount から(assignedById=null)。将来用の余地。
+ *   - 自動:   provision の発行時(maybeAutoAssign・PROVISION_AUTO_ASSIGN=1)から。将来用の余地。
  */
 import "server-only";
 

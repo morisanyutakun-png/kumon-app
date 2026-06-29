@@ -1,15 +1,8 @@
 import Link from "next/link";
 
 import { Logo } from "@/components/logo";
-import {
-  gradeLabel,
-  isPaid,
-  provisionAccount,
-  verifySetupToken,
-} from "@/lib/provision";
+import { isPaid, provisionAccount } from "@/lib/provision";
 import { fetchProvisionSession } from "@/lib/yuta-eng";
-
-import { SetupForm } from "./setup-form";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -17,75 +10,54 @@ export const runtime = "nodejs";
 type Search = { [k: string]: string | string[] | undefined };
 
 /**
- * 決済後のアカウント設定ページ。2系統のクエリに両対応:
- *   - ?session_id=cs_xxx  決済直後の戻り → 照会APIで確認し冪等に発行→token取得
- *   - ?token=<setup_token> メールのリンク → token を検証
+ * 決済直後の戻り先 /setup?session_id=cs_xxx。
+ * 照会APIで確認 → 冪等にアカウント発行(生成パスワード) → ログイン情報を画面表示。
+ * 同じ内容はメールでも送られる(Webhook 経由)。
  */
 export default async function SetupPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
   const sessionId = typeof sp.session_id === "string" ? sp.session_id : undefined;
-  const token = typeof sp.token === "string" ? sp.token : undefined;
 
-  // 1) token フロー(メールのリンク)
-  if (token) {
-    const ctx = await verifySetupToken(token);
-    if (!ctx) return <Shell><InvalidToken /></Shell>;
+  if (!sessionId) {
     return (
       <Shell>
-        <SetupForm
-          token={token}
-          email={ctx.email}
-          studentName={ctx.studentName}
-          subjectLabels={ctx.subjectLabels}
-          grade={ctx.grade}
-        />
+        <LookupError msg="このページは決済完了後のリンクから開いてください。" hideContact />
+        <p className="auth-help" style={{ marginTop: 8 }}>
+          すでにご登録済みの方は <Link href="/login">ログイン</Link> してください。
+        </p>
       </Shell>
     );
   }
 
-  // 2) session_id フロー(決済直後の戻り)
-  if (sessionId) {
-    const lookup = await fetchProvisionSession(sessionId);
-    if (!lookup.ok) {
-      if (lookup.reason === "unpaid") return <Shell><LookupError msg="お支払いが確認できませんでした。" /></Shell>;
-      if (lookup.reason === "not_found") return <Shell><LookupError msg="お申し込み情報が見つかりませんでした。" /></Shell>;
-      return <Shell><LookupError msg="お申し込み情報の確認中にエラーが発生しました。" /></Shell>;
-    }
-    if (!isPaid(lookup.payload)) {
-      return <Shell><LookupError msg="お支払いが確認できませんでした。" /></Shell>;
-    }
-
-    // アカウント発行で想定外の例外が出ても 500 にせず、復旧可能なエラーUIを返す。
-    let result;
-    try {
-      result = await provisionAccount(lookup.payload);
-    } catch (e) {
-      console.error(`[provision] /setup 発行エラー: ${e instanceof Error ? e.stack ?? e.message : "unknown"}`);
-      return <Shell><LookupError msg="アカウントの発行中にエラーが発生しました。時間をおいて、決済完了メールのリンクから再度お試しください。" /></Shell>;
-    }
-    if (result.status === "already_active") {
-      return <Shell><AlreadyActive /></Shell>;
-    }
-    if (!result.setupToken) {
-      return <Shell><LookupError msg="アカウントの発行中にエラーが発生しました。" /></Shell>;
-    }
-    return (
-      <Shell>
-        <SetupForm
-          token={result.setupToken}
-          email={result.email}
-          studentName={lookup.payload.studentName || lookup.payload.name}
-          subjectLabels={lookup.payload.subjectLabels}
-          grade={gradeLabel(lookup.payload.grade ?? "")}
-        />
-      </Shell>
-    );
+  const lookup = await fetchProvisionSession(sessionId);
+  if (!lookup.ok) {
+    if (lookup.reason === "unpaid") return <Shell><LookupError msg="お支払いが確認できませんでした。" /></Shell>;
+    if (lookup.reason === "not_found") return <Shell><LookupError msg="お申し込み情報が見つかりませんでした。" /></Shell>;
+    return <Shell><LookupError msg="お申し込み情報の確認中にエラーが発生しました。" /></Shell>;
+  }
+  if (!isPaid(lookup.payload)) {
+    return <Shell><LookupError msg="お支払いが確認できませんでした。" /></Shell>;
   }
 
-  // どちらのクエリも無い
+  // アカウント発行(冪等)。想定外の例外でも 500 にせず復旧可能なUIを返す。
+  let result;
+  try {
+    result = await provisionAccount(lookup.payload);
+  } catch (e) {
+    console.error(`[provision] /setup 発行エラー: ${e instanceof Error ? e.stack ?? e.message : "unknown"}`);
+    return <Shell><LookupError msg="アカウントの発行中にエラーが発生しました。時間をおいて、ログイン情報メールのリンクからお試しください。" /></Shell>;
+  }
+
+  if (result.password) {
+    return <Shell><Credentials email={result.email} password={result.password} /></Shell>;
+  }
+  // 既に有効で、平文パスワードが手元にない(過去発行など)。ログインへ案内。
   return (
     <Shell>
-      <LookupError msg="このページは決済完了後のリンクから開いてください。" hideContact />
+      <p className="auth-help">このメールアドレスのアカウントは、すでに発行済みです。</p>
+      <p className="auth-help" style={{ marginTop: 4 }}>
+        ログイン情報はお送りしたメールをご確認のうえ、<Link href="/login">ログイン</Link> してください。
+      </p>
     </Shell>
   );
 }
@@ -97,7 +69,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <div className="auth-logo-wrap">
           <Logo className="auth-logo" />
         </div>
-        <h1 className="auth-h1">アカウント設定</h1>
+        <h1 className="auth-h1">アカウント発行</h1>
         {children}
         <div className="auth-foot">© {new Date().getFullYear()} Nobit Study</div>
       </div>
@@ -105,31 +77,26 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AlreadyActive() {
+function Credentials({ email, password }: { email: string; password: string }) {
   return (
     <>
-      <p className="auth-help">このメールアドレスのアカウントは、すでに登録済みです。</p>
-      <p className="auth-help" style={{ marginTop: 8 }}>
-        <Link href="/login" className="auth-submit" style={{ display: "inline-block", textDecoration: "none" }}>
-          ログインへ
-        </Link>
+      <p className="auth-help" style={{ marginTop: 0 }}>
+        お申し込みありがとうございます。下のログイン情報でご利用いただけます（同じ内容をメールでもお送りしました）。
       </p>
-    </>
-  );
-}
-
-function InvalidToken() {
-  return (
-    <>
-      <p className="auth-error" role="alert">
-        このリンクは有効期限が切れているか、すでに使用済みです。
-      </p>
-      <p className="auth-help" style={{ marginTop: 8 }}>
-        すでにパスワードを設定済みの場合は、そのまま <Link href="/login">ログイン</Link> してください。
-      </p>
-      <p className="auth-help">
-        お困りの場合は、お手数ですが <a href="https://yuta-eng.com/contact">サポート窓口</a> までご連絡ください。
-      </p>
+      <div className="setup-info">
+        <div className="setup-info-row">
+          <span className="setup-info-label">ログインID</span>
+          <span className="setup-info-val">{email}</span>
+        </div>
+        <div className="setup-info-row">
+          <span className="setup-info-label">パスワード</span>
+          <span className="setup-info-val" style={{ fontFamily: "monospace", fontSize: 16, letterSpacing: 1 }}>{password}</span>
+        </div>
+      </div>
+      <Link href="/login" className="auth-submit" style={{ display: "block", textAlign: "center", textDecoration: "none", lineHeight: "52px" }}>
+        ログインする
+      </Link>
+      <p className="auth-help">ログイン後、必要に応じてパスワードを変更できます。スクリーンショットの保存をおすすめします。</p>
     </>
   );
 }
@@ -140,7 +107,7 @@ function LookupError({ msg, hideContact }: { msg: string; hideContact?: boolean 
       <p className="auth-error" role="alert">{msg}</p>
       {!hideContact && (
         <p className="auth-help" style={{ marginTop: 8 }}>
-          お手数ですが、しばらくしてから決済完了メールのリンクを開くか、
+          お手数ですが、しばらくしてからログイン情報メールをご確認いただくか、
           <a href="https://yuta-eng.com/contact"> サポート窓口</a> までご連絡ください。
         </p>
       )}

@@ -17,7 +17,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { organizations } from "@/db/schema";
-import { sendSetupEmail } from "@/lib/email";
+import { sendCredentialsEmail } from "@/lib/email";
 import { isPaid, maskEmail, provisionAccount, provisionPayloadSchema } from "@/lib/provision";
 
 export const runtime = "nodejs";
@@ -122,12 +122,13 @@ export async function POST(req: Request) {
     const result = await provisionAccount(payload);
     console.info(`[provision] webhook: ${result.status} to=${maskEmail(result.email)}`);
 
-    // 本登録済み以外は設定リンクをメール送信(失敗してもアカウントは作成済み)。
-    if (result.setupToken) {
-      const link = `${baseUrl(req)}/setup?token=${encodeURIComponent(result.setupToken)}`;
-      await sendSetupEmail({
+    // 生成したログイン情報(メール+パスワード)を送信。失敗してもアカウントは作成済み。
+    if (result.password) {
+      await sendCredentialsEmail({
         to: result.email,
-        link,
+        loginEmail: result.email,
+        password: result.password,
+        loginUrl: `${baseUrl(req)}/login`,
         studentName: payload.studentName || payload.name,
         subjectLabels: payload.subjectLabels,
       });
