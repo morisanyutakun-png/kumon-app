@@ -33,6 +33,11 @@ export interface RosterRow {
   hasPin: boolean;
   /** 管理者のみ渡される平文PIN。 */
   pin?: string | null;
+  /** 決済発行の本人ログイン(email+password)。あれば st~/PIN の代わりに表示。 */
+  loginEmail?: string | null;
+  /** 管理者のみ渡される平文パスワード(本人がsetupで設定)。 */
+  loginPw?: string | null;
+  hasLoginAccount?: boolean;
   guardian?: {
     id: string;
     name: string;
@@ -161,14 +166,23 @@ function EditableRow({ s, admin }: { s: RosterRow; admin: boolean }) {
         )}
       </td>
       <td>
-        {admin ? (
+        {s.loginEmail ? (
+          // 決済発行の生徒: メールでログイン(st~/PINは使わない)。読み取り専用で表示。
+          <span className="cell-pad" title="決済お申し込みの生徒。メールアドレスでログインします。">
+            {s.loginEmail} <span className="muted" style={{ fontSize: 11 }}>(メール)</span>
+          </span>
+        ) : admin ? (
           <input value={loginId} onChange={(e) => setLoginId(e.target.value)} />
         ) : (
           <span className="cell-pad muted">{s.loginId || "—"}</span>
         )}
       </td>
       <td>
-        {admin ? (
+        {s.loginEmail ? (
+          <span className="cell-pad code muted">
+            {admin ? (s.loginPw || (s.hasLoginAccount ? "本人設定" : "未設定")) : (s.hasLoginAccount ? "設定済" : "未設定")}
+          </span>
+        ) : admin ? (
           <input className="code" value={pin} onChange={(e) => setPin(e.target.value)} inputMode="numeric" />
         ) : (
           <span className="cell-pad muted">{s.hasPin ? "設定済" : "未設定"}</span>

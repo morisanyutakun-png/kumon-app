@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import { guardianStudents, students, users } from "@/db/schema";
@@ -28,6 +28,17 @@ export default async function PeoplePage() {
       .where(eq(guardianStudents.organizationId, p.organizationId)),
   ]);
 
+  // 決済発行の生徒は students.userId に紐づく users(email+password)でログインする。
+  // その本人ログイン情報(メール/パスワード)をロスターに反映するため引く。
+  const loginUserIds = studentRows.map((s) => s.userId).filter((v): v is string => !!v);
+  const loginAccts = loginUserIds.length
+    ? await db
+        .select({ id: users.id, email: users.email, pw: users.pwPlain })
+        .from(users)
+        .where(inArray(users.id, loginUserIds))
+    : [];
+  const acctById = new Map(loginAccts.map((u) => [u.id, u]));
+
   // 生徒ごとの保護者(先頭の1名を同じ行に表示)
   const guardianByStudent = new Map<string, RosterRow["guardian"]>();
   for (const l of links) {
@@ -41,16 +52,23 @@ export default async function PeoplePage() {
     }
   }
 
-  const rows: RosterRow[] = studentRows.map((s) => ({
-    id: s.id,
-    name: s.name,
-    grade: s.grade,
-    loginId: s.loginId,
-    active: s.active,
-    hasPin: s.pinHash != null,
-    pin: isAdmin ? s.pinPlain : undefined,
-    guardian: guardianByStudent.get(s.id),
-  }));
+  const rows: RosterRow[] = studentRows.map((s) => {
+    const acct = s.userId ? acctById.get(s.userId) : undefined;
+    return {
+      id: s.id,
+      name: s.name,
+      grade: s.grade,
+      loginId: s.loginId,
+      active: s.active,
+      hasPin: s.pinHash != null,
+      pin: isAdmin ? s.pinPlain : undefined,
+      guardian: guardianByStudent.get(s.id),
+      // 決済発行(email+password)の本人ログイン。あれば st~/PIN の代わりにこちらを表示。
+      loginEmail: acct?.email ?? null,
+      loginPw: isAdmin ? (acct?.pw ?? null) : undefined,
+      hasLoginAccount: !!acct,
+    };
+  });
 
   const withGuardian = rows.filter((r) => r.guardian).length;
 

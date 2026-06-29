@@ -359,7 +359,8 @@ export async function activateAccount(opts: {
   const result = await db.transaction(async (tx) => {
     const [user] = await tx
       .update(users)
-      .set({ passwordHash, status: "active" })
+      // pwPlain は運営が生徒管理画面で確認・伝達する用途(既存の保護者/職員と同じ方針)。認証は passwordHash。
+      .set({ passwordHash, pwPlain: opts.password.slice(0, 64), status: "active" })
       .where(eq(users.id, opts.userId))
       .returning({ email: users.email });
     // 紐づく生徒を有効化。
