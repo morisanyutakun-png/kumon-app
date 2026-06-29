@@ -244,3 +244,43 @@ E2E は主要フロー (生徒/教材登録 → 課題割当 → 答案提出 �
 | `npm run db:studio` | Drizzle Studio (DB GUI) |
 | `npm run test:unit` | 進度エンジン単体テスト |
 | `npm run e2e` | Playwright E2E |
+
+## yuta-eng（申込・決済サイト）からのアカウント発行連携
+
+決済は **yuta-eng** 側で完了し、本アプリは **アカウント発行（ログインできるようにする）** だけを担当する。
+
+### 連携の流れ
+1. ユーザーは決済成功後 `/{このアプリ}/setup?session_id=cs_xxx` に戻る。
+2. `/setup` がサーバー側で yuta-eng の照会API（`GET /api/provision/session`、ヘッダ `x-nobit-secret`）を呼び、`paid:true` を確認。
+3. 確認できたら **冪等に仮アカウントを発行**（`students` ＋ `users(role=student, status=pending)` ＋ `subscriptions`）し、一回限り・72時間有効の `setup_token` を発行。
+4. 生徒がその場でパスワードを設定 → **既存方式（bcryptjs）でハッシュ化して `status=active`** にし、`setup_token` を使用済みに → **そのまま自動ログイン**して `/`（→ `/home`）へ。
+5. 画面を閉じても登録漏れしないよう、yuta-eng は同じJSONを **Webhook**（`POST /api/provision`、ヘッダ `x-nobit-secret`）でも送る。受信時に同じ発行処理を行い、パスワード設定リンクを**メール送信**（Resend）する。メールのリンクは `/setup?token=<setup_token>`。
+
+### アカウント方式（既存認証に準拠）
+- 認証は **NextAuth v5（JWT）＋ Credentials ＋ bcryptjs**。`users.passwordHash` で照合。
+- 発行されるのは **生徒本人がメール＋パスワードでログインする `users(role=student)`** で、学習進捗用の `students` 行と相互参照（`students.userId`）。`auth.ts` はメールログイン時に `students.userId` から `studentId` をセッションに載せる。
+- `status=pending` の仮アカウントはログイン不可（パスワード未設定）。`/setup` で `active` 化される。
+
+### 冪等性・エッジケース
+- キーは **メールアドレス**（`users.email` ・ `subscriptions.email` が一意）。
+- 既に `active`（本登録済み）のメールが来たら何もせず「ログインへ」を案内。
+- `pending` の再来は契約情報を更新し token を再発行。
+- 同じ `session_id` / `token` で2回開いても二重登録しない（token は使用済み判定）。
+- 照会APIが 402/404/エラーならフォームを出さずエラーと問い合わせ導線を表示。
+- メール送信に失敗してもアカウント作成は継続（`/setup` での設定は可能）。
+
+### 必要な環境変数（Vercel / `.env`）
+| 変数 | 用途 |
+| --- | --- |
+| `NOBIT_REGISTER_SECRET` | yuta-eng と同じ共有シークレット（照会API・Webhook 両方） |
+| `YUTA_ENG_BASE_URL` | 照会APIのベースURL（既定 `https://yuta-eng.com`） |
+| `NOBIT_PROVISION_ORG_ID` | 発行先 organization の UUID（中高部のテナント） |
+| `RESEND_API_KEY` | メール送信（未設定なら送信スキップ。session_id フローは設定可） |
+| `SETUP_EMAIL_FROM` | 送信元（Resend で検証済みドメイン推奨） |
+| `AUTH_URL` | メール内リンクの絶対URLの生成に使用 |
+
+### マイグレーション
+スキーマ追加（`account_status` enum、`users.status`、`subscriptions` / `subscription_subjects` / `setup_tokens`）は `drizzle/0006_stripe_provisioning.sql`。本番反映:
+```
+npm run db:migrate      # もしくは npm run db:push
+```

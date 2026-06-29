@@ -43,18 +43,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const password = String(raw?.password ?? "");
         if (!identifier || !password) return null;
 
-        // 1) 職員・保護者 (メール + パスワード)
+        // 1) 職員・保護者・(メールを持つ)生徒 (メール + パスワード)
+        //    status=pending(yuta-eng 決済の仮アカウント・パスワード未設定)は
+        //    ログイン不可。role=student の場合は紐づく students.id を studentId に載せる。
         const [user] = await db
           .select()
           .from(users)
           .where(eq(users.email, identifier.toLowerCase()))
           .limit(1);
-        if (user && (await bcrypt.compare(password, user.passwordHash))) {
+        if (
+          user &&
+          user.status === "active" &&
+          user.passwordHash &&
+          (await bcrypt.compare(password, user.passwordHash))
+        ) {
+          let studentId: string | undefined;
+          if (user.role === "student") {
+            const [linked] = await db
+              .select({ id: students.id })
+              .from(students)
+              .where(eq(students.userId, user.id))
+              .limit(1);
+            studentId = linked?.id;
+          }
           const principal: Principal = {
             id: user.id,
             name: user.name,
             role: user.role,
             organizationId: user.organizationId,
+            studentId,
           };
           return principal;
         }

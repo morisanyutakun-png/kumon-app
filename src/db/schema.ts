@@ -36,6 +36,14 @@ export const userRoleEnum = pgEnum("user_role", [
 ]);
 
 /**
+ * アカウントの状態。
+ *   active  通常(パスワード設定済み・ログイン可)
+ *   pending yuta-eng 決済から発行された仮アカウント(パスワード未設定・ログイン不可)。
+ *           /setup でパスワードを設定すると active になる。
+ */
+export const accountStatusEnum = pgEnum("account_status", ["active", "pending"]);
+
+/**
  * 教材の進め方。小学生向けの反復学習に必要な3種類:
  *   chapter 章(単元)ごと / number 番号ごと / manual 手入力。
  * (公文式固有の「eトレ」等は本アプリでは不要のため採用しない)
@@ -108,6 +116,8 @@ export const users = pgTable(
     passwordHash: text("password_hash").notNull(),
     // 管理者のみが閲覧できる平文パスワード(本人へ伝達する用途)。認証は passwordHash を使用。
     pwPlain: varchar("pw_plain", { length: 64 }),
+    // 仮アカウント(pending)はパスワード未設定でログイン不可。/setup で active になる。
+    status: accountStatusEnum("status").notNull().default("active"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [uniqueIndex("users_email_unique").on(t.email)],
@@ -158,6 +168,77 @@ export const guardianStudents = pgTable(
   (t) => [
     uniqueIndex("guardian_students_unique").on(t.guardianUserId, t.studentId),
   ],
+);
+
+// =============================================================================
+// 申込・決済連携 (yuta-eng → アカウント発行)
+// =============================================================================
+
+/**
+ * yuta-eng(申込・決済サイト)からの中高部サブスク契約台帳。
+ * 1メール = 1契約(= 1ログインアカウント)で冪等管理する。決済は yuta-eng 側で完了済みで、
+ * 本アプリはここを起点にアカウント(users/students)を発行する。
+ */
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    email: varchar("email", { length: 255 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull().default(""), // 申込者(保護者)氏名
+    phone: varchar("phone", { length: 32 }).notNull().default(""),
+    studentName: varchar("student_name", { length: 255 }).notNull().default(""),
+    grade: varchar("grade", { length: 64 }).notNull().default(""), // 表示用(例: 高2)
+    gradeCode: varchar("grade_code", { length: 16 }).notNull().default(""), // 原値(例: h2)
+    subjects: text("subjects").notNull().default(""), // 原値 csv (例: physics,math-2bc)
+    subjectLabels: text("subject_labels").notNull().default(""),
+    subjectCount: integer("subject_count").notNull().default(0),
+    monthlyAmount: integer("monthly_amount").notNull().default(0),
+    stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+    stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
+    stripeSessionId: varchar("stripe_session_id", { length: 255 }),
+    // 発行したアカウント。
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    studentId: uuid("student_id").references(() => students.id, { onDelete: "set null" }),
+    status: accountStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    activatedAt: timestamp("activated_at", { withTimezone: true }),
+  },
+  (t) => [uniqueIndex("subscriptions_email_unique").on(t.email)],
+);
+
+/** 契約に含まれる科目(正規化)。subjects(csv)を1行ずつに分解して保存。 */
+export const subscriptionSubjects = pgTable(
+  "subscription_subjects",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    subscriptionId: uuid("subscription_id")
+      .notNull()
+      .references(() => subscriptions.id, { onDelete: "cascade" }),
+    subjectId: varchar("subject_id", { length: 64 }).notNull(), // 例: physics, math-2bc
+  },
+  (t) => [uniqueIndex("subscription_subjects_unique").on(t.subscriptionId, t.subjectId)],
+);
+
+/**
+ * パスワード設定用の一回限り・期限付きトークン。
+ * 生のトークンは保存せず sha256(hex) のみ保存し、照合はハッシュ比較で行う。
+ */
+export const setupTokens = pgTable(
+  "setup_tokens",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(), // sha256 hex
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("setup_tokens_hash_unique").on(t.tokenHash)],
 );
 
 // =============================================================================

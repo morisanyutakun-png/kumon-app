@@ -43,6 +43,13 @@
       "when": 1782314806828,
       "tag": "0005_rare_taskmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782731956326,
+      "tag": "0006_stripe_provisioning",
+      "breakpoints": true
     }
   ]
 }

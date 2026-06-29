@@ -742,6 +742,12 @@ body {
 .auth-submit:active:not(:disabled) { transform: translateY(1px); }
 .auth-submit:disabled { opacity: 0.6; cursor: default; }
 
+/* /setup の契約情報(表示のみ) */
+.setup-info { margin-bottom: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #f8fafc; }
+.setup-info-row { display: flex; gap: 10px; font-size: 13px; line-height: 1.9; }
+.setup-info-label { flex: 0 0 76px; color: var(--muted); font-weight: 700; }
+.setup-info-val { color: var(--ink); font-weight: 700; word-break: break-all; }
+
 .auth-help { margin: 18px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.7; }
 .auth-demo { margin-top: 18px; padding-top: 16px; border-top: 1px solid #eef1f4; }
 .auth-demo-label { font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
