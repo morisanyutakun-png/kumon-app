@@ -92,15 +92,31 @@
   \end{tikzpicture}\par\vspace{2mm}
 }
 
-% ===== 仕上げの応援フッター(細めで上品に) ===========================
+% ===== ふりかえりフッター(かおに ○を つけるだけ・取り組みやすく) ========
+%% かおの土台。#1 = くち の tikz パス(笑顔/ふつう/うーん で差し替え)。
+\newcommand{\kpfacebase}[1]{%
+  \begin{tikzpicture}[scale=0.56, baseline=-2.4mm]
+    \draw[accent, line width=1pt, fill=white] (0,0) circle (0.6);
+    \fill[accentd] (-0.22,0.15) circle (0.08);
+    \fill[accentd] (0.22,0.15) circle (0.08);
+    \draw[accentd, line width=1.2pt, line cap=round, line join=round] #1;
+  \end{tikzpicture}%
+}
+%% かお + ラベルの1択。子どもは あてはまる かおを ○で かこむ。
+\newcommand{\kpfaceitem}[2]{%
+  \kpfacebase{#1}\hspace{1mm}{\gtfamily\footnotesize\textcolor{inkgray}{#2}}%
+}
 \newcommand{\kpfinish}{%
   \vspace{1.2mm}\par
   \noindent\begin{tikzpicture}
-    \node[fill=accentl, draw=accent, line width=0.7pt, inner xsep=11pt, inner ysep=6pt,
+    \node[fill=accentl, draw=accent, line width=0.7pt, inner xsep=11pt, inner ysep=8pt,
           text width=\dimexpr\linewidth-22pt\relax, anchor=north west] at (0,0) {%
-      \centering\gtfamily \textcolor{accentd}{\bfseries よく できました！}\quad
-      \textcolor{kpstar}{$\star\ \star\ \star$}\quad
-      \textcolor{inkgray}{\small できた かずだけ ★に いろを ぬろう}%
+      \gtfamily
+      {\color{accent}\rule[-0.3mm]{1.8mm}{3.4mm}}\ \textcolor{accentd}{\bfseries きょうの ふりかえり}\quad
+      \textcolor{inkgray}{\small できた かおを ○で かこもう}\hfill
+      \kpfaceitem{(-0.26,-0.14) .. controls (-0.1,-0.42) and (0.1,-0.42) .. (0.26,-0.14)}{よくできた}\quad
+      \kpfaceitem{(-0.24,-0.22) -- (0.24,-0.22)}{できた}\quad
+      \kpfaceitem{(-0.26,-0.32) .. controls (-0.1,-0.04) and (0.1,-0.04) .. (0.26,-0.32)}{もうすこし}%
     };
   \end{tikzpicture}\par
 }
