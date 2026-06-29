@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Logo } from "@/components/logo";
 import { isPaid, provisionAccount } from "@/lib/provision";
+import { sendProvisionEmails } from "@/lib/provision-notify";
 import { fetchProvisionSession } from "@/lib/yuta-eng";
 
 export const dynamic = "force-dynamic";
@@ -48,15 +49,23 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
     return <Shell><LookupError msg="アカウントの発行中にエラーが発生しました。時間をおいて、ログイン情報メールのリンクからお試しください。" /></Shell>;
   }
 
-  if (result.password) {
-    return <Shell><Credentials email={result.email} password={result.password} /></Shell>;
+  // 新規発行なら、ここでもメール送信(顧客＋運営者)。Webhook が来なくても確実に届く。
+  // 送信関数は try/catch 済みでページを落とさない。
+  if (result.status === "created") {
+    const loginUrl = `${(process.env.AUTH_URL ?? "").replace(/\/$/, "")}/login`;
+    await sendProvisionEmails({ result, payload: lookup.payload, loginUrl });
   }
-  // 既に有効で、平文パスワードが手元にない(過去発行など)。ログインへ案内。
+
+  if (result.loginId && result.pin) {
+    return <Shell><Credentials loginId={result.loginId} pin={result.pin} /></Shell>;
+  }
+  // 既に発行済みで、PIN が手元にない(過去発行など)。ログインへ案内。
   return (
     <Shell>
-      <p className="auth-help">このメールアドレスのアカウントは、すでに発行済みです。</p>
+      <p className="auth-help">このお申し込みのアカウントは、すでに発行済みです。</p>
       <p className="auth-help" style={{ marginTop: 4 }}>
         ログイン情報はお送りしたメールをご確認のうえ、<Link href="/login">ログイン</Link> してください。
+        わからない場合は教室の先生にお問い合わせください。
       </p>
     </Shell>
   );
@@ -77,7 +86,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Credentials({ email, password }: { email: string; password: string }) {
+function Credentials({ loginId, pin }: { loginId: string; pin: string }) {
   return (
     <>
       <p className="auth-help" style={{ marginTop: 0 }}>
@@ -86,17 +95,17 @@ function Credentials({ email, password }: { email: string; password: string }) {
       <div className="setup-info">
         <div className="setup-info-row">
           <span className="setup-info-label">ログインID</span>
-          <span className="setup-info-val">{email}</span>
+          <span className="setup-info-val" style={{ fontFamily: "monospace", fontSize: 16, letterSpacing: 1 }}>{loginId}</span>
         </div>
         <div className="setup-info-row">
-          <span className="setup-info-label">パスワード</span>
-          <span className="setup-info-val" style={{ fontFamily: "monospace", fontSize: 16, letterSpacing: 1 }}>{password}</span>
+          <span className="setup-info-label">パスワード（PIN）</span>
+          <span className="setup-info-val" style={{ fontFamily: "monospace", fontSize: 16, letterSpacing: 2 }}>{pin}</span>
         </div>
       </div>
       <Link href="/login" className="auth-submit" style={{ display: "block", textAlign: "center", textDecoration: "none", lineHeight: "52px" }}>
         ログインする
       </Link>
-      <p className="auth-help">ログイン後、必要に応じてパスワードを変更できます。スクリーンショットの保存をおすすめします。</p>
+      <p className="auth-help">ログインID と パスワード（PIN）はメモまたはスクリーンショットの保存をおすすめします。</p>
     </>
   );
 }

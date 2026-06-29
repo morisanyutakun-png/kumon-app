@@ -17,8 +17,8 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { organizations } from "@/db/schema";
-import { sendCredentialsEmail } from "@/lib/email";
 import { isPaid, maskEmail, provisionAccount, provisionPayloadSchema } from "@/lib/provision";
+import { sendProvisionEmails } from "@/lib/provision-notify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -122,17 +122,8 @@ export async function POST(req: Request) {
     const result = await provisionAccount(payload);
     console.info(`[provision] webhook: ${result.status} to=${maskEmail(result.email)}`);
 
-    // 生成したログイン情報(メール+パスワード)を送信。失敗してもアカウントは作成済み。
-    if (result.password) {
-      await sendCredentialsEmail({
-        to: result.email,
-        loginEmail: result.email,
-        password: result.password,
-        loginUrl: `${baseUrl(req)}/login`,
-        studentName: payload.studentName || payload.name,
-        subjectLabels: payload.subjectLabels,
-      });
-    }
+    // ログイン情報(顧客)＋発行通知(運営者)を送信。失敗してもアカウントは作成済み。
+    await sendProvisionEmails({ result, payload, loginUrl: `${baseUrl(req)}/login` });
     return Response.json({ ok: true, status: result.status });
   } catch (e) {
     // 5xx を返すと yuta-eng 側が再送してくれる(冪等なので再送は安全)。

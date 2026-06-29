@@ -249,23 +249,23 @@ E2E は主要フロー (生徒/教材登録 → 課題割当 → 答案提出 �
 
 決済は **yuta-eng** 側で完了し、本アプリは **アカウント発行（ログインできるようにする）** だけを担当する。
 
-### 連携の流れ（システム生成パスワード方式）
+### 連携の流れ（st~ ログインID + PIN 方式：運営作成の生徒と同一形式）
 1. ユーザーは決済成功後 `/{このアプリ}/setup?session_id=cs_xxx` に戻る。
 2. `/setup` がサーバー側で yuta-eng の照会API（`GET /api/provision/session`、ヘッダ `x-nobit-secret`）を呼び、`paid:true` を確認。
-3. 確認できたら **冪等にアカウントを発行**：パスワードを**自動生成**し、`users(role=student, status=active, passwordHash, pwPlain)` ＋ `students(active)` ＋ `subscriptions` を作成。`/setup` は **ログインID（メール）＋生成パスワード** を画面に表示し、「ログインする」ボタンを出す。
-4. 画面を閉じても届くよう、yuta-eng は同じJSONを **Webhook**（`POST /api/provision`、ヘッダ `x-nobit-secret`）でも送る。受信時に同じ発行処理を行い、**ログイン情報（メール＋生成パスワード＋ログインURL）を Resend でメール送信**する。
-5. 生徒は メール＋パスワードでログイン。運営は **生徒管理 `/students`** で各生徒のログイン（メール）とパスワード（`pwPlain`・管理者表示）を確認・伝達できる。
+3. 確認できたら **冪等にアカウントを発行**：`students` 行に **`loginId`（st~）＋ PIN（`pinHash`/`pinPlain`）** を発行（`active`）し、契約は `subscriptions`（`email` 一意）に保存して `subscriptions.studentId` で紐付け。`/setup` は **ログインID（st~）＋ PIN** を画面表示し「ログインする」ボタンを出す。
+4. **メール送信は `/setup` と Webhook（`POST /api/provision`）の両方**で行う（新規発行時のみ）。送るのは **顧客＝ログインID＋PIN＋ログインURL**、**運営者（admin/operator）＝発行通知**。Webhook が来なくても `/setup` で確実に送られる。
+5. 生徒は **既存の生徒ログイン（loginID + PIN）**でログイン（`auth.ts` の students 経路）。運営は **生徒管理 `/students`** で各生徒の st~ と PIN（管理者表示）を確認・伝達でき、手動作成の生徒と同じ表示になる。
 
 ### アカウント方式（既存認証に準拠）
-- 認証は **NextAuth v5（JWT）＋ Credentials ＋ bcryptjs**。`users.passwordHash` で照合（生成パスワードは `pwPlain` にも保存し運営が確認・伝達。既存の保護者/職員と同方針）。
-- 発行されるのは **生徒本人がメール＋パスワードでログインする `users(role=student)`** で、学習進捗用の `students` 行と相互参照（`students.userId`）。`auth.ts` はメールログイン時に `students.userId` から `studentId` をセッションに載せる。
+- 認証は **NextAuth v5（JWT）＋ Credentials ＋ bcryptjs**。生徒は `students.loginId + pinHash`（`auth.ts` の生徒ログイン経路）で照合。運営作成の生徒と完全に同一方式。
+- 発行は `students` のみ（`users` 行は作らない）。`pinPlain` は運営が生徒管理で確認・伝達する用途（既存の手動作成生徒と同方針）。
 
 ### 冪等性・エッジケース
-- キーは **メールアドレス**（`users.email` ・ `subscriptions.email` が一意）。新規は `users` を `onConflictDoNothing(email)`、`subscriptions` を `onConflictDoUpdate(email)` で競合安全に。
-- **Webhook と `/setup` が同時に来ても 500 にしない**（ユニーク制約違反は既存パスへ退避）。同じ email / session を2回処理しても二重作成しない。
-- 既に `active` のメールが来たら再作成せず、保存済みパスワード（あれば）を返して案内。
+- 冪等キーは **`subscriptions.email`（一意）**。`onConflictDoUpdate(email)` で契約を upsert し、`subscriptions.studentId` が空のときだけ **条件付きUPDATE**で生徒を1件だけ紐付ける。
+- **Webhook と `/setup` が同時に来ても 500 にしない／生徒を二重作成しない**（負けた側は自分の生徒を破棄して相手の資格情報を返す）。
+- 既に発行済みの再来は再作成せず、既存の st~/PIN を返して案内。
 - 照会APIが 402/404/エラーならログイン情報を出さずエラーと問い合わせ導線を表示（`/setup` は想定外例外でも 500 にせず復旧UI＋ `app/setup/error.tsx`）。
-- **メール送信は try/catch で必ず分離**。`RESEND_API_KEY` 未設定や送信失敗でも `/setup` は正常表示し、アカウント発行・ログインは継続（失敗はログのみ）。送信元は要 Resend ドメイン認証（`SETUP_EMAIL_FROM`）。
+- **メール送信は try/catch で必ず分離**。`RESEND_API_KEY` 未設定や送信失敗でも `/setup` は正常表示し、アカウント発行・ログインは継続（失敗はログのみ）。送信元は要 Resend ドメイン認証（`SETUP_EMAIL_FROM`）。メールは新規発行時のみ（重複防止）。
 
 ### 必要な環境変数（Vercel / `.env`）
 | 変数 | 用途 |
