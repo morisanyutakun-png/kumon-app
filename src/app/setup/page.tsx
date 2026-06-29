@@ -47,9 +47,9 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
   if (sessionId) {
     const lookup = await fetchProvisionSession(sessionId);
     if (!lookup.ok) {
-      if (lookup.reason === "unpaid") return <Shell><LookupError msg="お支払いが確認できませんでした。" detail={lookup.detail} /></Shell>;
-      if (lookup.reason === "not_found") return <Shell><LookupError msg="お申し込み情報が見つかりませんでした。" detail={lookup.detail} /></Shell>;
-      return <Shell><LookupError msg="お申し込み情報の確認中にエラーが発生しました。" detail={lookup.detail} /></Shell>;
+      if (lookup.reason === "unpaid") return <Shell><LookupError msg="お支払いが確認できませんでした。" /></Shell>;
+      if (lookup.reason === "not_found") return <Shell><LookupError msg="お申し込み情報が見つかりませんでした。" /></Shell>;
+      return <Shell><LookupError msg="お申し込み情報の確認中にエラーが発生しました。" /></Shell>;
     }
     if (!isPaid(lookup.payload)) {
       return <Shell><LookupError msg="お支払いが確認できませんでした。" /></Shell>;
@@ -127,7 +127,7 @@ function InvalidToken() {
   );
 }
 
-function LookupError({ msg, hideContact, detail }: { msg: string; hideContact?: boolean; detail?: string }) {
+function LookupError({ msg, hideContact }: { msg: string; hideContact?: boolean }) {
   return (
     <>
       <p className="auth-error" role="alert">{msg}</p>
@@ -136,11 +136,6 @@ function LookupError({ msg, hideContact, detail }: { msg: string; hideContact?: 
           お手数ですが、しばらくしてから決済完了メールのリンクを開くか、
           <a href="https://yuta-eng.com/contact"> サポート窓口</a> までご連絡ください。
         </p>
-      )}
-      {detail && (
-        <pre style={{ marginTop: 12, padding: "10px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11, lineHeight: 1.6, color: "#334155", whiteSpace: "pre-wrap", wordBreak: "break-all", textAlign: "left" }}>
-          技術詳細(デバッグ用): {detail}
-        </pre>
       )}
     </>
   );
