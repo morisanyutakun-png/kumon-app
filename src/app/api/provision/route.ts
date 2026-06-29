@@ -13,6 +13,10 @@
  */
 import { timingSafeEqual } from "node:crypto";
 
+import { eq } from "drizzle-orm";
+
+import { db } from "@/db";
+import { organizations } from "@/db/schema";
 import { sendSetupEmail } from "@/lib/email";
 import { isPaid, maskEmail, provisionAccount, provisionPayloadSchema } from "@/lib/provision";
 
@@ -30,6 +34,71 @@ function secretOk(provided: string | null): boolean {
 
 function baseUrl(req: Request): string {
   return (process.env.AUTH_URL ?? new URL(req.url).origin).replace(/\/$/, "");
+}
+
+/**
+ * 設定確認(診断)用。値そのものは返さず「設定済みか/組織がDBに存在するか/
+ * yuta-eng に到達&シークレット一致するか」だけを返す。
+ *   GET /api/provision            ヘッダ x-nobit-secret 必須(=シークレット一致の確認も兼ねる)
+ *   GET /api/provision?upstream=1 yuta-eng 照会APIへの到達&シークレット一致も実測
+ */
+export async function GET(req: Request) {
+  // ここを 200 で通過できること自体が NOBIT_REGISTER_SECRET の一致を意味する。
+  if (!secretOk(req.headers.get("x-nobit-secret"))) {
+    return Response.json(
+      { ok: false, error: "unauthorized", hint: "x-nobit-secret が未設定/不一致です" },
+      { status: 401 },
+    );
+  }
+
+  // NOBIT_PROVISION_ORG_ID: 設定有無 + DBに該当組織が存在するか(名前のみ・非機密)
+  const orgId = process.env.NOBIT_PROVISION_ORG_ID ?? "";
+  let org: { set: boolean; existsInDb?: boolean; name?: string } = { set: !!orgId };
+  if (orgId) {
+    try {
+      const [o] = await db
+        .select({ name: organizations.name })
+        .from(organizations)
+        .where(eq(organizations.id, orgId))
+        .limit(1);
+      org = { set: true, existsInDb: !!o, name: o?.name };
+    } catch {
+      org = { set: true, existsInDb: false };
+    }
+  }
+
+  const result: Record<string, unknown> = {
+    ok: true,
+    env: {
+      NOBIT_REGISTER_SECRET: "set & matched", // ここに来た時点で一致
+      NOBIT_PROVISION_ORG_ID: org,
+      YUTA_ENG_BASE_URL: process.env.YUTA_ENG_BASE_URL ?? "(未設定→既定 https://yuta-eng.com)",
+      AUTH_URL: process.env.AUTH_URL ?? "(未設定→リクエスト origin を使用)",
+      RESEND_API_KEY: { set: !!process.env.RESEND_API_KEY },
+      SETUP_EMAIL_FROM: process.env.SETUP_EMAIL_FROM ?? "(未設定→既定 onboarding@resend.dev)",
+    },
+  };
+
+  // 任意: yuta-eng 照会APIへの到達 & シークレット一致を実測(ダミー session_id)。
+  if (new URL(req.url).searchParams.get("upstream")) {
+    const base = (process.env.YUTA_ENG_BASE_URL ?? "https://yuta-eng.com").replace(/\/$/, "");
+    try {
+      const r = await fetch(`${base}/api/provision/session?session_id=__healthcheck__`, {
+        headers: { "x-nobit-secret": process.env.NOBIT_REGISTER_SECRET ?? "" },
+        cache: "no-store",
+      });
+      result.upstream = {
+        reachable: true,
+        status: r.status,
+        secretAcceptedByYutaEng: r.status !== 401, // 401 ならこちらの秘密鍵が yuta-eng と不一致
+        note: r.status === 404 || r.status === 402 ? "到達OK・秘密鍵一致(未知/未払いsessionで想定どおり)" : undefined,
+      };
+    } catch (e) {
+      result.upstream = { reachable: false, error: e instanceof Error ? e.message : "unknown" };
+    }
+  }
+
+  return Response.json(result, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(req: Request) {
