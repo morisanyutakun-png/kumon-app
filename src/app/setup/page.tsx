@@ -55,7 +55,14 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
       return <Shell><LookupError msg="お支払いが確認できませんでした。" /></Shell>;
     }
 
-    const result = await provisionAccount(lookup.payload);
+    // アカウント発行で想定外の例外が出ても 500 にせず、復旧可能なエラーUIを返す。
+    let result;
+    try {
+      result = await provisionAccount(lookup.payload);
+    } catch (e) {
+      console.error(`[provision] /setup 発行エラー: ${e instanceof Error ? e.stack ?? e.message : "unknown"}`);
+      return <Shell><LookupError msg="アカウントの発行中にエラーが発生しました。時間をおいて、決済完了メールのリンクから再度お試しください。" /></Shell>;
+    }
     if (result.status === "already_active") {
       return <Shell><AlreadyActive /></Shell>;
     }

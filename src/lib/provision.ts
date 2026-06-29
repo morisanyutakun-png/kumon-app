@@ -92,6 +92,14 @@ function provisionOrgId(): string {
   return id;
 }
 
+/** 新規作成中に「既に他方が作成済み」だった場合の内部シグナル(トランザクションをロールバックして既存パスへ)。 */
+class ProvisionConflict extends Error {
+  constructor() {
+    super("provision conflict");
+    this.name = "ProvisionConflict";
+  }
+}
+
 export interface ProvisionResult {
   /** created=新規発行 / pending_reused=既存の仮アカウントを再利用 / already_active=本登録済み */
   status: "created" | "pending_reused" | "already_active";
@@ -135,55 +143,87 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
     stripeSessionId: payload.stripeSessionId ?? null,
   };
 
+  // 逐次の一般ケース(既に作成済み)を先に処理。
   const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (existing) return existingPath(existing.id, existing.status, contract, subjectIds, email);
 
-  if (existing) {
-    if (existing.status === "active") {
-      return { status: "already_active", email, userId: existing.id };
+  // 新規作成。Webhook と /setup が同時に来ても 500 にしないよう ON CONFLICT で競合安全にする:
+  //  - users は onConflictDoNothing → 競合(=他方が先に作成)なら user が返らない → 既存パスへ退避
+  //    (DO NOTHING は競合行のロック解放まで待ってから no-op するため、退避時には相手が確定済み)
+  //  - subscriptions は email 一意 → onConflictDoUpdate、subscription_subjects は onConflictDoNothing
+  let createdUserId: string;
+  let createdSubId: string | undefined;
+  try {
+    const created = await db.transaction(async (tx) => {
+      const [user] = await tx
+        .insert(users)
+        .values({
+          organizationId: orgId,
+          email,
+          name: studentName || email,
+          role: "student",
+          passwordHash: "", // pending: 未設定。/setup で設定するまでログイン不可。
+          status: "pending",
+        })
+        .onConflictDoNothing({ target: users.email })
+        .returning({ id: users.id });
+      if (!user) throw new ProvisionConflict(); // 既存 → ロールバックして既存パスへ
+      const [student] = await tx
+        .insert(students)
+        .values({ organizationId: orgId, name: studentName || email, grade, active: false })
+        .returning({ id: students.id });
+      await tx.update(students).set({ userId: user.id }).where(eq(students.id, student.id));
+      const [sub] = await tx
+        .insert(subscriptions)
+        .values({ ...contract, userId: user.id, studentId: student.id, status: "pending" })
+        .onConflictDoUpdate({
+          target: subscriptions.email,
+          set: { ...contract, userId: user.id, studentId: student.id },
+        })
+        .returning({ id: subscriptions.id });
+      if (subjectIds.length > 0) {
+        await tx
+          .insert(subscriptionSubjects)
+          .values(subjectIds.map((subjectId) => ({ subscriptionId: sub.id, subjectId })))
+          .onConflictDoNothing();
+      }
+      return { userId: user.id, subscriptionId: sub.id };
+    });
+    createdUserId = created.userId;
+    createdSubId = created.subscriptionId;
+  } catch (e) {
+    if (e instanceof ProvisionConflict) {
+      // 競合: 別の実行(Webhook 等)が先に作成済み → 既存として扱う。
+      const [u2] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+      if (u2) return existingPath(u2.id, u2.status, contract, subjectIds, email);
     }
-    // pending を再利用: 契約情報を更新し、token を再発行。
-    await upsertSubscription(contract, existing.id, subjectIds);
-    const setupToken = await issueSetupToken(existing.id);
-    const [sub] = await db
-      .select({ id: subscriptions.id })
-      .from(subscriptions)
-      .where(eq(subscriptions.email, email))
-      .limit(1);
-    return { status: "pending_reused", email, userId: existing.id, setupToken, subscriptionId: sub?.id };
+    throw e; // 想定外は投げる(/setup 側で復旧UIに変換)
   }
 
-  // 新規: students + users(pending) + subscriptions をトランザクションで作成。
-  const created = await db.transaction(async (tx) => {
-    const [student] = await tx
-      .insert(students)
-      .values({ organizationId: orgId, name: studentName || email, grade, active: false })
-      .returning();
-    const [user] = await tx
-      .insert(users)
-      .values({
-        organizationId: orgId,
-        email,
-        name: studentName || email,
-        role: "student",
-        passwordHash: "", // pending: 未設定。/setup で設定するまでログイン不可。
-        status: "pending",
-      })
-      .returning();
-    await tx.update(students).set({ userId: user.id }).where(eq(students.id, student.id));
-    const [sub] = await tx
-      .insert(subscriptions)
-      .values({ ...contract, userId: user.id, studentId: student.id, status: "pending" })
-      .returning();
-    if (subjectIds.length > 0) {
-      await tx
-        .insert(subscriptionSubjects)
-        .values(subjectIds.map((subjectId) => ({ subscriptionId: sub.id, subjectId })));
-    }
-    return { userId: user.id, subscriptionId: sub.id };
-  });
+  const setupToken = await issueSetupToken(createdUserId);
+  return { status: "created", email, userId: createdUserId, setupToken, subscriptionId: createdSubId };
+}
 
-  const setupToken = await issueSetupToken(created.userId);
-  return { status: "created", email, userId: created.userId, setupToken, subscriptionId: created.subscriptionId };
+/** 既存(pending=再利用 / active=登録済み)の生徒に対する応答。 */
+async function existingPath(
+  userId: string,
+  status: string,
+  contract: typeof subscriptions.$inferInsert,
+  subjectIds: string[],
+  email: string,
+): Promise<ProvisionResult> {
+  if (status === "active") {
+    return { status: "already_active", email, userId };
+  }
+  // pending を再利用: 契約情報を更新し、token を再発行。
+  await upsertSubscription(contract, userId, subjectIds);
+  const setupToken = await issueSetupToken(userId);
+  const [sub] = await db
+    .select({ id: subscriptions.id })
+    .from(subscriptions)
+    .where(eq(subscriptions.email, email))
+    .limit(1);
+  return { status: "pending_reused", email, userId, setupToken, subscriptionId: sub?.id };
 }
 
 /** pending 再利用時に契約情報を email キーで upsert し、科目を貼り直す。 */
@@ -211,14 +251,17 @@ async function upsertSubscription(
         .values(subjectIds.map((subjectId) => ({ subscriptionId: existingSub.id, subjectId })));
     }
   } else {
+    // 競合(同時実行で他方が先に subscriptions を作成)でも 500 にしないよう onConflictDoUpdate。
     const [sub] = await db
       .insert(subscriptions)
       .values({ ...contract, userId, status: "pending" })
-      .returning();
+      .onConflictDoUpdate({ target: subscriptions.email, set: { ...contract, userId } })
+      .returning({ id: subscriptions.id });
     if (subjectIds.length > 0) {
       await db
         .insert(subscriptionSubjects)
-        .values(subjectIds.map((subjectId) => ({ subscriptionId: sub.id, subjectId })));
+        .values(subjectIds.map((subjectId) => ({ subscriptionId: sub.id, subjectId })))
+        .onConflictDoNothing();
     }
   }
 }
