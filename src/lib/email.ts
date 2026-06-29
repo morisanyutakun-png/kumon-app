@@ -68,25 +68,55 @@ export async function sendCredentialsEmail(opts: {
   return send([opts.to], "【ノビットスタディ】ログイン情報のご案内", html);
 }
 
-/** 運営者へ「新しい生徒が発行された」通知を送る。 */
+/** 運営者へ「新しい生徒が発行された」通知(契約内容・金額・生徒情報つき)を送る。 */
 export async function sendOperatorNotification(
   to: string[],
-  opts: { studentName?: string; loginId: string; email: string; subjectLabels?: string },
+  d: {
+    studentName?: string;
+    grade?: string;
+    loginId: string;
+    pin?: string;
+    email: string;
+    applicantName?: string;
+    phone?: string;
+    subjectLabels?: string;
+    subjectCount?: number | string;
+    monthlyAmount?: number | string;
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    stripeSessionId?: string;
+  },
 ): Promise<{ ok: boolean }> {
-  const subjects = opts.subjectLabels ? `<p>科目: ${escapeHtml(opts.subjectLabels)}</p>` : "";
+  const amount = d.monthlyAmount !== undefined && d.monthlyAmount !== "" && Number(d.monthlyAmount) > 0
+    ? `${Number(d.monthlyAmount).toLocaleString("ja-JP")} 円 / 月`
+    : "—";
+  const row = (label: string, value?: string) =>
+    `<tr><td style="padding:5px 10px;color:#64748b;white-space:nowrap;vertical-align:top;">${escapeHtml(label)}</td><td style="padding:5px 10px;font-weight:700;">${value ?? "—"}</td></tr>`;
   const html = `
-    <div style="font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;line-height:1.7;color:#0f172a;">
-      <h2 style="color:#1c9dd8;">新しい生徒が発行されました</h2>
-      <p>お申し込み(決済)により、生徒アカウントが発行されました。</p>
-      <div style="margin:14px 0;padding:12px 14px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;">
-        <p style="margin:0 0 4px;">氏名: <b>${escapeHtml(opts.studentName || "(未設定)")}</b></p>
-        <p style="margin:0 0 4px;">ログインID: <b>${escapeHtml(opts.loginId)}</b></p>
-        <p style="margin:0;">連絡先メール: ${escapeHtml(opts.email)}</p>
-        ${subjects}
-      </div>
-      <p style="color:#64748b;font-size:13px;">ログインID/PIN は「生徒・保護者」画面でも確認できます。</p>
+    <div style="font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;line-height:1.6;color:#0f172a;">
+      <h2 style="color:#1c9dd8;">新しい生徒が発行されました（決済お申し込み）</h2>
+      <p>以下の内容で生徒アカウントを発行しました。ログインID/PIN は「生徒・保護者」画面でも確認できます。</p>
+      <h3 style="margin:18px 0 6px;font-size:15px;">ログイン情報</h3>
+      <table style="border-collapse:collapse;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;">
+        ${row("ログインID", `<span style="font-family:monospace;font-size:15px;">${escapeHtml(d.loginId)}</span>`)}
+        ${row("PIN", d.pin ? `<span style="font-family:monospace;font-size:15px;letter-spacing:2px;">${escapeHtml(d.pin)}</span>` : "—")}
+      </table>
+      <h3 style="margin:18px 0 6px;font-size:15px;">生徒・契約情報</h3>
+      <table style="border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+        ${row("生徒氏名", escapeHtml(d.studentName || "(未設定)"))}
+        ${row("学年", escapeHtml(d.grade || "—"))}
+        ${row("申込者(保護者)", escapeHtml(d.applicantName || "—"))}
+        ${row("連絡先メール", escapeHtml(d.email))}
+        ${row("電話", escapeHtml(d.phone || "—"))}
+        ${row("契約科目", escapeHtml(d.subjectLabels || "—"))}
+        ${row("科目数", d.subjectCount !== undefined && d.subjectCount !== "" ? escapeHtml(String(d.subjectCount)) : "—")}
+        ${row("月額", escapeHtml(amount))}
+        ${row("Stripe顧客ID", escapeHtml(d.stripeCustomerId || "—"))}
+        ${row("Stripeサブスク", escapeHtml(d.stripeSubscriptionId || "—"))}
+        ${row("Stripeセッション", escapeHtml(d.stripeSessionId || "—"))}
+      </table>
     </div>`;
-  return send(to, "【ノビットスタディ】新しい生徒が発行されました", html);
+  return send(to, `【ノビットスタディ】新規発行: ${d.studentName || d.email}`, html);
 }
 
 function escapeHtml(s: string): string {

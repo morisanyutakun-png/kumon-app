@@ -11,7 +11,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 
 import { sendCredentialsEmail, sendOperatorNotification } from "./email";
-import type { ProvisionPayload, ProvisionResult } from "./provision";
+import { gradeLabel, type ProvisionPayload, type ProvisionResult } from "./provision";
 
 export async function sendProvisionEmails(opts: {
   result: ProvisionResult;
@@ -34,21 +34,38 @@ export async function sendProvisionEmails(opts: {
     subjectLabels: payload.subjectLabels,
   });
 
-  // 運営者(admin/operator でメールあり)へ通知。
+  // 運営者(admin/operator でメールあり)＋ 明示指定(OPERATOR_NOTIFY_EMAIL) へ詳細通知。
   try {
+    const recipients = new Set<string>();
     const orgId = process.env.NOBIT_PROVISION_ORG_ID;
-    if (!orgId) return;
-    const admins = await db
-      .select({ email: users.email })
-      .from(users)
-      .where(and(eq(users.organizationId, orgId), inArray(users.role, ["admin", "operator"])));
-    const to = admins.map((a) => a.email).filter((e): e is string => !!e);
+    if (orgId) {
+      const admins = await db
+        .select({ email: users.email })
+        .from(users)
+        .where(and(eq(users.organizationId, orgId), inArray(users.role, ["admin", "operator"])));
+      for (const a of admins) if (a.email) recipients.add(a.email.toLowerCase());
+    }
+    // 任意: 確実に届けたい運営者アドレス(カンマ区切り)。
+    for (const e of (process.env.OPERATOR_NOTIFY_EMAIL ?? "").split(",")) {
+      const v = e.trim().toLowerCase();
+      if (v) recipients.add(v);
+    }
+    const to = [...recipients];
     if (to.length > 0) {
       await sendOperatorNotification(to, {
         studentName,
+        grade: gradeLabel((payload.grade || "").trim()),
         loginId: result.loginId,
+        pin: result.pin,
         email: result.email,
+        applicantName: payload.name,
+        phone: payload.phone,
         subjectLabels: payload.subjectLabels,
+        subjectCount: payload.subjectCount,
+        monthlyAmount: payload.monthlyAmount,
+        stripeCustomerId: payload.stripeCustomerId,
+        stripeSubscriptionId: payload.stripeSubscriptionId,
+        stripeSessionId: payload.stripeSessionId,
       });
     }
   } catch (e) {
