@@ -4,6 +4,8 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { assignments, materials, students, units } from "@/db/schema";
 import { requireOperator } from "@/lib/access";
+import { getActiveDivision } from "@/lib/active-division";
+import { divisionForGrade } from "@/lib/division";
 import { listSubmissions, type SubmissionRow } from "@/lib/queries";
 import { nextWindow, type NextWindow } from "@/lib/progress-db";
 import { GradeByStudent, type StudentGroup } from "./grade-by-student";
@@ -33,13 +35,14 @@ export default async function GradingPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const p = await requireOperator();
+  const division = await getActiveDivision();
   const { tab } = await searchParams;
   const view = tab === "done" ? "done" : "todo";
 
   if (view === "done") {
-    const doneSubs = await listSubmissions(p.organizationId, {
+    const doneSubs = (await listSubmissions(p.organizationId, {
       statuses: ["returned", "done", "resubmit_required"],
-    });
+    })).filter((s) => divisionForGrade(s.studentGrade) === division);
     return (
       <div>
         <GradingHead view="done" todoCount={0} />
@@ -93,6 +96,7 @@ export default async function GradingPage({
 
   const agg = new Map<string, Agg>();
   for (const a of assignRows) {
+    if (divisionForGrade(a.grade) !== division) continue; // 選択中の部門の生徒のみ
     let g = agg.get(a.studentId);
     if (!g) {
       g = { studentId: a.studentId, name: a.name, grade: a.grade, gradable: [], pend: 0 };

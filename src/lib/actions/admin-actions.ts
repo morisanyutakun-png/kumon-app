@@ -19,6 +19,7 @@ import {
   users,
 } from "@/db/schema";
 import { requireAdmin, requireOperator } from "@/lib/access";
+import { getActiveDivision } from "@/lib/active-division";
 import { assignPurchasedSubjects } from "@/lib/assign-purchased";
 import { saveFile } from "@/lib/blob";
 import { initialSessionRange } from "@/lib/progress-db";
@@ -467,6 +468,7 @@ export async function quickAddMaterial(fd: FormData): Promise<{ name: string }> 
 
   await db.insert(materials).values({
     organizationId: p.organizationId,
+    division: await getActiveDivision(),
     name,
     subject,
     progressType,
@@ -598,6 +600,7 @@ export async function createMaterial(
 
   await db.insert(materials).values({
     organizationId: p.organizationId,
+    division: await getActiveDivision(),
     name,
     subject,
     description,

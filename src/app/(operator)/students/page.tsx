@@ -3,13 +3,16 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { guardianStudents, students, users } from "@/db/schema";
 import { requireOperator } from "@/lib/access";
+import { getActiveDivision } from "@/lib/active-division";
+import { divisionForGrade, DIVISION_LABEL } from "@/lib/division";
 import { RosterGrid, type RosterRow } from "./roster-grid";
 
 export default async function PeoplePage() {
   const p = await requireOperator();
   const isAdmin = p.role === "admin";
+  const division = await getActiveDivision();
 
-  const [studentRows, links] = await Promise.all([
+  const [allStudentRows, links] = await Promise.all([
     db
       .select()
       .from(students)
@@ -27,6 +30,9 @@ export default async function PeoplePage() {
       .innerJoin(users, eq(guardianStudents.guardianUserId, users.id))
       .where(eq(guardianStudents.organizationId, p.organizationId)),
   ]);
+
+  // 選択中の部門の生徒だけ表示(学年で判定)。
+  const studentRows = allStudentRows.filter((s) => divisionForGrade(s.grade) === division);
 
   // 生徒ごとの保護者(先頭の1名を同じ行に表示)
   const guardianByStudent = new Map<string, RosterRow["guardian"]>();
@@ -57,7 +63,7 @@ export default async function PeoplePage() {
   return (
     <div>
       <div className="page-head" style={{ marginBottom: 14 }}>
-        <h1>生徒・保護者</h1>
+        <h1>生徒・保護者（{DIVISION_LABEL[division]}）</h1>
         <p>
           生徒 {rows.length} 名（うち保護者あり {withGuardian} 名）。1つの表で左が生徒・右が保護者です。
           最下行から1行でまとめて追加できます（保護者は任意）。

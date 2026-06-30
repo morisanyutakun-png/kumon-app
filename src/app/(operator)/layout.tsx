@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { requireOperator } from "@/lib/access";
+import { getActiveDivision } from "@/lib/active-division";
 import { DemoBanner } from "@/components/demo-banner";
+import { DivisionSwitch } from "@/components/division-switch";
 import { Logo } from "@/components/logo";
 import { LogoutButton } from "@/components/logout-button";
 import { NavTabs, type NavTabItem } from "@/components/nav-tabs";
@@ -20,6 +22,7 @@ export default async function OperatorLayout({
   children: React.ReactNode;
 }) {
   const p = await requireOperator();
+  const activeDivision = await getActiveDivision();
   const tabs: NavTabItem[] =
     p.role === "admin"
       ? [...BASE_TABS, { href: "/staff", label: "スタッフ" }]
@@ -35,6 +38,7 @@ export default async function OperatorLayout({
           </Link>
           <NavTabs items={tabs} />
           <div className="appbar-right">
+            <DivisionSwitch active={activeDivision} />
             <span className="appbar-user">
               {p.name}
               <span className="appbar-role">{p.role === "admin" ? "管理者" : "採点者"}</span>

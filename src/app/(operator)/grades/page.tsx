@@ -4,6 +4,8 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { students } from "@/db/schema";
 import { requireOperator } from "@/lib/access";
+import { getActiveDivision } from "@/lib/active-division";
+import { divisionForGrade } from "@/lib/division";
 import { listGradingHistory, type HistoryRow } from "@/lib/queries";
 import { computeGradeStats } from "@/lib/grades";
 
@@ -14,11 +16,17 @@ function fmtDate(d: Date | null): string {
 
 export default async function OperatorGradesPage() {
   const p = await requireOperator();
+  const division = await getActiveDivision();
 
-  const [studentRows, allRows] = await Promise.all([
+  const [allStudentRows, allRows0] = await Promise.all([
     db.select().from(students).where(eq(students.organizationId, p.organizationId)).orderBy(asc(students.name)),
     listGradingHistory(p.organizationId),
   ]);
+
+  // 選択中の部門の生徒だけに絞る(学年で判定)。履歴も同部門の生徒分のみ。
+  const studentRows = allStudentRows.filter((s) => divisionForGrade(s.grade) === division);
+  const dIds = new Set(studentRows.map((s) => s.id));
+  const allRows = allRows0.filter((r) => dIds.has(r.studentId));
 
   // 生徒ごとに採点履歴をまとめる
   const byStudent = new Map<string, HistoryRow[]>();
@@ -33,7 +41,7 @@ export default async function OperatorGradesPage() {
     stats: computeGradeStats(byStudent.get(st.id) ?? []),
   }));
 
-  const org = computeGradeStats(allRows); // 全体(教科分布・全体合格率に使用)
+  const org = computeGradeStats(allRows); // 部門全体(教科分布・合格率に使用)
   const activeStudents = rows.filter((r) => r.stats.gradedSubmissions > 0).length;
 
   const overall = [

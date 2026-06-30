@@ -88,6 +88,9 @@ export const materialFileKindEnum = pgEnum("material_file_kind", [
   "other",
 ]);
 
+/** 部門。小学部(elementary) / 中高部(secondary)。教材の分離と運営UIの切り替えに使う。 */
+export const divisionEnum = pgEnum("division", ["elementary", "secondary"]);
+
 // =============================================================================
 // テナント & ユーザー
 // =============================================================================
@@ -250,6 +253,8 @@ export const materials = pgTable("materials", {
   organizationId: uuid("organization_id")
     .notNull()
     .references(() => organizations.id, { onDelete: "cascade" }),
+  // 部門(小学部/中高部)。既存教材は小学部(算数)なので既定 elementary。
+  division: divisionEnum("division").notNull().default("elementary"),
   subject: varchar("subject", { length: 64 }).notNull().default(""),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description").notNull().default(""),

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { requireOperator } from "@/lib/access";
+import { getActiveDivision } from "@/lib/active-division";
 import { assignmentMatrix } from "@/lib/queries";
 import { SUBMISSION_STATUS_LABELS } from "@/lib/submission-state";
 import { AgAddCell, AgDeleteButton } from "./assign-cells";
@@ -20,7 +21,8 @@ function subjectColor(subject: string): { accent: string; soft: string; ink: str
 
 export default async function AssignmentsPage() {
   const p = await requireOperator();
-  const { students, maxCols, materials } = await assignmentMatrix(p.organizationId);
+  const division = await getActiveDivision();
+  const { students, maxCols, materials } = await assignmentMatrix(p.organizationId, division);
 
   const cols = Math.max(maxCols, 0);
   const noData = students.length === 0 || materials.length === 0;

@@ -835,6 +835,12 @@ body {
 .topnav a.active { color: var(--primary); border-bottom-color: var(--primary); }
 
 .appbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; padding-left: 12px; }
+/* 小学部/中高部 切り替え(セグメント) */
+.division-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: #f1f5f9; padding: 2px; }
+.division-switch button { border: 0; background: transparent; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 800; color: #64748b; padding: 5px 12px; border-radius: 999px; line-height: 1; white-space: nowrap; }
+.division-switch button:hover:not(.active):not(:disabled) { color: #334155; }
+.division-switch button.active { background: var(--primary); color: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.division-switch button:disabled { cursor: default; }
 .appbar-user { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--ink, #14365a); white-space: nowrap; }
 .appbar-role { font-size: 11px; font-weight: 800; color: #5b6b7c; background: #eef2f6; border: 1px solid var(--line); padding: 2px 7px; }
 .appbar .db-badge, .appbar-right .db-badge { border-radius: 0; }

@@ -24,6 +24,7 @@ import type {
   SubmissionImage,
   SubmissionStatus,
 } from "@/db/schema";
+import { divisionForGrade, type Division } from "@/lib/division";
 
 export interface SubmissionRow {
   submissionId: string;
@@ -290,12 +291,14 @@ export interface AssignmentMatrix {
 /** 課題割り当てのマトリクス表 (行=生徒, 列=課題1..N) 用データ。 */
 export async function assignmentMatrix(
   organizationId: string,
+  division?: Division,
 ): Promise<AssignmentMatrix> {
-  const studentRows = await db
+  const studentRows = (await db
     .select({ id: students.id, name: students.name, grade: students.grade })
     .from(students)
     .where(eq(students.organizationId, organizationId))
-    .orderBy(asc(students.name));
+    .orderBy(asc(students.name)))
+    .filter((s) => !division || divisionForGrade(s.grade) === division);
 
   const assignRows = await db
     .select({
@@ -362,7 +365,11 @@ export async function assignmentMatrix(
   const materialRows = await db
     .select({ id: materials.id, name: materials.name, subject: materials.subject })
     .from(materials)
-    .where(eq(materials.organizationId, organizationId))
+    .where(
+      division
+        ? and(eq(materials.organizationId, organizationId), eq(materials.division, division))
+        : eq(materials.organizationId, organizationId),
+    )
     .orderBy(asc(materials.name));
 
   return { students: studentsOut, maxCols, materials: materialRows };

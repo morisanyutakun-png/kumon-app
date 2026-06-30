@@ -50,6 +50,13 @@
       "when": 1782731956326,
       "tag": "0006_stripe_provisioning",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782788127153,
+      "tag": "0007_material_division",
+      "breakpoints": true
     }
   ]
 }
