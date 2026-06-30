@@ -1549,3 +1549,18 @@ body {
 }
 .division-badge.elementary { background: #fef3c7; color: #92400e; }
 .division-badge.secondary { background: #dbeafe; color: #1e40af; }
+
+/* ===== 運営UIの部門テーマ =====
+   中高部はネイビー系(--primary 等を上書き)で小学部(ノビットブルー)と明確に区別。
+   --primary を使う箇所(ヘッダー下線・アクティブタブ・主要ボタン・切替トグル等)が一括で切り替わる。 */
+.division-root { transition: none; }
+.division-root[data-division="secondary"] {
+  --primary: #1e3a8a;
+  --primary-d: #172554;
+  --primary-soft: #eef2ff;
+  --primary-line: #c7d2fe;
+}
+.division-root[data-division="secondary"] .appbar { background: #f8fafc; }
+.division-root[data-division="secondary"] .appbar-role { background: #1e3a8a; color: #fff; border-color: #1e3a8a; }
+/* 切替中はトグルを薄く(処理中の合図) */
+.division-switch[data-pending="true"] { opacity: 0.6; pointer-events: none; }
