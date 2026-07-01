@@ -5,6 +5,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { students, subscriptions } from "@/db/schema";
 import { requireOperator } from "@/lib/access";
+import { isSecondary } from "@/lib/division";
 import { listGradingHistory } from "@/lib/queries";
 import { GradeReport } from "@/components/grade-report";
 import { StudentSwitcher } from "@/components/student-switcher";
@@ -75,7 +76,7 @@ export default async function OperatorStudentGradePage({
         </section>
       )}
 
-      <GradeReport rows={rows} />
+      <GradeReport rows={rows} secondary={isSecondary(student.grade)} />
     </div>
   );
 }

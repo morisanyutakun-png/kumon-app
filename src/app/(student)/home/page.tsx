@@ -13,20 +13,25 @@ import { StatusBadge } from "@/components/status-badge";
 import type { SubmissionRow } from "@/lib/queries";
 import type { SubmissionStatus } from "@/db/schema";
 
-const CTA: Partial<Record<SubmissionStatus, string>> = {
-  not_submitted: "ていしゅつする",
-  resubmit_required: "もう一度ていしゅつ",
-  returned: "けっかを見る",
-};
+function ctaLabel(status: SubmissionStatus, sec: boolean): string | undefined {
+  switch (status) {
+    case "not_submitted": return sec ? "提出する" : "ていしゅつする";
+    case "resubmit_required": return sec ? "再提出する" : "もう一度ていしゅつ";
+    case "returned": return sec ? "結果を見る" : "けっかを見る";
+    default: return undefined;
+  }
+}
 
 function subjectColor(subject: string): string {
   switch (subject) {
-    case "算数": return "#1aa3e6";
+    case "算数": case "数学": return "#1aa3e6";
     case "国語": return "#ff5d8f";
-    case "理科": return "#18c39a";
-    case "社会": return "#ff8a3d";
+    case "理科": case "物理": return "#18c39a";
+    case "化学": return "#00a3a3";
+    case "生物": return "#3bb54a";
+    case "社会": case "地歴公民": return "#ff8a3d";
     case "英語": return "#7c5cfc";
-    case "プログラミング": return "#13b6c9";
+    case "情報": case "プログラミング": return "#13b6c9";
     default: return "#1c9dd8";
   }
 }
@@ -35,28 +40,28 @@ function fmtDue(d: Date | null): string {
   return new Date(d).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
 }
 
-function TaskCard({ r }: { r: SubmissionRow }) {
-  const cta = CTA[r.status];
+function TaskCard({ r, sec }: { r: SubmissionRow; sec: boolean }) {
+  const cta = ctaLabel(r.status, sec);
   const color = subjectColor(r.subject);
   return (
     <Link href={`/submissions/${r.submissionId}`} className="task">
       <span className="task-ico" style={{ background: color }}>{(r.subject || "課")[0]}</span>
       <div className="task-main">
         <div className="task-title">{r.assignmentTitle || r.materialName}<StatusBadge status={r.status} /></div>
-        <div className="task-meta">{r.subject}{r.rangeText ? ` ・ ${r.rangeText}` : ""}{r.dueDate ? ` ・ きげん ${fmtDue(r.dueDate)}` : ""}</div>
+        <div className="task-meta">{r.subject}{r.rangeText ? ` ・ ${r.rangeText}` : ""}{r.dueDate ? ` ・ ${sec ? "期限" : "きげん"} ${fmtDue(r.dueDate)}` : ""}</div>
       </div>
       {cta && <span className="task-cta" style={{ background: color }}>{cta}</span>}
     </Link>
   );
 }
 
-function Section({ title, rows }: { title: string; rows: SubmissionRow[] }) {
+function Section({ title, rows, sec }: { title: string; rows: SubmissionRow[]; sec: boolean }) {
   if (rows.length === 0) return null;
   return (
     <section style={{ marginBottom: 22 }}>
       <div className="lsection">{title}<span className="lsection-n">{rows.length}</span></div>
       <div style={{ display: "grid", gap: 12 }}>
-        {rows.map((r) => <TaskCard key={r.submissionId} r={r} />)}
+        {rows.map((r) => <TaskCard key={r.submissionId} r={r} sec={sec} />)}
       </div>
     </section>
   );
@@ -106,8 +111,8 @@ export default async function StudentHome() {
           <div className="learn-hero-title">{greet}</div>
           <div className="learn-hero-sub">{message}</div>
           <div className="hero-chips">
-            <span className="hero-chip"><IconFlame size={15} /> {streak}日れんぞく</span>
-            <span className="hero-chip"><IconStar size={15} /> はなまる {pass}こ</span>
+            <span className="hero-chip"><IconFlame size={15} /> {streak}日{sec ? "連続" : "れんぞく"}</span>
+            <span className="hero-chip"><IconStar size={15} /> {sec ? `合格 ${pass}` : `はなまる ${pass}こ`}</span>
             <span className="hero-chip"><IconMedal size={15} /> {lv.name}</span>
           </div>
         </div>
@@ -137,7 +142,7 @@ export default async function StudentHome() {
             <div className="mission-title">{mission.assignmentTitle || mission.materialName}</div>
             <div className="mission-meta">{mission.subject}{mission.rangeText ? ` ・ ${mission.rangeText}` : ""}</div>
           </div>
-          <span className="mission-cta" style={{ background: missionColor }}>はじめる →</span>
+          <span className="mission-cta" style={{ background: missionColor }}>{sec ? "取り組む →" : "はじめる →"}</span>
         </Link>
       ) : rows.length === 0 ? (
         <div className="mission mission-done">
@@ -160,23 +165,25 @@ export default async function StudentHome() {
       {/* がんばりメーター */}
       <div className="meter">
         <div className="meter-head">
-          <span className="meter-title">がんばりメーター</span>
+          <span className="meter-title">{sec ? "学習状況" : "がんばりメーター"}</span>
           <span className="meter-level"><IconMedal size={15} /> {lv.name}</span>
         </div>
         <div className="meter-bar"><div className="meter-fill" style={{ width: `${lv.progress}%` }} /></div>
         <div className="meter-foot">
-          {lv.isMax ? "さいこう称号に とうたつ！すごい！" : `つぎの称号まで あと ${lv.remaining} こ`}
+          {lv.isMax
+            ? sec ? "最高ランクに到達しました。" : "さいこう称号に とうたつ！すごい！"
+            : sec ? `次のランクまで あと ${lv.remaining}` : `つぎの称号まで あと ${lv.remaining} こ`}
         </div>
         <div className="meter-stats">
-          <div className="ms ms-star"><span className="ms-ico"><IconStar size={20} /></span><b>{pass}</b><span>はなまる</span></div>
-          <div className="ms ms-done"><span className="ms-ico"><IconCheck size={20} /></span><b>{doneCount}</b><span>かんりょう</span></div>
+          <div className="ms ms-star"><span className="ms-ico"><IconStar size={20} /></span><b>{pass}</b><span>{sec ? "合格" : "はなまる"}</span></div>
+          <div className="ms ms-done"><span className="ms-ico"><IconCheck size={20} /></span><b>{doneCount}</b><span>{sec ? "完了" : "かんりょう"}</span></div>
           <div className="ms ms-week"><span className="ms-ico"><IconCalendar size={20} /></span><b>{weekCount}</b><span>今週の提出</span></div>
         </div>
       </div>
 
-      <Section title="やること" rows={todo} />
-      <Section title="けっかまち" rows={waiting} />
-      <Section title="へんきゃく・かくにん" rows={returned} />
+      <Section title={sec ? "未提出" : "やること"} rows={todo} sec={sec} />
+      <Section title={sec ? "採点待ち" : "けっかまち"} rows={waiting} sec={sec} />
+      <Section title={sec ? "返却・確認" : "へんきゃく・かくにん"} rows={returned} sec={sec} />
     </div>
   );
 }

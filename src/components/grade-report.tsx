@@ -35,16 +35,18 @@ function Sparkline({ points }: { points: { pct: number | null }[] }) {
 export function GradeReport({
   rows,
   showStudentName = false,
+  secondary = false,
 }: {
   rows: HistoryRow[];
   showStudentName?: boolean;
+  secondary?: boolean;
 }) {
   const s = computeGradeStats(rows);
 
   const tiles: { label: string; value: string; sub?: string; tone: string }[] = [
     { label: "合格率", value: `${s.passRate}%`, sub: `${s.passCount}/${s.gradedSubmissions} 課題`, tone: "ok" },
     { label: "平均点", value: s.avgPct == null ? "—" : `${s.avgPct}%`, sub: "得点率の平均", tone: "info" },
-    { label: "はなまる", value: `${s.passCount}`, sub: s.level.name, tone: "star" },
+    { label: secondary ? "合格数" : "はなまる", value: `${s.passCount}`, sub: s.level.name, tone: "star" },
     { label: "連続学習", value: `${s.streak}`, sub: "日", tone: "fire" },
   ];
 

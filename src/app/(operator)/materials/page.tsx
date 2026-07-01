@@ -44,7 +44,7 @@ export default async function MaterialsPage() {
         </p>
       </div>
 
-      <MaterialsGrid materials={list} />
+      <MaterialsGrid materials={list} division={division} />
     </div>
   );
 }

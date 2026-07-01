@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { canAccessStudent, requirePrincipal } from "@/lib/access";
+import { isSecondary } from "@/lib/division";
 import { getSubmissionDetail } from "@/lib/queries";
 import { confirmReturned } from "@/lib/actions/submission-actions";
 import { ActionButton } from "@/components/action-button";
@@ -88,6 +89,7 @@ export default async function StudentSubmissionPage({
             submissionId={submission.id}
             resubmit={submission.status === "resubmit_required"}
             pdfUrl={pdfUrl}
+            secondary={isSecondary(detail.student.grade)}
           />
         </div>
       )}

@@ -11,9 +11,11 @@ type Pick = { file: File; url: string };
 export function SubmitForm({
   submissionId,
   resubmit,
+  secondary = false,
 }: {
   submissionId: string;
   resubmit?: boolean;
+  secondary?: boolean;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -50,7 +52,7 @@ export function SubmitForm({
     startTransition(async () => {
       try {
         await submitAnswer(submissionId, fd);
-        toast.success(resubmit ? "再提出しました。" : "提出しました。おつかれさま！");
+        toast.success(resubmit ? "再提出しました。" : secondary ? "提出しました。" : "提出しました。おつかれさま！");
         picks.forEach((p) => URL.revokeObjectURL(p.url));
         setPicks([]);
         router.refresh();
@@ -75,7 +77,7 @@ export function SubmitForm({
       {picks.length === 0 ? (
         <button type="button" className="photo-drop" onClick={() => inputRef.current?.click()}>
           <span className="photo-drop-ico" aria-hidden>📷</span>
-          <span style={{ fontWeight: 700 }}>写真をえらぶ・撮る</span>
+          <span style={{ fontWeight: 700 }}>{secondary ? "答案の写真を選ぶ・撮影" : "写真をえらぶ・撮る"}</span>
           <span className="muted" style={{ fontSize: 13 }}>答案の写真を何枚でも選べます</span>
         </button>
       ) : (
@@ -96,7 +98,7 @@ export function SubmitForm({
 
       <div>
         <button type="button" className="btn-primary big" onClick={submit} disabled={pending}>
-          {pending ? "送信中…" : picks.length === 0 ? "写真をえらんで提出" : resubmit ? "再提出する" : "提出する"}
+          {pending ? "送信中…" : picks.length === 0 ? (secondary ? "写真を選んで提出" : "写真をえらんで提出") : resubmit ? "再提出する" : "提出する"}
         </button>
       </div>
     </div>

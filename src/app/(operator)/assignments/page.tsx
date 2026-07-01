@@ -11,10 +11,12 @@ function subjectColor(subject: string): { accent: string; soft: string; ink: str
   switch (subject) {
     case "英語": return { accent: "#2563eb", soft: "#eff6ff", ink: "#1e3a8a" };
     case "国語": return { accent: "#dc2626", soft: "#fef2f2", ink: "#7f1d1d" };
-    case "数学": return { accent: "#059669", soft: "#ecfdf5", ink: "#065f46" };
-    case "理科": return { accent: "#0891b2", soft: "#ecfeff", ink: "#155e75" };
-    case "社会": return { accent: "#d97706", soft: "#fffbeb", ink: "#92400e" };
-    case "情報": return { accent: "#7c3aed", soft: "#f5f3ff", ink: "#5b21b6" };
+    case "数学": case "算数": return { accent: "#059669", soft: "#ecfdf5", ink: "#065f46" };
+    case "理科": case "物理": return { accent: "#0891b2", soft: "#ecfeff", ink: "#155e75" };
+    case "化学": return { accent: "#0d9488", soft: "#f0fdfa", ink: "#115e59" };
+    case "生物": return { accent: "#16a34a", soft: "#f0fdf4", ink: "#166534" };
+    case "社会": case "地歴公民": return { accent: "#d97706", soft: "#fffbeb", ink: "#92400e" };
+    case "情報": case "プログラミング": return { accent: "#7c3aed", soft: "#f5f3ff", ink: "#5b21b6" };
     default: return { accent: "#64748b", soft: "#f8fafc", ink: "#334155" };
   }
 }

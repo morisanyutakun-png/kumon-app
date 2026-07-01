@@ -7,7 +7,16 @@ import { toast } from "sonner";
 import { deleteMaterial, quickAddMaterial, uploadMaterialFile } from "@/lib/actions/admin-actions";
 import { ActionButton } from "@/components/action-button";
 
-export const SUBJECTS = ["算数", "国語", "理科", "社会", "英語", "プログラミング", "その他"];
+import type { Division } from "@/lib/division";
+
+/** 小学部の教科プルダウン。 */
+export const ELEMENTARY_SUBJECTS = ["算数", "国語", "理科", "社会", "英語", "プログラミング", "その他"];
+/** 中高部の教科プルダウン（高校教科名）。 */
+export const SECONDARY_SUBJECTS = ["数学", "英語", "物理", "化学", "生物", "国語", "地歴公民", "情報", "その他"];
+
+function subjectsFor(division: Division): string[] {
+  return division === "secondary" ? SECONDARY_SUBJECTS : ELEMENTARY_SUBJECTS;
+}
 export const PROGRESS_OPTIONS: { value: string; label: string }[] = [
   { value: "manual", label: "手入力（範囲を都度指定）" },
   { value: "chapter", label: "章ごと（単元で進む）" },
@@ -80,9 +89,10 @@ function MaterialFiles({ materialId, files }: { materialId: string; files: Mater
   );
 }
 
-export function MaterialsGrid({ materials }: { materials: MaterialRow[] }) {
+export function MaterialsGrid({ materials, division = "elementary" }: { materials: MaterialRow[]; division?: Division }) {
+  const subjects = subjectsFor(division);
   const [name, setName] = useState("");
-  const [subject, setSubject] = useState("算数");
+  const [subject, setSubject] = useState(subjects[0]);
   const [progressType, setProgressType] = useState("manual");
   const [pending, startTransition] = useTransition();
   const nameRef = useRef<HTMLInputElement>(null);
@@ -141,7 +151,7 @@ export function MaterialsGrid({ materials }: { materials: MaterialRow[] }) {
           <tr style={{ background: "#f3f9fc" }}>
             <td>
               <select value={subject} onChange={(e) => setSubject(e.target.value)} style={cellInput}>
-                {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+                {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </td>
             <td>

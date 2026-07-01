@@ -4,6 +4,7 @@ import { inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { students } from "@/db/schema";
 import { accessibleStudentIds, requirePrincipal } from "@/lib/access";
+import { isSecondary } from "@/lib/division";
 import { listGradingHistory } from "@/lib/queries";
 import { GradeReport } from "@/components/grade-report";
 import { StudentSwitcher } from "@/components/student-switcher";
@@ -61,7 +62,7 @@ export default async function StudentGradesPage({
         </p>
       </div>
 
-      <GradeReport rows={rows} />
+      <GradeReport rows={rows} secondary={isSecondary(me?.grade)} />
     </div>
   );
 }

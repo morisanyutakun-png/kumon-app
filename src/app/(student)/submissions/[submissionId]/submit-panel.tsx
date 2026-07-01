@@ -9,15 +9,17 @@ export function SubmitPanel({
   submissionId,
   resubmit,
   pdfUrl,
+  secondary = false,
 }: {
   submissionId: string;
   resubmit?: boolean;
   pdfUrl: string | null;
+  secondary?: boolean;
 }) {
   const [mode, setMode] = useState<"write" | "photo">(pdfUrl ? "write" : "photo");
 
   if (!pdfUrl) {
-    return <SubmitForm submissionId={submissionId} resubmit={resubmit} />;
+    return <SubmitForm submissionId={submissionId} resubmit={resubmit} secondary={secondary} />;
   }
 
   return (
@@ -27,14 +29,14 @@ export function SubmitPanel({
           ✏️ PDFに書き込む
         </button>
         <button type="button" className={`submit-mode${mode === "photo" ? " on" : ""}`} onClick={() => setMode("photo")}>
-          📷 写真で出す
+          📷 {secondary ? "写真で提出" : "写真で出す"}
         </button>
       </div>
 
       {mode === "write" ? (
         <PdfAnnotator pdfUrl={pdfUrl} submissionId={submissionId} resubmit={resubmit} />
       ) : (
-        <SubmitForm submissionId={submissionId} resubmit={resubmit} />
+        <SubmitForm submissionId={submissionId} resubmit={resubmit} secondary={secondary} />
       )}
     </div>
   );
