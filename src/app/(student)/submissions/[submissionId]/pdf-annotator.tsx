@@ -40,6 +40,8 @@ export function PdfAnnotator({
   downloadName?: string;
 }) {
   const router = useRouter();
+  // 手書きをブラウザに自動保存するキー(提出前に閉じても復元できる)。
+  const storageKey = submissionId ? `kumon-ink-v1-${submissionId}` : null;
   const stageRef = useRef<HTMLDivElement>(null); // ビューポート(固定枠)
   const surfaceRef = useRef<HTMLDivElement>(null); // 変形(ズーム/パン)する層
   const pageCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -66,9 +68,12 @@ export function PdfAnnotator({
   const [tool, setTool] = useState<"pen" | "eraser">("pen");
   const [color, setColor] = useState(COLORS[0]);
   const [width, setWidth] = useState(PEN_WIDTHS[1]);
-  const [fingerDraw, setFingerDraw] = useState(false); // OFF=ペンのみ(手のひら無効化)
+  // 既定は「指・ペンどちらでも書ける」。タッチペン(静電式含む)を前提にするため。
+  // OFF にすると Apple Pencil 専用(手のひら無効=パームリジェクション)。
+  const [fingerDraw, setFingerDraw] = useState(true);
   const [zoomPct, setZoomPct] = useState(100);
   const [submitting, setSubmitting] = useState(false);
+  const [confirming, setConfirming] = useState(false); // 提出確認ダイアログ
   const [, force] = useState(0);
 
   // ---- pdfjs ロード ----
@@ -82,6 +87,20 @@ export function PdfAnnotator({
         if (cancelled) return;
         pdfRef.current = doc;
         setNumPages(doc.numPages);
+        // 自動保存された手書きを復元(提出前に離脱しても消えないように)。
+        if (storageKey) {
+          try {
+            const raw = localStorage.getItem(storageKey);
+            if (raw) {
+              const arr = JSON.parse(raw) as [number, Stroke[]][];
+              const map = new Map<number, Stroke[]>();
+              for (const [pg, strokes] of arr) map.set(Number(pg), strokes);
+              strokesRef.current = map;
+            }
+          } catch {
+            /* 壊れた保存は無視 */
+          }
+        }
         setReady(true);
       } catch (e) {
         console.error(e);
@@ -186,6 +205,18 @@ export function PdfAnnotator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
+  // 手書きをブラウザに自動保存(提出まで保持)。
+  function persist() {
+    if (!storageKey) return;
+    try {
+      const arr = [...strokesRef.current.entries()].filter(([, l]) => l.length > 0);
+      if (arr.length) localStorage.setItem(storageKey, JSON.stringify(arr));
+      else localStorage.removeItem(storageKey);
+    } catch {
+      /* 保存できなくても描画は継続 */
+    }
+  }
+
   function redrawInk() {
     const inkCanvas = inkCanvasRef.current;
     if (!inkCanvas) return;
@@ -206,10 +237,25 @@ export function PdfAnnotator({
     ctx.lineWidth = s.width;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+    const pts = s.points;
     ctx.beginPath();
-    ctx.moveTo(s.points[0].x * w, s.points[0].y * h);
-    for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x * w, s.points[i].y * h);
-    if (s.points.length === 1) ctx.lineTo(s.points[0].x * w + 0.1, s.points[0].y * h + 0.1);
+    ctx.moveTo(pts[0].x * w, pts[0].y * h);
+    if (pts.length === 1) {
+      ctx.lineTo(pts[0].x * w + 0.1, pts[0].y * h + 0.1);
+    } else if (pts.length === 2) {
+      ctx.lineTo(pts[1].x * w, pts[1].y * h);
+    } else {
+      // 中点を制御点に二次ベジェで結び、線を滑らかにする。
+      for (let i = 1; i < pts.length - 1; i++) {
+        const cx = pts[i].x * w;
+        const cy = pts[i].y * h;
+        const mx = (pts[i].x + pts[i + 1].x) * 0.5 * w;
+        const my = (pts[i].y + pts[i + 1].y) * 0.5 * h;
+        ctx.quadraticCurveTo(cx, cy, mx, my);
+      }
+      const last = pts[pts.length - 1];
+      ctx.lineTo(last.x * w, last.y * h);
+    }
     ctx.stroke();
     ctx.globalCompositeOperation = "source-over";
   }
@@ -259,6 +305,7 @@ export function PdfAnnotator({
     drawIdRef.current = null;
     drawIsTouchRef.current = false;
     redrawInk();
+    persist();
   }
 
   function onPointerDown(e: React.PointerEvent) {
@@ -323,6 +370,7 @@ export function PdfAnnotator({
       drawingRef.current = null;
       drawIdRef.current = null;
       drawIsTouchRef.current = false;
+      persist();
       force((n) => n + 1);
     }
     if (e.pointerType === "pen") penActiveRef.current = false;
@@ -337,12 +385,14 @@ export function PdfAnnotator({
     if (list && list.length) {
       list.pop();
       redrawInk();
+      persist();
       force((n) => n + 1);
     }
   }
   function clearPage() {
     strokesRef.current.set(pageNum, []);
     redrawInk();
+    persist();
     force((n) => n + 1);
   }
 
@@ -383,8 +433,23 @@ export function PdfAnnotator({
     return out;
   }
 
+  /** 提出ボタン: 採点者の添削は即ダウンロード、生徒提出は確認ダイアログを出す。 */
+  function requestSubmit() {
+    if (submitting) return;
+    if (mode === "markup") {
+      void submit();
+      return;
+    }
+    if (!hasAnyInk) {
+      toast.error("書き込んでから提出してください。");
+      return;
+    }
+    setConfirming(true);
+  }
+
   async function submit() {
     if (submitting) return;
+    setConfirming(false);
     setSubmitting(true);
     try {
       const pages = await renderPages();
@@ -412,7 +477,10 @@ export function PdfAnnotator({
       const fd = new FormData();
       pages.forEach((pg, i) => fd.append("images", new File([pg.bytes as BlobPart], `page-${i + 1}.png`, { type: "image/png" })));
       await submitAnswer(submissionId!, fd);
-      toast.success(resubmit ? "再提出しました。" : "提出しました。おつかれさま！");
+      if (storageKey) {
+        try { localStorage.removeItem(storageKey); } catch { /* noop */ }
+      }
+      toast.success(resubmit ? "再提出しました。" : "提出しました。解答解説で答え合わせをしましょう。");
       if (redirectTo) router.push(redirectTo);
       else router.refresh();
     } catch (e) {
@@ -453,12 +521,19 @@ export function PdfAnnotator({
           <button type="button" className="annot-btn" onClick={resetZoom}>等倍</button>
         </div>
         <div className="annot-edit">
-          <button type="button" className={`annot-btn${fingerDraw ? " on" : ""}`} onClick={() => setFingerDraw((v) => !v)} title="指で書く / ペンのみ(手を無効化)">
-            {fingerDraw ? "🖐 指で書く" : "✋ ペンのみ"}
+          <button type="button" className={`annot-btn${fingerDraw ? " on" : ""}`} onClick={() => setFingerDraw((v) => !v)} title="指・ペンで書く / 手のひら無効(ペンのみ)">
+            {fingerDraw ? "✍️ 指・ペンで書く" : "🖐 手のひら無効"}
           </button>
           <button type="button" className="annot-btn" onClick={undo}>↩ 戻す</button>
           <button type="button" className="annot-btn" onClick={clearPage}>消去</button>
         </div>
+        {mode === "submit" && (
+          <div className="annot-top-submit">
+            <button type="button" className="btn-primary" onClick={requestSubmit} disabled={!ready || submitting}>
+              {submitting ? "提出中…" : resubmit ? "✓ 再提出" : "✓ 提出する"}
+            </button>
+          </div>
+        )}
       </div>
 
       <div ref={stageRef} className="annot-stage">
@@ -487,20 +562,37 @@ export function PdfAnnotator({
       )}
 
       <div className="annot-submit">
-        <button type="button" className="btn-primary big" onClick={submit} disabled={!ready || submitting}>
+        <button type="button" className="btn-primary big" onClick={requestSubmit} disabled={!ready || submitting}>
           {submitting
             ? (mode === "markup" ? "作成中…" : "提出中…")
             : mode === "markup"
               ? "⬇ 書き込み済みPDFをダウンロード"
               : resubmit
-                ? "✓ 書き込んで再提出"
-                : "✓ 完了して提出"}
+                ? "✓ 書き込んで再提出する"
+                : "✓ 完了して提出する"}
         </button>
         {mode === "submit" && !hasAnyInk && ready && <span className="muted" style={{ marginLeft: 10 }}>書き込んでから提出してください。</span>}
       </div>
       <p className="hint" style={{ marginTop: 6 }}>
-        ペン(Apple Pencil等)で書けます。手のひらは無視され、指でのピンチで拡大・1本指でスクロールできます。指でも書きたいときは「ペンのみ」を切り替え。
+        タッチペン・指のどちらでも書けます。2本指でスクロール、ピンチで拡大縮小。Apple Pencil を使うときは「手のひら無効」にすると手が当たっても書けません。書き込みは自動保存され、提出するまで消えません。
       </p>
+
+      {confirming && (
+        <div className="annot-confirm" role="dialog" aria-modal="true" onClick={() => setConfirming(false)}>
+          <div className="annot-confirm-box" onClick={(e) => e.stopPropagation()}>
+            <div className="annot-confirm-title">{resubmit ? "再提出しますか？" : "本当に提出しますか？"}</div>
+            <p className="annot-confirm-body">
+              提出すると先生に答案が送られ、すぐに解答解説で答え合わせ（自己採点）ができます。
+            </p>
+            <div className="annot-confirm-actions">
+              <button type="button" className="annot-btn" onClick={() => setConfirming(false)} disabled={submitting}>もどる</button>
+              <button type="button" className="btn-primary" onClick={submit} disabled={submitting}>
+                {submitting ? "提出中…" : "はい、提出する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

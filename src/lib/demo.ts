@@ -10,6 +10,7 @@
  */
 import type { Principal } from "@/auth";
 import type { UserRole } from "@/db/schema";
+import { DEMO_PROBLEM_PDF_B64, DEMO_SOLUTION_PDF_B64 } from "@/lib/demo-pdf";
 
 /** デモで使う固定 UUID (PGlite シードと一致させる)。 */
 export const DEMO = {
@@ -111,4 +112,17 @@ INSERT INTO assignments (id, organization_id, student_id, material_id, title, ra
 INSERT INTO submissions (organization_id, assignment_id, student_id, status, session_no, range_text) VALUES
   ('${DEMO.orgId}', '00000000-0000-0000-0000-0000000000d1', '${DEMO.studentTaroId}', 'not_submitted', 1, 'A-1 (1〜10)'),
   ('${DEMO.orgId}', '00000000-0000-0000-0000-0000000000d2', '${DEMO.studentHanakoId}', 'not_submitted', 1, 'B-1');
+
+-- 「けいさんドリル B」の範囲 B-1 に、問題PDF(課題本体)と解答解説PDF(answer_key)を添付。
+-- 生徒は「一画面で書き込んで解く」→提出→自己採点(解答解説の即時開示)を体験できる。
+INSERT INTO material_files
+  (organization_id, material_id, unit_id, kind, blob_url, pathname, data_b64, file_name, content_type, size) VALUES
+  ('${DEMO.orgId}', '00000000-0000-0000-0000-0000000000c2',
+   (SELECT id FROM units WHERE material_id='00000000-0000-0000-0000-0000000000c2' AND title='B-1'),
+   'assignment', 'db://demo/b1-problem.pdf', 'demo/b1-problem.pdf',
+   '${DEMO_PROBLEM_PDF_B64}', 'けいさんドリル B-1 問題.pdf', 'application/pdf', 0),
+  ('${DEMO.orgId}', '00000000-0000-0000-0000-0000000000c2',
+   (SELECT id FROM units WHERE material_id='00000000-0000-0000-0000-0000000000c2' AND title='B-1'),
+   'answer_key', 'db://demo/b1-solution.pdf', 'demo/b1-solution.pdf',
+   '${DEMO_SOLUTION_PDF_B64}', 'けいさんドリル B-1 解答解説.pdf', 'application/pdf', 0);
 `;

@@ -10,7 +10,7 @@ import { AnswerImages } from "@/components/answer-images";
 import { GradingHistory } from "@/components/grading-history";
 import { MarkRead } from "@/components/mark-read";
 import { StatusBadge } from "@/components/status-badge";
-import { SubmitPanel } from "./submit-panel";
+import { SubmitForm } from "./submit-form";
 
 export default async function StudentSubmissionPage({
   params,
@@ -25,13 +25,19 @@ export default async function StudentSubmissionPage({
   const allowed = await canAccessStudent(p, detail.student.id);
   if (!allowed) notFound();
 
-  const { submission, assignment, material, materialFiles, images, gradings } = detail;
-  const canSubmit = submission.status === "not_submitted" || submission.status === "resubmit_required";
+  const { submission, assignment, material, materialFiles, solutionFiles, images, gradings } = detail;
+  const sec = isSecondary(detail.student.grade);
+  const canSubmit =
+    submission.status === "not_submitted" || submission.status === "resubmit_required";
+  // 課題本体(問題)PDF。解答解説(answer_key)は materialFiles から除外済み。
   const pdfFile = materialFiles.find(
     (f) => f.contentType === "application/pdf" || f.fileName.toLowerCase().endsWith(".pdf"),
   );
   const pdfUrl = pdfFile ? `/api/files/material/${pdfFile.id}` : null;
-  const hasResult = submission.status === "returned" || submission.status === "done" || gradings.length > 0;
+  // 提出後(採点待ち含む)は、解答解説と自分の答案を出して自己採点できるようにする。
+  const afterSubmit = !canSubmit; // submitted / grading / returned / done
+  const hasResult =
+    submission.status === "returned" || submission.status === "done" || gradings.length > 0;
 
   return (
     <div>
@@ -49,11 +55,12 @@ export default async function StudentSubmissionPage({
         </p>
       </div>
 
+      {/* 課題の説明・問題ファイル */}
       <div className="card">
         <h2>課題</h2>
         {assignment.instructions && <p style={{ whiteSpace: "pre-wrap" }}>{assignment.instructions}</p>}
         {material.description && <p className="muted">{material.description}</p>}
-        {materialFiles.length > 0 && (
+        {materialFiles.length > 0 ? (
           <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
             {materialFiles.map((f) => (
               <div key={f.id} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
@@ -62,49 +69,88 @@ export default async function StudentSubmissionPage({
                 <a href={`/api/files/material/${f.id}?dl=1`} className="db-badge">保存する</a>
               </div>
             ))}
-            <p className="muted" style={{ margin: "2px 0 0", fontSize: 12 }}>
-              「保存する」でダウンロードして、GoodNotes などのアプリで解いてもOK。解き終わったら下の「写真で出す」から提出してね。
-            </p>
           </div>
-        )}
-        {!assignment.instructions && !material.description && materialFiles.length === 0 && (
-          <p className="muted">課題の補足はありません。</p>
+        ) : (
+          !assignment.instructions && !material.description && (
+            <p className="muted">課題の補足はありません。</p>
+          )
         )}
       </div>
 
+      {/* 解く(一画面) */}
       {canSubmit && (
         <div className="card">
-          <h2>{submission.status === "resubmit_required" ? "再提出する" : "答案を提出する"}</h2>
+          <h2>{submission.status === "resubmit_required" ? "再提出する" : "この課題を解く"}</h2>
           {submission.status === "resubmit_required" && (
             <p className="r-NG" style={{ marginTop: 0 }}>
               先生から再提出の依頼があります。コメントを確認して、もう一度提出してください。
             </p>
           )}
-          {pdfUrl && (
-            <Link href={`/submissions/${submission.id}/write`} className="btn-primary big" style={{ width: "100%", marginBottom: 12 }}>
-              ✏️ 全画面で書き込んで解く
-            </Link>
+          {pdfUrl ? (
+            <>
+              <Link
+                href={`/submissions/${submission.id}/write`}
+                className="btn-primary big"
+                style={{ width: "100%" }}
+              >
+                ✏️ 一画面で書き込んで解く
+              </Link>
+              <p className="muted" style={{ margin: "10px 0 0", fontSize: 13 }}>
+                タッチペン・指で直接書き込めます。書いた内容は自動保存され、提出するまで消えません。
+                解き終わったら画面の「提出する」から提出してください。
+              </p>
+            </>
+          ) : (
+            <SubmitForm submissionId={submission.id} resubmit={submission.status === "resubmit_required"} secondary={sec} />
           )}
-          <SubmitPanel
-            submissionId={submission.id}
-            resubmit={submission.status === "resubmit_required"}
-            pdfUrl={pdfUrl}
-            secondary={isSecondary(detail.student.grade)}
-          />
+        </div>
+      )}
+
+      {/* 提出後: 答え合わせ(自己採点) — 解答解説 + 自分の答案 を即時開示 */}
+      {afterSubmit && (
+        <div className="card selfgrade">
+          <h2>答え合わせ（自己採点）</h2>
+          <p className="muted" style={{ marginTop: 0 }}>
+            提出おつかれさま！解答解説を見て、自分の答案と照らし合わせて丸つけをしましょう。
+          </p>
+
+          {solutionFiles.length > 0 ? (
+            <div className="selfgrade-sol">
+              <div className="selfgrade-label">📕 解答・解説</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {solutionFiles.map((f) => (
+                  <div key={f.id} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                    <span style={{ fontWeight: 700 }}>📄 {f.fileName}</span>
+                    <a href={`/api/files/material/${f.id}`} target="_blank" rel="noreferrer" className="btn-primary">解答を開く</a>
+                    <a href={`/api/files/material/${f.id}?dl=1`} className="db-badge">保存する</a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="muted">この課題には解答解説が登録されていません。先生の採点をお待ちください。</p>
+          )}
+
+          {images.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div className="selfgrade-label">📝 提出した自分の答案</div>
+              <AnswerImages images={images} />
+            </div>
+          )}
         </div>
       )}
 
       {(submission.status === "submitted" || submission.status === "grading") && (
         <div className="card">
           <p className="muted" style={{ textAlign: "center", padding: "12px 0", margin: 0 }}>
-            提出を受け付けました。採点結果をお待ちください。
+            提出を受け付けました。先生の採点結果もお待ちください。
           </p>
         </div>
       )}
 
       {hasResult && (
         <div className="card">
-          <h2>採点結果・コメント</h2>
+          <h2>先生からの採点結果・コメント</h2>
           <GradingHistory gradings={gradings} />
           {submission.status === "returned" && (
             <div style={{ marginTop: 12 }}>
@@ -118,13 +164,6 @@ export default async function StudentSubmissionPage({
               この課題は完了しました。おつかれさまでした！
             </p>
           )}
-        </div>
-      )}
-
-      {images.length > 0 && (
-        <div className="card">
-          <h2>提出した答案</h2>
-          <AnswerImages images={images} />
         </div>
       )}
     </div>

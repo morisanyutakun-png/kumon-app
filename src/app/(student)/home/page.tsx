@@ -9,18 +9,7 @@ import { encourageMessage, levelInfo, studyStreak } from "@/lib/encourage";
 import { listGradingHistory, listNotifications, listSubmissions } from "@/lib/queries";
 import { Mascot } from "@/components/mascot";
 import { IconCalendar, IconCheck, IconFlame, IconMedal, IconRedo, IconStar } from "@/components/icons";
-import { StatusBadge } from "@/components/status-badge";
-import type { SubmissionRow } from "@/lib/queries";
-import type { SubmissionStatus } from "@/db/schema";
-
-function ctaLabel(status: SubmissionStatus, sec: boolean): string | undefined {
-  switch (status) {
-    case "not_submitted": return sec ? "提出する" : "ていしゅつする";
-    case "resubmit_required": return sec ? "再提出する" : "もう一度ていしゅつ";
-    case "returned": return sec ? "結果を見る" : "けっかを見る";
-    default: return undefined;
-  }
-}
+import { HomeTabs } from "./home-tabs";
 
 function subjectColor(subject: string): string {
   switch (subject) {
@@ -34,37 +23,6 @@ function subjectColor(subject: string): string {
     case "情報": case "プログラミング": return "#13b6c9";
     default: return "#1c9dd8";
   }
-}
-function fmtDue(d: Date | null): string {
-  if (!d) return "";
-  return new Date(d).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
-}
-
-function TaskCard({ r, sec }: { r: SubmissionRow; sec: boolean }) {
-  const cta = ctaLabel(r.status, sec);
-  const color = subjectColor(r.subject);
-  return (
-    <Link href={`/submissions/${r.submissionId}`} className="task">
-      <span className="task-ico" style={{ background: color }}>{(r.subject || "課")[0]}</span>
-      <div className="task-main">
-        <div className="task-title">{r.assignmentTitle || r.materialName}<StatusBadge status={r.status} /></div>
-        <div className="task-meta">{r.subject}{r.rangeText ? ` ・ ${r.rangeText}` : ""}{r.dueDate ? ` ・ ${sec ? "期限" : "きげん"} ${fmtDue(r.dueDate)}` : ""}</div>
-      </div>
-      {cta && <span className="task-cta" style={{ background: color }}>{cta}</span>}
-    </Link>
-  );
-}
-
-function Section({ title, rows, sec }: { title: string; rows: SubmissionRow[]; sec: boolean }) {
-  if (rows.length === 0) return null;
-  return (
-    <section style={{ marginBottom: 22 }}>
-      <div className="lsection">{title}<span className="lsection-n">{rows.length}</span></div>
-      <div style={{ display: "grid", gap: 12 }}>
-        {rows.map((r) => <TaskCard key={r.submissionId} r={r} sec={sec} />)}
-      </div>
-    </section>
-  );
 }
 
 export default async function StudentHome() {
@@ -181,9 +139,7 @@ export default async function StudentHome() {
         </div>
       </div>
 
-      <Section title={sec ? "未提出" : "やること"} rows={todo} sec={sec} />
-      <Section title={sec ? "採点待ち" : "けっかまち"} rows={waiting} sec={sec} />
-      <Section title={sec ? "返却・確認" : "へんきゃく・かくにん"} rows={returned} sec={sec} />
+      <HomeTabs todo={todo} waiting={waiting} returned={returned} sec={sec} />
     </div>
   );
 }

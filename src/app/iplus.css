@@ -1048,6 +1048,25 @@ body {
   padding: 24px 16px; text-align: center; font-size: 14px;
 }
 
+/* ホームの 課題 / 返却 タブ */
+.home-tabs {
+  display: flex; gap: 8px; margin-bottom: 16px;
+  border-bottom: 2px solid #e2e8f0;
+}
+.home-tab {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px; border: 0; background: transparent; cursor: pointer;
+  font-size: 15px; font-weight: 800; color: #6b7a8a;
+  border-bottom: 3px solid transparent; margin-bottom: -2px;
+}
+.home-tab.on { color: var(--ink); border-bottom-color: var(--primary); }
+.home-tab-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px;
+  background: #ef4444; color: #fff; font-size: 12px; font-weight: 800;
+}
+.home-tab-badge.alt { background: #1f9d55; }
+
 .task {
   display: flex; align-items: center; gap: 14px;
   background: #fff; border: 1px solid #dde2e7;
@@ -1135,6 +1154,15 @@ body {
 /* ============================================================
    生徒の提出: PDF書き込み(GoodNote風) + 写真ピッカー
    ============================================================ */
+/* 自己採点(答え合わせ)カード */
+.card.selfgrade { border: 2px solid #bfe3c8; background: #f4fbf5; }
+.card.selfgrade h2 { color: #1f7a3d; }
+.selfgrade-sol {
+  margin-top: 12px; padding: 12px 14px; border-radius: 12px;
+  background: #fff; border: 1px solid #d4e9d9;
+}
+.selfgrade-label { font-size: 13px; font-weight: 800; color: #1f7a3d; margin-bottom: 8px; }
+
 .submit-modes { display: flex; gap: 8px; }
 .submit-mode {
   flex: 1; padding: 11px 12px; border: 2px solid #dbe3ea; background: #fff;
@@ -1175,6 +1203,24 @@ body {
 
 .annot-pager { display: flex; gap: 12px; align-items: center; justify-content: center; font-weight: 700; color: #475569; }
 .annot-submit { display: flex; align-items: center; }
+/* ツールバー右端の提出ボタン(上部) */
+.annot-top-submit { margin-left: auto; display: inline-flex; align-items: center; }
+.annot-top-submit .btn-primary { min-height: 40px; padding: 0 20px; font-size: 15px; }
+
+/* 提出確認ダイアログ */
+.annot-confirm {
+  position: fixed; inset: 0; z-index: 300; display: grid; place-items: center;
+  background: rgba(15, 30, 50, 0.5); padding: 20px;
+}
+.annot-confirm-box {
+  width: min(420px, 100%); background: #fff; border-radius: 16px; padding: 22px 20px;
+  box-shadow: 0 20px 60px rgba(15, 40, 70, 0.35); text-align: center;
+}
+.annot-confirm-title { font-size: 19px; font-weight: 900; color: var(--ink); }
+.annot-confirm-body { margin: 10px 0 18px; color: #5b6b7c; font-size: 14px; line-height: 1.6; }
+.annot-confirm-actions { display: flex; gap: 10px; justify-content: center; }
+.annot-confirm-actions .annot-btn { min-height: 44px; padding: 0 20px; }
+.annot-confirm-actions .btn-primary { min-height: 44px; padding: 0 24px; font-size: 15px; }
 
 /* 写真ピッカー */
 .photo-drop {
@@ -1212,11 +1258,13 @@ body {
 }
 .write-title { font-weight: 900; color: var(--ink); text-align: center; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; justify-content: center; }
 .write-range { font-size: 12px; font-weight: 700; color: #64748b; }
-.write-body { flex: 1; overflow: auto; padding: 12px; }
-.write-body .annot-stage { background: #e6ecf2; height: calc(100vh - 230px); min-height: 360px; }
+.write-body { flex: 1; overflow: auto; padding: 8px; }
+/* PDFを画面いっぱいに。上部ツールバー(約64px)以外はステージに使う。 */
+.write-body .annot-stage { background: #e6ecf2; height: calc(100vh - 150px); min-height: 420px; }
+.write-body .annotator { gap: 8px; }
 /* 全画面では操作バーを上部に貼り付けて使いやすく */
 .write-body .annot-toolbar { position: sticky; top: 0; z-index: 5; }
-.write-body .annot-submit .btn-primary { width: 100%; }
+.write-body .annot-submit .btn-primary { width: 100%; min-height: 52px; font-size: 17px; }
 
 /* ============================================================
    成績(グレード)レポート

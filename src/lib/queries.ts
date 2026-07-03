@@ -115,7 +115,10 @@ export interface SubmissionDetail {
   assignment: typeof assignments.$inferSelect;
   student: typeof students.$inferSelect;
   material: typeof materials.$inferSelect;
+  /** 課題本体(問題)のファイル。解答解説(answer_key)は含まない。 */
   materialFiles: (typeof materialFiles.$inferSelect)[];
+  /** 解答解説(answer_key)のファイル。提出後の自己採点で開示する。 */
+  solutionFiles: (typeof materialFiles.$inferSelect)[];
   images: SubmissionImage[];
   gradings: (Grading & { mistakes: MistakeTag[] })[];
   events: (typeof submissionEvents.$inferSelect)[];
@@ -178,9 +181,13 @@ export async function getSubmissionDetail(
       })
       .map((u) => u.id),
   );
-  const matFiles = allFiles.filter(
+  const visibleFiles = allFiles.filter(
     (f) => f.unitId === null || allowedUnitIds.has(f.unitId),
   );
+  // 課題本体(問題) と 解答解説(answer_key) を分離。
+  // 解答解説は提出後の「自己採点」でのみ開示するため別枠で返す。
+  const matFiles = visibleFiles.filter((f) => f.kind !== "answer_key");
+  const solFiles = visibleFiles.filter((f) => f.kind === "answer_key");
 
   const images = await db
     .select()
@@ -228,6 +235,7 @@ export async function getSubmissionDetail(
     student,
     material,
     materialFiles: matFiles,
+    solutionFiles: solFiles,
     images,
     gradings: gradingsWithMistakes,
     events,
