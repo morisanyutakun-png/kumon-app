@@ -17,6 +17,7 @@ import {
   submissionEvents,
   submissionImages,
   submissions,
+  units,
 } from "@/db/schema";
 import type {
   Grading,
@@ -153,10 +154,33 @@ export async function getSubmissionDetail(
     .where(eq(materials.id, assignment.materialId))
     .limit(1);
 
-  const matFiles = await db
+  const allFiles = await db
     .select()
     .from(materialFiles)
     .where(eq(materialFiles.materialId, assignment.materialId));
+
+  // 範囲(単元)に割り当てられたファイルは、今回の実施範囲に該当するものだけを見せる。
+  // 教材全体のファイル(unitId=null)は常に表示する。
+  const range = (sub.rangeText || "").trim();
+  const unitRows =
+    allFiles.some((f) => f.unitId)
+      ? await db
+          .select({ id: units.id, title: units.title })
+          .from(units)
+          .where(eq(units.materialId, assignment.materialId))
+      : [];
+  const allowedUnitIds = new Set(
+    unitRows
+      .filter((u) => {
+        const t = (u.title || "").trim();
+        if (!t || !range) return false;
+        return range.includes(t) || t.includes(range);
+      })
+      .map((u) => u.id),
+  );
+  const matFiles = allFiles.filter(
+    (f) => f.unitId === null || allowedUnitIds.has(f.unitId),
+  );
 
   const images = await db
     .select()

@@ -457,7 +457,9 @@ export async function addGuardianToStudent(
 }
 
 /** 行から教材を追加 (教科/教材名/進め方)。番号範囲や単元は編集で設定。 */
-export async function quickAddMaterial(fd: FormData): Promise<{ name: string }> {
+export async function quickAddMaterial(
+  fd: FormData,
+): Promise<{ id: string; name: string }> {
   const p = await requireOperator();
   const name = str(fd, "name");
   const subject = str(fd, "subject");
@@ -466,16 +468,19 @@ export async function quickAddMaterial(fd: FormData): Promise<{ name: string }> 
     ptRaw === "chapter" || ptRaw === "number" ? ptRaw : "manual";
   if (!name) throw new Error("教材名を入力してください。");
 
-  await db.insert(materials).values({
-    organizationId: p.organizationId,
-    division: await getActiveDivision(),
-    name,
-    subject,
-    progressType,
-  });
+  const [row] = await db
+    .insert(materials)
+    .values({
+      organizationId: p.organizationId,
+      division: await getActiveDivision(),
+      name,
+      subject,
+      progressType,
+    })
+    .returning({ id: materials.id });
   revalidatePath("/materials");
   revalidatePath("/assignments");
-  return { name };
+  return { id: row.id, name };
 }
 
 export async function deleteStudent(studentId: string) {
@@ -665,7 +670,10 @@ export async function deleteMaterial(materialId: string) {
   revalidatePath("/assignments");
 }
 
-/** 教材に課題ファイル(PDF/画像)をアップロードする。 */
+/**
+ * 教材に課題ファイル(PDF/画像)をアップロードする。
+ * fd に unitId があれば、その範囲(単元)に割り当てる。無ければ教材全体のファイル。
+ */
 export async function uploadMaterialFile(materialId: string, fd: FormData) {
   const p = await requireOperator();
   const [m] = await db
@@ -679,6 +687,19 @@ export async function uploadMaterialFile(materialId: string, fd: FormData) {
     )
     .limit(1);
   if (!m) throw new Error("教材が見つかりません。");
+
+  // 割り当て先の範囲(任意)。同じ教材配下の単元であることを確認する。
+  const unitIdRaw = str(fd, "unitId");
+  let unitId: string | null = null;
+  if (unitIdRaw) {
+    const [u] = await db
+      .select()
+      .from(units)
+      .where(and(eq(units.id, unitIdRaw), eq(units.materialId, materialId)))
+      .limit(1);
+    if (!u) throw new Error("範囲が見つかりません。");
+    unitId = u.id;
+  }
 
   // 複数ファイルをまとめてアップロード可能。
   const files = fd
@@ -701,6 +722,7 @@ export async function uploadMaterialFile(materialId: string, fd: FormData) {
     await db.insert(materialFiles).values({
       organizationId: p.organizationId,
       materialId,
+      unitId,
       kind: "assignment",
       blobUrl: stored.blobUrl,
       pathname: stored.pathname,
@@ -712,6 +734,259 @@ export async function uploadMaterialFile(materialId: string, fd: FormData) {
   }
 
   revalidatePath("/materials");
+  revalidatePath(`/materials/${materialId}/edit`);
+}
+
+/** 教材ファイルを1件削除する。 */
+export async function removeMaterialFile(fileId: string) {
+  const p = await requireOperator();
+  const deleted = await db
+    .delete(materialFiles)
+    .where(
+      and(
+        eq(materialFiles.id, fileId),
+        eq(materialFiles.organizationId, p.organizationId),
+      ),
+    )
+    .returning({ materialId: materialFiles.materialId });
+  revalidatePath("/materials");
+  if (deleted[0]) revalidatePath(`/materials/${deleted[0].materialId}/edit`);
+}
+
+// =============================================================================
+// 範囲(単元)= カリキュラム編集
+// =============================================================================
+
+/** materialId が operator の org に属することを確認して返す。 */
+async function ownedMaterial(materialId: string, organizationId: string) {
+  const [m] = await db
+    .select()
+    .from(materials)
+    .where(
+      and(eq(materials.id, materialId), eq(materials.organizationId, organizationId)),
+    )
+    .limit(1);
+  if (!m) throw new Error("教材が見つかりません。");
+  return m;
+}
+
+/** 教材の単元を sortOrder 昇順で 0,1,2… に振り直す。 */
+async function renumberUnits(materialId: string) {
+  const rows = await db
+    .select({ id: units.id })
+    .from(units)
+    .where(eq(units.materialId, materialId))
+    .orderBy(asc(units.sortOrder));
+  for (let i = 0; i < rows.length; i++) {
+    await db.update(units).set({ sortOrder: i }).where(eq(units.id, rows[i].id));
+  }
+}
+
+/** 範囲(単元)を末尾に追加する。 */
+export async function addUnit(materialId: string, title: string) {
+  const p = await requireOperator();
+  await ownedMaterial(materialId, p.organizationId);
+  const t = title.trim();
+  if (!t) throw new Error("範囲を入力してください。");
+  const existing = await db
+    .select({ sortOrder: units.sortOrder })
+    .from(units)
+    .where(eq(units.materialId, materialId));
+  const nextOrder =
+    existing.length > 0 ? Math.max(...existing.map((u) => u.sortOrder)) + 1 : 0;
+  const [row] = await db
+    .insert(units)
+    .values({
+      organizationId: p.organizationId,
+      materialId,
+      title: t,
+      rangeText: t,
+      sortOrder: nextOrder,
+    })
+    .returning();
+  revalidatePath(`/materials/${materialId}/edit`);
+  return { id: row.id };
+}
+
+/** 指定位置(1始まり)の前に空の範囲を挿入し、番号を振り直す。 */
+export async function insertUnitBefore(materialId: string, position: number) {
+  const p = await requireOperator();
+  await ownedMaterial(materialId, p.organizationId);
+  const rows = await db
+    .select({ id: units.id })
+    .from(units)
+    .where(eq(units.materialId, materialId))
+    .orderBy(asc(units.sortOrder));
+  const idx = Math.max(0, Math.min(rows.length, position - 1));
+  // 末尾に一旦追加してから、望みの並び順(idx の直前に挿入)で 0..n を振り直す。
+  const [row] = await db
+    .insert(units)
+    .values({
+      organizationId: p.organizationId,
+      materialId,
+      title: "",
+      rangeText: "",
+      sortOrder: rows.length,
+    })
+    .returning({ id: units.id });
+  const ordered = [
+    ...rows.slice(0, idx).map((r) => r.id),
+    row.id,
+    ...rows.slice(idx).map((r) => r.id),
+  ];
+  for (let i = 0; i < ordered.length; i++) {
+    await db.update(units).set({ sortOrder: i }).where(eq(units.id, ordered[i]));
+  }
+  revalidatePath(`/materials/${materialId}/edit`);
+  return { id: row.id };
+}
+
+/** 範囲名を更新する。 */
+export async function renameUnit(unitId: string, title: string) {
+  const p = await requireOperator();
+  const t = title.trim();
+  await db
+    .update(units)
+    .set({ title: t, rangeText: t })
+    .where(
+      and(eq(units.id, unitId), eq(units.organizationId, p.organizationId)),
+    );
+  const [u] = await db
+    .select({ materialId: units.materialId })
+    .from(units)
+    .where(eq(units.id, unitId))
+    .limit(1);
+  if (u) revalidatePath(`/materials/${u.materialId}/edit`);
+}
+
+/** 範囲を削除し、番号を振り直す。 */
+export async function removeUnit(unitId: string) {
+  const p = await requireOperator();
+  const deleted = await db
+    .delete(units)
+    .where(
+      and(eq(units.id, unitId), eq(units.organizationId, p.organizationId)),
+    )
+    .returning({ materialId: units.materialId });
+  if (deleted[0]) {
+    await renumberUnits(deleted[0].materialId);
+    revalidatePath(`/materials/${deleted[0].materialId}/edit`);
+  }
+}
+
+/** カリキュラムエディタからの教材メタ更新(名前/教科/進め方/番号範囲/完了時動作)。 */
+export async function saveMaterialMeta(
+  materialId: string,
+  data: {
+    name: string;
+    subject: string;
+    description: string;
+    progressType: string;
+    completionAction: string;
+    numberStart: number | null;
+    numberEnd: number | null;
+  },
+) {
+  const p = await requireOperator();
+  await ownedMaterial(materialId, p.organizationId);
+  const name = data.name.trim();
+  if (!name) throw new Error("教材名を入力してください。");
+  const progressType =
+    data.progressType === "chapter" || data.progressType === "number"
+      ? data.progressType
+      : "manual";
+  const completionAction =
+    data.completionAction === "review_loop" ? "review_loop" : "delete";
+  await db
+    .update(materials)
+    .set({
+      name,
+      subject: data.subject.trim(),
+      description: data.description,
+      progressType,
+      completionAction,
+      numberStart: progressType === "number" ? data.numberStart : null,
+      numberEnd: progressType === "number" ? data.numberEnd : null,
+    })
+    .where(eq(materials.id, materialId));
+  revalidatePath("/materials");
+  revalidatePath("/assignments");
+  revalidatePath(`/materials/${materialId}/edit`);
+}
+
+/**
+ * 範囲を一括追加(1行1範囲、CSV/Excel貼り付け)。空行は無視。
+ * 各行の1列目(タブ/カンマ区切りの先頭)を範囲名として末尾に追加する。
+ */
+export async function addUnitsBulk(materialId: string, text: string) {
+  const p = await requireOperator();
+  await ownedMaterial(materialId, p.organizationId);
+  const titles = text
+    .split(/\r?\n/)
+    .map((line) => line.split(/[\t,]/)[0].trim())
+    .filter((t) => t.length > 0);
+  if (titles.length === 0) throw new Error("追加する範囲がありません。");
+
+  const existing = await db
+    .select({ sortOrder: units.sortOrder })
+    .from(units)
+    .where(eq(units.materialId, materialId));
+  let nextOrder =
+    existing.length > 0 ? Math.max(...existing.map((u) => u.sortOrder)) + 1 : 0;
+
+  await db.insert(units).values(
+    titles.map((t) => ({
+      organizationId: p.organizationId,
+      materialId,
+      title: t,
+      rangeText: t,
+      sortOrder: nextOrder++,
+    })),
+  );
+  revalidatePath("/materials");
+  revalidatePath(`/materials/${materialId}/edit`);
+  return { added: titles.length };
+}
+
+/** 教材を範囲ごと複製する(ファイルは複製しない)。 */
+export async function duplicateMaterial(materialId: string) {
+  const p = await requireOperator();
+  const src = await ownedMaterial(materialId, p.organizationId);
+  const [copy] = await db
+    .insert(materials)
+    .values({
+      organizationId: p.organizationId,
+      division: src.division,
+      subject: src.subject,
+      name: `${src.name} のコピー`,
+      description: src.description,
+      progressType: src.progressType,
+      numberStart: src.numberStart,
+      numberEnd: src.numberEnd,
+      completionAction: src.completionAction,
+      sortOrder: src.sortOrder,
+    })
+    .returning();
+
+  const srcUnits = await db
+    .select()
+    .from(units)
+    .where(eq(units.materialId, materialId))
+    .orderBy(asc(units.sortOrder));
+  if (srcUnits.length > 0) {
+    await db.insert(units).values(
+      srcUnits.map((u) => ({
+        organizationId: p.organizationId,
+        materialId: copy.id,
+        title: u.title,
+        rangeText: u.rangeText,
+        sortOrder: u.sortOrder,
+      })),
+    );
+  }
+  revalidatePath("/materials");
+  revalidatePath("/assignments");
+  return { id: copy.id };
 }
 
 // =============================================================================

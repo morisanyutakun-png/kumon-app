@@ -290,6 +290,8 @@ export const materialFiles = pgTable("material_files", {
   materialId: uuid("material_id")
     .notNull()
     .references(() => materials.id, { onDelete: "cascade" }),
+  // 割り当て先の範囲(単元)。null は教材全体のファイル(全範囲で表示)。
+  unitId: uuid("unit_id").references(() => units.id, { onDelete: "set null" }),
   kind: materialFileKindEnum("kind").notNull().default("assignment"),
   blobUrl: text("blob_url").notNull(),
   pathname: text("pathname").notNull(),
@@ -539,17 +541,22 @@ export const materialsRelations = relations(materials, ({ one, many }) => ({
   files: many(materialFiles),
 }));
 
-export const unitsRelations = relations(units, ({ one }) => ({
+export const unitsRelations = relations(units, ({ one, many }) => ({
   material: one(materials, {
     fields: [units.materialId],
     references: [materials.id],
   }),
+  files: many(materialFiles),
 }));
 
 export const materialFilesRelations = relations(materialFiles, ({ one }) => ({
   material: one(materials, {
     fields: [materialFiles.materialId],
     references: [materials.id],
+  }),
+  unit: one(units, {
+    fields: [materialFiles.unitId],
+    references: [units.id],
   }),
 }));
 

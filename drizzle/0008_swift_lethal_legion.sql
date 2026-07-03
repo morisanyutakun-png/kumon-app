@@ -1,0 +1,2 @@
+ALTER TABLE "material_files" ADD COLUMN "unit_id" uuid;--> statement-breakpoint
+ALTER TABLE "material_files" ADD CONSTRAINT "material_files_unit_id_units_id_fk" FOREIGN KEY ("unit_id") REFERENCES "public"."units"("id") ON DELETE set null ON UPDATE no action;

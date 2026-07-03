@@ -1,16 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { materials } from "@/db/schema";
+import { materialFiles, materials, units } from "@/db/schema";
 import { requireOperator } from "@/lib/access";
-import { updateMaterial } from "@/lib/actions/admin-actions";
-import { ActionForm } from "@/components/action-form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { ELEMENTARY_SUBJECTS, SECONDARY_SUBJECTS } from "../../materials-grid";
+import { CurriculumEditor } from "./curriculum-editor";
 
 export default async function MaterialEditPage({
   params,
@@ -28,38 +24,44 @@ export default async function MaterialEditPage({
     .limit(1);
   if (!m) notFound();
 
+  const unitRows = await db
+    .select()
+    .from(units)
+    .where(eq(units.materialId, m.id))
+    .orderBy(asc(units.sortOrder));
+
+  const fileRows = await db
+    .select()
+    .from(materialFiles)
+    .where(eq(materialFiles.materialId, m.id))
+    .orderBy(asc(materialFiles.createdAt));
+
+  const subjects = m.division === "secondary" ? SECONDARY_SUBJECTS : ELEMENTARY_SUBJECTS;
+
   return (
-    <div className="mx-auto max-w-lg space-y-4">
+    <div className="mx-auto max-w-3xl space-y-4">
       <Link href="/materials" className="text-sm text-blue-600 hover:underline">
         ← 教材一覧へ
       </Link>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">教材を編集</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ActionForm action={updateMaterial} submitLabel="更新">
-            <input type="hidden" name="id" value={m.id} />
-            <div className="space-y-2">
-              <Label htmlFor="name">教材名 *</Label>
-              <Input id="name" name="name" required defaultValue={m.name} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="subject">教科</Label>
-              <Input id="subject" name="subject" defaultValue={m.subject} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">説明</Label>
-              <Textarea
-                id="description"
-                name="description"
-                rows={3}
-                defaultValue={m.description}
-              />
-            </div>
-          </ActionForm>
-        </CardContent>
-      </Card>
+      <div className="page-head">
+        <h1>教材を編集 — {m.name}</h1>
+        <p>教材名・進め方を設定し、範囲を並べて各範囲にPDFを割り当てます。設定後、課題割り当て画面で生徒に配布できます。</p>
+      </div>
+      <CurriculumEditor
+        material={{
+          id: m.id,
+          name: m.name,
+          subject: m.subject,
+          description: m.description,
+          progressType: m.progressType,
+          completionAction: m.completionAction,
+          numberStart: m.numberStart,
+          numberEnd: m.numberEnd,
+        }}
+        units={unitRows.map((u) => ({ id: u.id, title: u.title }))}
+        files={fileRows.map((f) => ({ id: f.id, fileName: f.fileName, unitId: f.unitId }))}
+        subjects={subjects}
+      />
     </div>
   );
 }

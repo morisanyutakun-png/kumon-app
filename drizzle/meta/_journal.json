@@ -57,6 +57,13 @@
       "when": 1782788127153,
       "tag": "0007_material_division",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783083357232,
+      "tag": "0008_swift_lethal_legion",
+      "breakpoints": true
     }
   ]
 }

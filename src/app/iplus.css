@@ -1564,3 +1564,59 @@ body {
 .division-root[data-division="secondary"] .appbar-role { background: #1e3a8a; color: #fff; border-color: #1e3a8a; }
 /* 切替中はトグルを薄く(処理中の合図) */
 .division-switch[data-pending="true"] { opacity: 0.6; pointer-events: none; }
+
+/* =============================================================================
+   教材管理ワークスペース (PHP materials.php の2ペイン構成を移植)
+   左=教材リスト / 右=範囲編集。教材を選ぶと右に範囲が出る。
+   ============================================================================= */
+.mws-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.mws-split { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 14px; align-items: start; }
+@media (max-width: 1100px) { .mws-split { grid-template-columns: 1fr; } }
+
+.mws-list-card { padding: 0; overflow: hidden; }
+.mws-list-head, .mws-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
+.mws-list-head {
+  background: #f1f5f9; border-bottom: 1px solid #e2e8f0;
+  font-size: 12px; font-weight: 600; color: #475569; position: sticky; top: 0; z-index: 1;
+}
+.mws-list-body { max-height: calc(100vh - 260px); overflow-y: auto; }
+.mws-row { border-bottom: 1px solid #eef2f6; }
+.mws-row:hover { background: #f8fbff !important; }
+
+.mws-open {
+  flex: 0 0 auto; width: 46px; height: 30px; border: 1px solid var(--primary);
+  color: var(--primary); background: #fff; border-radius: 6px; font-size: 12px;
+  cursor: pointer; font-weight: 600;
+}
+.mws-open:hover { background: var(--primary); color: #fff; }
+
+.mws-summary, .mws-summary-head {
+  flex: 1 1 160px; min-width: 0; font-size: 12px; color: #b45309; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mws-summary-head { color: #475569; }
+
+.mws-detail-card { padding: 0; overflow: hidden; position: sticky; top: 12px; }
+.mws-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #fff;
+}
+.mws-panel-body { padding: 14px 16px; max-height: calc(100vh - 220px); overflow-y: auto; }
+
+.mws-detail-summary {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 12px;
+  background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 8px;
+}
+
+.mws-range-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.mws-range {
+  display: flex; align-items: flex-start; gap: 8px; padding: 8px; border: 1px solid #e3e7ee;
+  border-radius: 8px; background: #fff;
+}
+.mws-range:hover { border-color: #cfd8e6; background: #fafcff; }
+.mws-range-num {
+  flex: 0 0 auto; min-width: 24px; height: 24px; display: inline-flex; align-items: center;
+  justify-content: center; background: #eef2f7; border-radius: 6px; font-size: 12px;
+  font-weight: 700; color: #475569; margin-top: 5px;
+}
+.mws-range-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
