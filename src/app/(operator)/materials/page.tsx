@@ -96,7 +96,7 @@ export default async function MaterialsPage({
       numberStart: chosen.numberStart,
       numberEnd: chosen.numberEnd,
       units: unitRows.map((u) => ({ id: u.id, title: u.title })),
-      files: fileRows.map((f) => ({ id: f.id, fileName: f.fileName, unitId: f.unitId })),
+      files: fileRows.map((f) => ({ id: f.id, fileName: f.fileName, unitId: f.unitId, kind: f.kind })),
     };
   }
 

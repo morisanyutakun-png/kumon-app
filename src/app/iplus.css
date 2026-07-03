@@ -1668,3 +1668,11 @@ body {
   font-weight: 700; color: #475569; margin-top: 5px;
 }
 .mws-range-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+/* 範囲ごとの添付を「問題」「解答解説」に分ける */
+.mws-file-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mws-file-label {
+  flex: 0 0 auto; min-width: 62px; padding: 2px 8px; border-radius: 6px;
+  font-size: 11px; font-weight: 800; text-align: center;
+}
+.mws-file-q { background: #e8f1ff; color: #1d4ed8; border: 1px solid #c7dbff; }
+.mws-file-a { background: #eaf7ee; color: #1f7a3d; border: 1px solid #c3e6cd; }

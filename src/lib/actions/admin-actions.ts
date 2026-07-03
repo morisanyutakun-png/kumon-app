@@ -701,6 +701,11 @@ export async function uploadMaterialFile(materialId: string, fd: FormData) {
     unitId = u.id;
   }
 
+  // 添付の種別(問題本体=assignment / 解答解説=answer_key)。既定は問題本体。
+  const kindRaw = str(fd, "kind");
+  const kind: "assignment" | "answer_key" | "other" =
+    kindRaw === "answer_key" ? "answer_key" : kindRaw === "other" ? "other" : "assignment";
+
   // 複数ファイルをまとめてアップロード可能。
   const files = fd
     .getAll("file")
@@ -723,7 +728,7 @@ export async function uploadMaterialFile(materialId: string, fd: FormData) {
       organizationId: p.organizationId,
       materialId,
       unitId,
-      kind: "assignment",
+      kind,
       blobUrl: stored.blobUrl,
       pathname: stored.pathname,
       dataB64: stored.dataB64,

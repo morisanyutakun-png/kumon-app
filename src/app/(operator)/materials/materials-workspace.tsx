@@ -25,6 +25,8 @@ export interface WsFile {
   id: string;
   fileName: string;
   unitId: string | null;
+  /** assignment=問題本体 / answer_key=解答解説 / other。 */
+  kind: string;
 }
 export interface WsUnit {
   id: string;
@@ -96,6 +98,8 @@ function FileSlot({
   onChanged,
   compact = false,
   hideAdd = false,
+  kind = "assignment",
+  addLabel,
 }: {
   materialId: string;
   unitId: string | null;
@@ -103,6 +107,9 @@ function FileSlot({
   onChanged: () => void;
   compact?: boolean;
   hideAdd?: boolean;
+  /** アップロードする種別。assignment=問題本体 / answer_key=解答解説。 */
+  kind?: "assignment" | "answer_key";
+  addLabel?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
@@ -113,6 +120,7 @@ function FileSlot({
     const fd = new FormData();
     for (const f of Array.from(picked)) fd.append("file", f);
     if (unitId) fd.set("unitId", unitId);
+    fd.set("kind", kind);
     const count = picked.length;
     startTransition(async () => {
       try {
@@ -153,7 +161,7 @@ function FileSlot({
         <>
           <input ref={inputRef} type="file" accept="application/pdf,image/*" multiple onChange={onPicked} style={{ display: "none" }} />
           <button type="button" className="db-badge" onClick={() => inputRef.current?.click()} disabled={pending} style={{ cursor: "pointer", color: "var(--primary)", borderColor: "var(--primary)" }}>
-            {pending ? "…" : files.length > 0 ? "＋" : compact ? "＋PDF" : "＋ PDFを割り当て"}
+            {pending ? "…" : files.length > 0 ? "＋" : addLabel ?? (compact ? "＋PDF" : "＋ PDFを割り当て")}
           </button>
         </>
       )}
@@ -285,6 +293,10 @@ function RangeRow({
   const [title, setTitle] = useState(unit.title);
   const [pending, startTransition] = useTransition();
 
+  // 種別ごとに添付を分ける(問題本体 / 解答解説)。
+  const problemFiles = files.filter((f) => f.kind !== "answer_key");
+  const solutionFiles = files.filter((f) => f.kind === "answer_key");
+
   function saveTitle() {
     if (title.trim() === unit.title.trim()) return;
     startTransition(async () => {
@@ -311,7 +323,14 @@ function RangeRow({
       <span className="mws-range-num">{pos}</span>
       <div className="mws-range-body">
         <input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={saveTitle} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} placeholder="範囲名" style={{ ...ctrl, width: "100%" }} />
-        <FileSlot materialId={materialId} unitId={unit.id} files={files} onChanged={onChanged} compact />
+        <div className="mws-file-row">
+          <span className="mws-file-label mws-file-q">問題</span>
+          <FileSlot materialId={materialId} unitId={unit.id} files={problemFiles} onChanged={onChanged} kind="assignment" compact addLabel="＋問題PDF" />
+        </div>
+        <div className="mws-file-row">
+          <span className="mws-file-label mws-file-a">解答解説</span>
+          <FileSlot materialId={materialId} unitId={unit.id} files={solutionFiles} onChanged={onChanged} kind="answer_key" compact addLabel="＋解答PDF" />
+        </div>
       </div>
       <div style={{ display: "flex", gap: 5, flex: "0 0 auto" }}>
         <button type="button" className="db-badge" onClick={insertBefore} disabled={pending} style={{ cursor: "pointer" }} title="この行の前に挿入">↥ 挿入</button>
