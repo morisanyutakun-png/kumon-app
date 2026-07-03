@@ -5,7 +5,7 @@ import { materialFiles, materials, units } from "@/db/schema";
 import { requireOperator } from "@/lib/access";
 import { getActiveDivision } from "@/lib/active-division";
 import { DIVISION_LABEL } from "@/lib/division";
-import { ELEMENTARY_SUBJECTS, SECONDARY_SUBJECTS } from "./materials-grid";
+import { ELEMENTARY_SUBJECTS, SECONDARY_SUBJECTS } from "./subjects";
 import {
   MaterialsWorkspace,
   type WsMaterial,

@@ -95,12 +95,14 @@ function FileSlot({
   files,
   onChanged,
   compact = false,
+  hideAdd = false,
 }: {
   materialId: string;
   unitId: string | null;
   files: WsFile[];
   onChanged: () => void;
   compact?: boolean;
+  hideAdd?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
@@ -147,10 +149,14 @@ function FileSlot({
           <button type="button" onClick={() => del(f.id, f.fileName)} disabled={pending} title="削除" style={{ border: "none", background: "none", color: "#b91c1c", cursor: "pointer", fontSize: 13 }}>×</button>
         </span>
       ))}
-      <input ref={inputRef} type="file" accept="application/pdf,image/*" multiple onChange={onPicked} style={{ display: "none" }} />
-      <button type="button" className="db-badge" onClick={() => inputRef.current?.click()} disabled={pending} style={{ cursor: "pointer", color: "var(--primary)", borderColor: "var(--primary)" }}>
-        {pending ? "…" : files.length > 0 ? "＋" : compact ? "＋PDF" : "＋ PDFを割り当て"}
-      </button>
+      {!hideAdd && (
+        <>
+          <input ref={inputRef} type="file" accept="application/pdf,image/*" multiple onChange={onPicked} style={{ display: "none" }} />
+          <button type="button" className="db-badge" onClick={() => inputRef.current?.click()} disabled={pending} style={{ cursor: "pointer", color: "var(--primary)", borderColor: "var(--primary)" }}>
+            {pending ? "…" : files.length > 0 ? "＋" : compact ? "＋PDF" : "＋ PDFを割り当て"}
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -382,11 +388,24 @@ function RangePanel({ sel, onChanged }: { sel: WsSelected; onChanged: () => void
           <span className="muted" style={{ fontSize: 12 }}>{completionLabel}</span>
         </div>
 
-        {/* 教材全体ファイル */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 12, color: "#5b6470", marginBottom: 6 }}>教材全体のファイル（全範囲で表示）</div>
-          <FileSlot materialId={sel.id} unitId={null} files={materialFiles} onChanged={onChanged} />
-        </div>
+        {/* 範囲を持たない教材(手入力/番号)のみ、教材単位のファイルを扱う。
+            章(カリキュラム)教材は範囲ごとに添付するため全体ファイル欄は出さない。 */}
+        {sel.progressType !== "chapter" && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: "#5b6470", marginBottom: 6 }}>教材のファイル</div>
+            <FileSlot materialId={sel.id} unitId={null} files={materialFiles} onChanged={onChanged} />
+          </div>
+        )}
+
+        {/* 章教材に残った範囲未指定のファイルは、削除して各範囲へ付け直せるよう表示だけする。 */}
+        {sel.progressType === "chapter" && materialFiles.length > 0 && (
+          <div style={{ marginBottom: 12, padding: 8, border: "1px dashed #f0b4b4", borderRadius: 8, background: "#fff7f7" }}>
+            <div style={{ fontSize: 12, color: "#b45309", marginBottom: 6 }}>
+              範囲未指定のファイル（各範囲へ付け直してください。削除できます）
+            </div>
+            <FileSlot materialId={sel.id} unitId={null} files={materialFiles} onChanged={onChanged} hideAdd />
+          </div>
+        )}
 
         {sel.progressType === "manual" ? (
           <p className="empty" style={{ fontSize: 13 }}>手入力教材のため範囲登録は不要です。左の「進み方」を「章」に変えると範囲を並べられます。</p>
