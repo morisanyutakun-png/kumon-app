@@ -1173,7 +1173,7 @@ body {
 .annotator { display: grid; gap: 12px; }
 /* 書き込み中に文字選択・長押し選択・タップハイライトが出ないようにする
    (指やペンの操作で青い全選択が発生して描きにくくなるのを防ぐ)。 */
-.annot-stage, .annot-surface, .annot-canvas-wrap, .annot-page, .annot-ink, .annot-tip {
+.annot-stage, .annot-surface, .annot-canvas-wrap, .annot-page, .annot-ink, .annot-active {
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -1209,8 +1209,8 @@ body {
 .annot-canvas-wrap { position: relative; display: inline-block; line-height: 0; box-shadow: 0 2px 12px rgba(15,40,70,0.12); background: #fff; }
 .annot-page { display: block; background: #fff; }
 .annot-ink { position: absolute; top: 0; left: 0; touch-action: none; cursor: crosshair; }
-/* ペン先(未確定＋予測)専用の最前面レイヤー。入力はstageで受けるので透過。 */
-.annot-tip { position: absolute; top: 0; left: 0; touch-action: none; pointer-events: none; }
+/* 描画中の1本だけを描く最前面レイヤー(毎フレーム再描画)。入力はstageで受けるので透過。 */
+.annot-active { position: absolute; top: 0; left: 0; touch-action: none; pointer-events: none; }
 /* ズーム操作 */
 .annot-zoom { display: inline-flex; gap: 6px; align-items: center; }
 .annot-zoom-val { min-width: 46px; text-align: center; font-weight: 800; font-size: 12px; color: #334155; }
