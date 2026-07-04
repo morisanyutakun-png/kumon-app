@@ -48,6 +48,7 @@ export default async function WritePage({
           submissionId={submission.id}
           resubmit={submission.status === "resubmit_required"}
           fullBleed
+          penOnly
           redirectTo={back}
         />
       </div>
