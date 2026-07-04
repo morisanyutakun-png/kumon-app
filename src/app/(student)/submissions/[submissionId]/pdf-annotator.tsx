@@ -16,6 +16,9 @@ const COLORS = ["#1f2937", "#e11d48", "#2563eb", "#16a34a", "#f59e0b"];
 const PEN_WIDTHS = [2, 4, 7];
 const MIN_Z = 1;
 const MAX_Z = 6;
+// ペンを使った直後のこの時間(ms)内のタッチは「手のひら」とみなして無視する(GoodNotes風)。
+// 画数の切れ目(筆を離して次を書く)で手のひらが誤爆しないための猶予。
+const PALM_REJECT_MS = 800;
 
 function clampZ(z: number) {
   return Math.min(MAX_Z, Math.max(MIN_Z, z));
@@ -49,6 +52,7 @@ export function PdfAnnotator({
   const surfaceRef = useRef<HTMLDivElement>(null); // 変形(ズーム/パン)する層
   const pageCanvasRef = useRef<HTMLCanvasElement>(null);
   const inkCanvasRef = useRef<HTMLCanvasElement>(null);
+  const tipCanvasRef = useRef<HTMLCanvasElement>(null); // ペン先(未確定＋予測)専用の最前面。確定インクは触らない
   const inkRectRef = useRef<DOMRect | null>(null); // 描画中は不変なのでストローク開始時にキャッシュ
   const drawnIdxRef = useRef(0); // 増分描画で「描き済み」の制御点(ペン)/点(消しゴム)インデックス
 
@@ -76,6 +80,16 @@ export function PdfAnnotator({
   const momentumRafRef = useRef<number | null>(null);
   const penOnlyRef = useRef(penOnly);
   penOnlyRef.current = penOnly;
+  // ネイティブのポインタリスナは最新の state を ref 経由で読む(再アタッチ不要にするため)。
+  const toolRef = useRef<"pen" | "eraser">("pen");
+  const colorRef = useRef(COLORS[0]);
+  const widthRef = useRef(PEN_WIDTHS[1]);
+  const fingerDrawRef = useRef(true);
+  const pageNumRef = useRef(1);
+  const readyRef = useRef(false);
+  const strokeStartTimeRef = useRef(0); // 進行中ストロークの開始時刻(古い pointerup で誤終了しない用)
+  const lastPenTimeRef = useRef(-1e9); // 直近のペン(Apple Pencil)イベント時刻。手のひら誤爆判定用
+  const hadInkRef = useRef(false); // 直近レンダー時点で手書きがあるか(不要な再描画を避ける)
 
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -87,6 +101,13 @@ export function PdfAnnotator({
   // 既定は「指・ペンどちらでも書ける」。タッチペン(静電式含む)を前提にするため。
   // OFF にすると Apple Pencil 専用(手のひら無効=パームリジェクション)。
   const [fingerDraw, setFingerDraw] = useState(true);
+  // state をネイティブハンドラ用の ref に反映(毎レンダーで同期)。
+  toolRef.current = tool;
+  colorRef.current = color;
+  widthRef.current = width;
+  fingerDrawRef.current = fingerDraw;
+  pageNumRef.current = pageNum;
+  readyRef.current = ready;
   const [zoomPct, setZoomPct] = useState(100);
   const [submitting, setSubmitting] = useState(false);
   const [confirming, setConfirming] = useState(false); // 提出確認ダイアログ
@@ -244,7 +265,8 @@ export function PdfAnnotator({
     const stage = stageRef.current;
     const pageCanvas = pageCanvasRef.current;
     const inkCanvas = inkCanvasRef.current;
-    if (!doc || !stage || !pageCanvas || !inkCanvas) return;
+    const tipCanvas = tipCanvasRef.current;
+    if (!doc || !stage || !pageCanvas || !inkCanvas || !tipCanvas) return;
 
     const page = await doc.getPage(pageNum);
     const base = page.getViewport({ scale: 1 });
@@ -257,7 +279,7 @@ export function PdfAnnotator({
     displayWRef.current = viewport.width;
     displayHRef.current = viewport.height;
 
-    for (const c of [pageCanvas, inkCanvas]) {
+    for (const c of [pageCanvas, inkCanvas, tipCanvas]) {
       c.width = Math.floor(viewport.width * dpr);
       c.height = Math.floor(viewport.height * dpr);
       c.style.width = `${viewport.width}px`;
@@ -331,6 +353,33 @@ export function PdfAnnotator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
+  // ---- ポインタ入力(ネイティブ登録) ----
+  // ポイント:
+  //  - 開始(pointerdown)は stage で受ける(ツールバー等の外側では始めない)。
+  //  - 移動/終了は window で受ける(指やペンが要素外に出ても追える)。
+  //  - setPointerCapture は使わない: iPad Safari で速い連続ペンの次の pointerdown を
+  //    取りこぼす/遅延させる原因になるため。window 追跡なら捕捉は不要。
+  //  - ハンドラは ref から最新設定を読むので再アタッチ不要(deps=[ready])。
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || !ready) return;
+    const opts: AddEventListenerOptions = { passive: false };
+    const down = (e: PointerEvent) => onPointerDown(e);
+    const move = (e: PointerEvent) => onPointerMove(e);
+    const up = (e: PointerEvent) => endPointer(e);
+    stage.addEventListener("pointerdown", down, opts);
+    window.addEventListener("pointermove", move, opts);
+    window.addEventListener("pointerup", up, opts);
+    window.addEventListener("pointercancel", up, opts);
+    return () => {
+      stage.removeEventListener("pointerdown", down, opts);
+      window.removeEventListener("pointermove", move, opts);
+      window.removeEventListener("pointerup", up, opts);
+      window.removeEventListener("pointercancel", up, opts);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
   // 手書きをブラウザに自動保存(提出まで保持)。
   function persist() {
     if (!storageKey) return;
@@ -366,8 +415,58 @@ export function PdfAnnotator({
     if (!inkCanvas) return;
     const { ctx, w, h } = preparedCtx(inkCanvas);
     ctx.clearRect(0, 0, inkCanvas.width, inkCanvas.height);
-    const strokes = strokesRef.current.get(pageNum) ?? [];
+    const strokes = strokesRef.current.get(pageNumRef.current) ?? [];
     for (const s of strokes) drawStroke(ctx, s, w, h);
+    clearTip();
+  }
+
+  // ペン先(未確定の末尾)専用レイヤーをクリア。確定インク層(ink)には一切触れない=文字は消えない。
+  function clearTip() {
+    const tip = tipCanvasRef.current;
+    if (!tip) return;
+    const ctx = tip.getContext("2d") as CanvasRenderingContext2D;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, tip.width, tip.height);
+  }
+
+  // ペン先を「生」で先行表示する。確定インクがまだ追いついていない末尾(最後の確定中点→現在点)と、
+  // 予測点(getPredictedEvents)を描く。毎フレーム描き直すのはこの極小の末尾だけなので軽く、
+  // かつ ink 層は消さないのでチラつかない。これで“ペンに吸い付く”鉛筆の感覚になる。
+  function drawTip(s: Stroke, predicted: Point[]) {
+    const tip = tipCanvasRef.current;
+    if (!tip) return;
+    const { ctx, w, h } = preparedCtx(tip);
+    ctx.clearRect(0, 0, tip.width, tip.height);
+    if (s.erase) return; // 消しゴムは先行表示しない
+    const pts = s.points;
+    const n = pts.length;
+    if (n === 0) return;
+    // 末尾の生ポリライン: [最後の確定中点(あれば), 現在点, ...予測点]
+    const tail: Point[] = [];
+    if (n >= 3) {
+      tail.push({ x: (pts[n - 2].x + pts[n - 1].x) * 0.5, y: (pts[n - 2].y + pts[n - 1].y) * 0.5, p: pts[n - 1].p });
+    }
+    tail.push(pts[n - 1]);
+    for (const pp of predicted) tail.push(pp);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = s.color;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    if (tail.length === 1) {
+      ctx.lineWidth = widthAt(s, tail[0]);
+      ctx.beginPath();
+      ctx.moveTo(tail[0].x * w, tail[0].y * h);
+      ctx.lineTo(tail[0].x * w + 0.1, tail[0].y * h + 0.1);
+      ctx.stroke();
+      return;
+    }
+    for (let i = 1; i < tail.length; i++) {
+      ctx.lineWidth = widthAt(s, tail[i]);
+      ctx.beginPath();
+      ctx.moveTo(tail[i - 1].x * w, tail[i - 1].y * h);
+      ctx.lineTo(tail[i].x * w, tail[i].y * h);
+      ctx.stroke();
+    }
   }
 
   // 1本のストロークを筆圧つきで最初から最後まで描く(再描画・書き出し用)。
@@ -504,13 +603,16 @@ export function PdfAnnotator({
   }
 
   // ---- 描画開始/継続/終了 ----
-  function startStroke(clientX: number, clientY: number, id: number, isTouch: boolean, pressure?: number) {
+  function startStroke(clientX: number, clientY: number, id: number, isTouch: boolean, pressure: number, timeStamp: number) {
+    // 直前のストロークが未完了なら先に仕上げてから開始(状態の取り違えを防ぐ)。
+    if (drawingRef.current) finishActive(drawingRef.current);
     // ストローク中は変形しないので ink 矩形をここで1回だけ実測してキャッシュ。
     inkRectRef.current = inkCanvasRef.current!.getBoundingClientRect();
-    const erase = tool === "eraser";
+    const erase = toolRef.current === "eraser";
+    const w = widthRef.current;
     const stroke: Stroke = {
-      color,
-      width: erase ? Math.max(16, width * 4) : width,
+      color: colorRef.current,
+      width: erase ? Math.max(16, w * 4) : w,
       erase,
       points: [toNorm(clientX, clientY, pressure)],
     };
@@ -518,15 +620,17 @@ export function PdfAnnotator({
     drawIdRef.current = id;
     drawIsTouchRef.current = isTouch;
     drawnIdxRef.current = 0;
-    const list = strokesRef.current.get(pageNum) ?? [];
+    strokeStartTimeRef.current = timeStamp;
+    const list = strokesRef.current.get(pageNumRef.current) ?? [];
     list.push(stroke);
-    strokesRef.current.set(pageNum, list);
+    strokesRef.current.set(pageNumRef.current, list);
     // 全再描画はしない(低遅延)。最初の点を ink 層へ追記するだけ。
+    clearTip(); // 前ストロークのペン先残像を消す
     appendActive(stroke);
   }
   function cancelStroke() {
     if (!drawingRef.current) return;
-    const list = strokesRef.current.get(pageNum);
+    const list = strokesRef.current.get(pageNumRef.current);
     if (list && list[list.length - 1] === drawingRef.current) list.pop();
     drawingRef.current = null;
     drawIdRef.current = null;
@@ -535,22 +639,24 @@ export function PdfAnnotator({
     persist();
   }
 
-  function onPointerDown(e: React.PointerEvent) {
-    if (!ready) return;
+  function onPointerDown(e: PointerEvent) {
+    if (!readyRef.current) return;
+    if (e.pointerType === "pen") lastPenTimeRef.current = performance.now();
     stopMomentum(); // 慣性スクロール中のタッチは即停止(GoodNotes同様、触れたら止まる)
 
     if (e.pointerType === "touch") {
-      if (penActiveRef.current) return; // ペン使用中は手のひらを無視(パームリジェクション)
+      // 手のひら誤爆対策: ペン使用中、またはペンを使った直後(画数の切れ目)のタッチは無視。
+      if (penActiveRef.current || performance.now() - lastPenTimeRef.current < PALM_REJECT_MS) return;
       if (touchesRef.current.size === 0) measureStage(); // ジェスチャ開始時に stage を実測
       const pos = toStage(e.clientX, e.clientY);
       touchesRef.current.set(e.pointerId, pos);
       const count = touchesRef.current.size;
       // penOnly では指では絶対に描かない(スクロール/ズーム専用)。
-      const canFingerDraw = !penOnly && fingerDraw;
+      const canFingerDraw = !penOnlyRef.current && fingerDrawRef.current;
       if (canFingerDraw && count === 1) {
         // 指で書くモード: 1本指は描画
         e.preventDefault();
-        startStroke(e.clientX, e.clientY, e.pointerId, true, e.pressure);
+        startStroke(e.clientX, e.clientY, e.pointerId, true, e.pressure, e.timeStamp);
       } else {
         // ジェスチャ(パン/ピンチ)。指描画中に2本目が来たら描画を取り消してジェスチャへ
         e.preventDefault(); // ブラウザの選択開始(全選択)を抑止
@@ -562,27 +668,31 @@ export function PdfAnnotator({
       return;
     }
 
-    // ペン / マウス → 常に描画。ペンなら手のひら無効化を有効化
+    // ペン / マウス → 常に描画。ペンなら手のひら無効化を有効化。
+    // ※ setPointerCapture は使わない(iPad Safari で次の pointerdown を取りこぼす)。
+    //   代わりに移動/終了を window で追う(上の useEffect)。
     e.preventDefault();
-    inkCanvasRef.current!.setPointerCapture(e.pointerId);
     if (e.pointerType === "pen") penActiveRef.current = true;
-    // ペンが触れたらタッチ系のジェスチャ状態はクリア
+    // ペンが触れたらタッチ系のジェスチャ状態はクリア(手のひらのパンを止める)。
     touchesRef.current.clear();
     gestureRef.current = null;
-    startStroke(e.clientX, e.clientY, e.pointerId, false, e.pressure);
+    startStroke(e.clientX, e.clientY, e.pointerId, false, e.pressure, e.timeStamp);
   }
 
-  function onPointerMove(e: React.PointerEvent) {
+  function onPointerMove(e: PointerEvent) {
+    if (e.pointerType === "pen") lastPenTimeRef.current = performance.now();
     // 描画中ポインタ
     if (drawingRef.current && e.pointerId === drawIdRef.current) {
       e.preventDefault();
       const stroke = drawingRef.current;
-      const ne = e.nativeEvent as PointerEvent;
       // 取りこぼしを拾って(coalesced)全ての中間点を確定点として追加。
-      const evts = ne.getCoalescedEvents?.() ?? [ne];
+      const evts = e.getCoalescedEvents?.() ?? [e];
       for (const ev of evts) stroke.points.push(toNorm(ev.clientX, ev.clientY, ev.pressure));
-      // 新しく増えた区間だけを追記(全消去・全再描画なし)。速いペンでも取りこぼさない。
+      // 新しく増えた区間だけを ink 層へ追記(全消去・全再描画なし)。速いペンでも取りこぼさない。
       appendActive(stroke);
+      // ペン先(未確定の末尾＋予測点)を先行表示=鉛筆の吸い付き感。ink 層は消さない。
+      const predicted = (e.getPredictedEvents?.() ?? []).map((ev) => toNorm(ev.clientX, ev.clientY, ev.pressure));
+      drawTip(stroke, predicted);
       return;
     }
     // タッチ・ジェスチャ(パン/ピンチ)
@@ -621,17 +731,27 @@ export function PdfAnnotator({
     }
   }
 
-  function endPointer(e: React.PointerEvent) {
-    if (e.pointerId === drawIdRef.current) {
-      const stroke = drawingRef.current;
-      // 最後のペン先までの残り区間を描いて仕上げる(既に大半は ink 層へ追記済み)。
-      if (stroke) finishActive(stroke);
+  function endPointer(e: PointerEvent) {
+    if (e.pointerType === "pen") lastPenTimeRef.current = performance.now();
+    // 進行中ストロークの pointerup のみ確定。開始より前(古い)の up は無視して二画目を守る。
+    if (
+      e.pointerId === drawIdRef.current &&
+      drawingRef.current &&
+      e.timeStamp >= strokeStartTimeRef.current
+    ) {
+      finishActive(drawingRef.current);
+      clearTip(); // 予測分を消し、確定インクだけを残す
       drawingRef.current = null;
       drawIdRef.current = null;
       drawIsTouchRef.current = false;
       inkRectRef.current = null;
       persist();
-      force((n) => n + 1);
+      // 手書きの「有無」が変わったときだけ再描画する(毎画の重い再レンダーで次画が詰まるのを防ぐ)。
+      const nowHasInk = [...strokesRef.current.values()].some((l) => l.length > 0);
+      if (nowHasInk !== hadInkRef.current) {
+        hadInkRef.current = nowHasInk;
+        force((n) => n + 1);
+      }
     }
     if (e.pointerType === "pen") penActiveRef.current = false;
     if (touchesRef.current.has(e.pointerId)) {
@@ -667,6 +787,7 @@ export function PdfAnnotator({
   }
 
   const hasAnyInk = [...strokesRef.current.values()].some((l) => l.length > 0);
+  hadInkRef.current = hasAnyInk; // 再描画抑制の基準を現在のレンダー値に同期
 
   /** 各ページを「PDF描画＋手書き」で1枚のPNGに焼き込んで返す。 */
   async function renderPages(): Promise<{ bytes: Uint8Array; w: number; h: number }[]> {
@@ -812,17 +933,12 @@ export function PdfAnnotator({
 
       <div ref={stageRef} className="annot-stage">
         {!ready && <div className="annot-loading">読み込み中…</div>}
-        <div
-          ref={surfaceRef}
-          className="annot-surface"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={endPointer}
-          onPointerCancel={endPointer}
-        >
+        {/* ポインタ入力は stage にネイティブ登録(上の useEffect)。ここでは props で受けない。 */}
+        <div ref={surfaceRef} className="annot-surface">
           <div className="annot-canvas-wrap">
             <canvas ref={pageCanvasRef} className="annot-page" />
             <canvas ref={inkCanvasRef} className="annot-ink" />
+            <canvas ref={tipCanvasRef} className="annot-tip" />
           </div>
         </div>
       </div>
