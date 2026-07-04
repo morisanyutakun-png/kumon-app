@@ -7,6 +7,7 @@ import { getSubmissionDetail } from "@/lib/queries";
 import { confirmReturned } from "@/lib/actions/submission-actions";
 import { ActionButton } from "@/components/action-button";
 import { AnswerImages } from "@/components/answer-images";
+import { SelfGradeSplit } from "@/components/self-grade-split";
 import { GradingHistory } from "@/components/grading-history";
 import { MarkRead } from "@/components/mark-read";
 import { StatusBadge } from "@/components/status-badge";
@@ -114,28 +115,37 @@ export default async function StudentSubmissionPage({
             提出おつかれさま！解答解説を見て、自分の答案と照らし合わせて丸つけをしましょう。
           </p>
 
-          {solutionFiles.length > 0 ? (
-            <div className="selfgrade-sol">
-              <div className="selfgrade-label">📕 解答・解説</div>
-              <div style={{ display: "grid", gap: 8 }}>
-                {solutionFiles.map((f) => (
-                  <div key={f.id} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                    <span style={{ fontWeight: 700 }}>📄 {f.fileName}</span>
-                    <a href={`/api/files/material/${f.id}`} target="_blank" rel="noreferrer" className="btn-primary">解答を開く</a>
-                    <a href={`/api/files/material/${f.id}?dl=1`} className="db-badge">保存する</a>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {solutionFiles.length > 0 && images.length > 0 ? (
+            /* 答案(左)と解答・解説(右)を同一画面で並べて見比べる。 */
+            <SelfGradeSplit solutions={solutionFiles.map((f) => ({ id: f.id, fileName: f.fileName }))}>
+              <AnswerImages images={images} large />
+            </SelfGradeSplit>
           ) : (
-            <p className="muted">この課題には解答解説が登録されていません。先生の採点をお待ちください。</p>
-          )}
+            <>
+              {solutionFiles.length > 0 ? (
+                <div className="selfgrade-sol">
+                  <div className="selfgrade-label">📕 解答・解説</div>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {solutionFiles.map((f) => (
+                      <div key={f.id} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                        <span style={{ fontWeight: 700 }}>📄 {f.fileName}</span>
+                        <a href={`/api/files/material/${f.id}`} target="_blank" rel="noreferrer" className="btn-primary">解答を開く</a>
+                        <a href={`/api/files/material/${f.id}?dl=1`} className="db-badge">保存する</a>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="muted">この課題には解答解説が登録されていません。先生の採点をお待ちください。</p>
+              )}
 
-          {images.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <div className="selfgrade-label">📝 提出した自分の答案</div>
-              <AnswerImages images={images} />
-            </div>
+              {images.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <div className="selfgrade-label">📝 提出した自分の答案</div>
+                  <AnswerImages images={images} />
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

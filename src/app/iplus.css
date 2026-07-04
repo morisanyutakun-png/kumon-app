@@ -1163,6 +1163,44 @@ body {
 }
 .selfgrade-label { font-size: 13px; font-weight: 800; color: #1f7a3d; margin-bottom: 8px; }
 
+/* ===== 自己採点スプリット(答案 | 解答 を並置) ===== */
+.sg-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+.sg-tabs { display: none; } /* スマホ幅でのみ表示 */
+.sg-pane {
+  display: flex; flex-direction: column; height: 70vh; min-height: 360px;
+  border: 1px solid #d4e9d9; border-radius: 12px; background: #fff; overflow: hidden;
+}
+.sg-pane-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 9px 12px; font-weight: 800; font-size: 14px; color: #1f7a3d;
+  background: #f4fbf5; border-bottom: 1px solid #e0efe4;
+}
+.sg-pane-body { flex: 1; overflow: auto; padding: 10px; background: #eef2f6; overscroll-behavior: contain; }
+.sg-sol-file { display: grid; gap: 8px; }
+.sg-sol-name {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  font-weight: 700; font-size: 13px; color: #475569;
+}
+.sg-pdf-pages { display: grid; gap: 10px; justify-items: center; }
+.sg-pdf-page {
+  max-width: 100%; height: auto; background: #fff; border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(15, 40, 70, 0.14);
+}
+.sg-pdf-note { padding: 20px; text-align: center; color: #64748b; font-weight: 700; }
+
+@media (max-width: 899px) {
+  .sg-split { grid-template-columns: 1fr; }
+  .sg-tabs { display: flex; gap: 6px; }
+  .sg-tab {
+    flex: 1; min-height: 44px; border: 1.5px solid #cdd6df; background: #fff;
+    border-radius: 10px; font-weight: 800; font-size: 14px; color: #475569; cursor: pointer;
+  }
+  .sg-tab.on { border-color: var(--primary); background: #eaf6fc; color: var(--primary); }
+  .sg-split[data-active="answer"] .sg-pane-solution { display: none; }
+  .sg-split[data-active="solution"] .sg-pane-answer { display: none; }
+  .sg-pane { height: 76vh; }
+}
+
 .submit-modes { display: flex; gap: 8px; }
 .submit-mode {
   flex: 1; padding: 11px 12px; border: 2px solid #dbe3ea; background: #fff;
@@ -1177,24 +1215,45 @@ body {
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
 }
+/* ツールバー = 白いカード。中の各コントロール群を薄いグレーの「トラック」で束ねる
+   (iOS セグメンテッドコントロール風。GoodNotes/Notability/Apple マークアップと同じ視覚言語)。 */
 .annot-toolbar {
-  display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center;
-  padding: 10px 12px; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  padding: 8px; background: #fff; border: 1px solid #e5eaf0; border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 40, 70, 0.06);
 }
-.annot-tools, .annot-colors, .annot-widths, .annot-edit { display: inline-flex; gap: 6px; align-items: center; }
+/* 各グループ = グレーのトラック。選択中のボタンだけ白く浮き上がる。 */
+.annot-tools, .annot-colors, .annot-widths, .annot-zoom, .annot-edit {
+  display: inline-flex; gap: 4px; align-items: center;
+  padding: 4px; background: #eef2f7; border-radius: 11px;
+}
 .annot-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
-  min-height: 36px; padding: 0 12px; border: 1.5px solid #cdd6df; background: #fff;
-  border-radius: 9px; font-weight: 700; font-size: 13px; color: #334155; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  min-height: 40px; min-width: 40px; padding: 0 12px; border: 1px solid transparent;
+  background: transparent; border-radius: 8px; font-weight: 700; font-size: 13px;
+  color: #475569; cursor: pointer; transition: background 0.12s, box-shadow 0.12s;
 }
-.annot-btn.on { border-color: var(--primary); background: #eaf6fc; color: var(--ink); }
+.annot-btn:hover { background: rgba(255, 255, 255, 0.6); }
+/* 選択中 = 白い浮き上がりピル(トラックの上に乗って見える)。 */
+.annot-btn.on {
+  background: #fff; color: var(--primary); border-color: #dbe4ee;
+  box-shadow: 0 1px 2px rgba(15, 40, 70, 0.14);
+}
 .annot-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
-.annot-swatch { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1.5px #cdd6df; cursor: pointer; }
-.annot-swatch.on { box-shadow: 0 0 0 3px var(--primary); }
-/* ペン専用ロック表示(切替不可) */
+/* 破壊的操作(全消去)。誤タップを避けるため赤系で差別化。 */
+.annot-btn.annot-danger { color: #dc2626; }
+.annot-btn.annot-danger:hover { background: #fef2f2; }
+/* 色スウォッチ = やや大きめの丸。選択中は白フチ＋色リングで囲う。 */
+.annot-swatch {
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #cbd5e1; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s;
+}
+.annot-swatch:hover { transform: scale(1.06); }
+.annot-swatch.on { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--primary); transform: scale(1.06); }
+/* ペン専用ロック表示(切替不可)。トラック内で情報チップとして馴染ませる。 */
 .annot-penonly {
-  display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 12px;
-  border: 1.5px solid #cbd5e1; border-radius: 9px; background: #f1f5f9;
+  display: inline-flex; align-items: center; gap: 5px; min-height: 40px; padding: 0 12px;
+  border-radius: 8px; background: transparent;
   font-weight: 700; font-size: 13px; color: #64748b; white-space: nowrap; cursor: default;
 }
 
@@ -1211,9 +1270,8 @@ body {
 .annot-ink { position: absolute; top: 0; left: 0; touch-action: none; cursor: crosshair; }
 /* 描画中の1本だけを描く最前面レイヤー(毎フレーム再描画)。入力はstageで受けるので透過。 */
 .annot-active { position: absolute; top: 0; left: 0; touch-action: none; pointer-events: none; }
-/* ズーム操作 */
-.annot-zoom { display: inline-flex; gap: 6px; align-items: center; }
-.annot-zoom-val { min-width: 46px; text-align: center; font-weight: 800; font-size: 12px; color: #334155; }
+/* ズーム操作(グループ枠は上のトラック定義を使う)。%表示だけ調整。 */
+.annot-zoom-val { min-width: 48px; text-align: center; font-weight: 800; font-size: 12px; color: #334155; }
 
 .annot-pager { display: flex; gap: 12px; align-items: center; justify-content: center; font-weight: 700; color: #475569; }
 .annot-submit { display: flex; align-items: center; }

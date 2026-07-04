@@ -919,7 +919,7 @@ export function PdfAnnotator({
             </button>
           )}
           <button type="button" className="annot-btn" onClick={undo}>↩ 戻す</button>
-          <button type="button" className="annot-btn" onClick={clearPage}>消去</button>
+          <button type="button" className="annot-btn annot-danger" onClick={clearPage}>🗑 消去</button>
         </div>
         {mode === "submit" && (
           <div className="annot-top-submit">
