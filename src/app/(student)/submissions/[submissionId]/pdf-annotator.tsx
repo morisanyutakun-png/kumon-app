@@ -49,9 +49,8 @@ export function PdfAnnotator({
   const surfaceRef = useRef<HTMLDivElement>(null); // 変形(ズーム/パン)する層
   const pageCanvasRef = useRef<HTMLCanvasElement>(null);
   const inkCanvasRef = useRef<HTMLCanvasElement>(null);
-  const liveCanvasRef = useRef<HTMLCanvasElement>(null); // 描画中ストローク専用の上層(低遅延)
   const inkRectRef = useRef<DOMRect | null>(null); // 描画中は不変なのでストローク開始時にキャッシュ
-  const eraseDrawnRef = useRef(0); // 消しゴムの増分描画で「描き済み」の点インデックス
+  const drawnIdxRef = useRef(0); // 増分描画で「描き済み」の制御点(ペン)/点(消しゴム)インデックス
 
   const pdfRef = useRef<any>(null);
   const strokesRef = useRef<Map<number, Stroke[]>>(new Map());
@@ -245,8 +244,7 @@ export function PdfAnnotator({
     const stage = stageRef.current;
     const pageCanvas = pageCanvasRef.current;
     const inkCanvas = inkCanvasRef.current;
-    const liveCanvas = liveCanvasRef.current;
-    if (!doc || !stage || !pageCanvas || !inkCanvas || !liveCanvas) return;
+    if (!doc || !stage || !pageCanvas || !inkCanvas) return;
 
     const page = await doc.getPage(pageNum);
     const base = page.getViewport({ scale: 1 });
@@ -259,7 +257,7 @@ export function PdfAnnotator({
     displayWRef.current = viewport.width;
     displayHRef.current = viewport.height;
 
-    for (const c of [pageCanvas, inkCanvas, liveCanvas]) {
+    for (const c of [pageCanvas, inkCanvas]) {
       c.width = Math.floor(viewport.width * dpr);
       c.height = Math.floor(viewport.height * dpr);
       c.style.width = `${viewport.width}px`;
@@ -345,14 +343,11 @@ export function PdfAnnotator({
     }
   }
 
-  // 低遅延化のため desynchronized で 2D コンテキストを取得(初回の属性だけが有効)。
-  function ctx2d(c: HTMLCanvasElement) {
-    return c.getContext("2d", { desynchronized: true }) as CanvasRenderingContext2D;
-  }
-  // dpr を掛けた状態の ink/live コンテキストと CSS px の寸法を返す。
+  // dpr を掛けた状態の ink コンテキストと CSS px の寸法を返す。
+  // ※ desynchronized は使わない: 速いペンで「消える/描かれない」ちらつきの原因になるため。
   function preparedCtx(c: HTMLCanvasElement) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const ctx = ctx2d(c);
+    const ctx = c.getContext("2d") as CanvasRenderingContext2D;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     return { ctx, dpr, w: displayWRef.current, h: c.height / dpr };
   }
@@ -365,14 +360,6 @@ export function PdfAnnotator({
     return Math.max(0.6, s.width * f);
   }
 
-  function clearLive() {
-    const live = liveCanvasRef.current;
-    if (!live) return;
-    const ctx = ctx2d(live);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, live.width, live.height);
-  }
-
   // 全確定ストロークを ink 層に描き直す(取り消し・消去・ページ切替・再レンダ時のみ)。
   function redrawInk() {
     const inkCanvas = inkCanvasRef.current;
@@ -380,14 +367,10 @@ export function PdfAnnotator({
     const { ctx, w, h } = preparedCtx(inkCanvas);
     ctx.clearRect(0, 0, inkCanvas.width, inkCanvas.height);
     const strokes = strokesRef.current.get(pageNum) ?? [];
-    for (const s of strokes) {
-      if (s === drawingRef.current) continue; // 描画中のものは live 層にあるので二重描画しない
-      drawStroke(ctx, s, w, h);
-    }
-    clearLive();
+    for (const s of strokes) drawStroke(ctx, s, w, h);
   }
 
-  // 1本のストロークを筆圧つきで描く。線幅が点ごとに変わるので区間ごとに stroke() する。
+  // 1本のストロークを筆圧つきで最初から最後まで描く(再描画・書き出し用)。
   function drawStroke(ctx: CanvasRenderingContext2D, s: Stroke, w: number, h: number) {
     const pts = s.points;
     if (pts.length === 0) return;
@@ -408,18 +391,7 @@ export function PdfAnnotator({
       ctx.lineTo(pts[1].x * w, pts[1].y * h);
       ctx.stroke();
     } else {
-      // 中点どうしを二次ベジェで結んで滑らかに。区間ごとに筆圧で線幅を変える。
-      for (let i = 1; i < pts.length - 1; i++) {
-        const fromX = i === 1 ? pts[0].x : (pts[i - 1].x + pts[i].x) * 0.5;
-        const fromY = i === 1 ? pts[0].y : (pts[i - 1].y + pts[i].y) * 0.5;
-        const toX = (pts[i].x + pts[i + 1].x) * 0.5;
-        const toY = (pts[i].y + pts[i + 1].y) * 0.5;
-        ctx.lineWidth = widthAt(s, pts[i]);
-        ctx.beginPath();
-        ctx.moveTo(fromX * w, fromY * h);
-        ctx.quadraticCurveTo(pts[i].x * w, pts[i].y * h, toX * w, toY * h);
-        ctx.stroke();
-      }
+      for (let i = 1; i < pts.length - 1; i++) segmentQuad(ctx, s, i, w, h);
       const n = pts.length - 1;
       ctx.lineWidth = widthAt(s, pts[n]);
       ctx.beginPath();
@@ -430,35 +402,79 @@ export function PdfAnnotator({
     ctx.globalCompositeOperation = "source-over";
   }
 
-  // 描画中のペンを live 層に描く(確定点＋予測点)。1本だけなので毎フレーム描いても軽い。
-  function drawLive(s: Stroke, predicted: Point[]) {
-    const live = liveCanvasRef.current;
-    if (!live) return;
-    const { ctx, w, h } = preparedCtx(live);
-    ctx.clearRect(0, 0, live.width, live.height);
-    const draw = predicted.length ? { ...s, points: s.points.concat(predicted) } : s;
-    drawStroke(ctx, draw, w, h);
+  // 制御点 i(中点→中点)の1区間を二次ベジェで描く。増分描画・全描画で共用。
+  function segmentQuad(ctx: CanvasRenderingContext2D, s: Stroke, i: number, w: number, h: number) {
+    const pts = s.points;
+    const fromX = i === 1 ? pts[0].x : (pts[i - 1].x + pts[i].x) * 0.5;
+    const fromY = i === 1 ? pts[0].y : (pts[i - 1].y + pts[i].y) * 0.5;
+    const toX = (pts[i].x + pts[i + 1].x) * 0.5;
+    const toY = (pts[i].y + pts[i + 1].y) * 0.5;
+    ctx.lineWidth = widthAt(s, pts[i]);
+    ctx.beginPath();
+    ctx.moveTo(fromX * w, fromY * h);
+    ctx.quadraticCurveTo(pts[i].x * w, pts[i].y * h, toX * w, toY * h);
+    ctx.stroke();
   }
 
-  // 消しゴムは committed の ink 層を直接削る。増分(新しい区間だけ)で低遅延。
-  function eraseIncremental(s: Stroke) {
+  // 描画中に「新しく増えた区間だけ」を ink 層へ追記する(全消去・全再描画をしない=最速)。
+  // これで速いペンでも取りこぼさない。drawnIdxRef=最後に描いた制御点(ペン) / 最後に描いた点(消しゴム)。
+  function appendActive(s: Stroke) {
     const inkCanvas = inkCanvasRef.current;
     if (!inkCanvas) return;
     const { ctx, w, h } = preparedCtx(inkCanvas);
     const pts = s.points;
     const n = pts.length;
-    const start = Math.max(0, eraseDrawnRef.current);
-    ctx.globalCompositeOperation = "destination-out";
+    ctx.globalCompositeOperation = s.erase ? "destination-out" : "source-over";
+    ctx.strokeStyle = s.color;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.lineWidth = s.width;
-    ctx.beginPath();
-    ctx.moveTo(pts[start].x * w, pts[start].y * h);
-    if (n === 1) ctx.lineTo(pts[0].x * w + 0.1, pts[0].y * h + 0.1);
-    for (let i = start + 1; i < n; i++) ctx.lineTo(pts[i].x * w, pts[i].y * h);
-    ctx.stroke();
+    if (s.erase) {
+      // 消しゴム: 直線で「前回の続き」から最新点まで削る。
+      const start = Math.max(0, drawnIdxRef.current);
+      ctx.lineWidth = s.width;
+      ctx.beginPath();
+      ctx.moveTo(pts[start].x * w, pts[start].y * h);
+      if (n === 1) ctx.lineTo(pts[0].x * w + 0.1, pts[0].y * h + 0.1);
+      for (let i = start + 1; i < n; i++) ctx.lineTo(pts[i].x * w, pts[i].y * h);
+      ctx.stroke();
+      drawnIdxRef.current = n - 1;
+    } else if (n === 1) {
+      ctx.lineWidth = widthAt(s, pts[0]);
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x * w, pts[0].y * h);
+      ctx.lineTo(pts[0].x * w + 0.1, pts[0].y * h + 0.1);
+      ctx.stroke();
+    } else if (n === 2) {
+      ctx.lineWidth = widthAt(s, pts[1]);
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x * w, pts[0].y * h);
+      ctx.lineTo(pts[1].x * w, pts[1].y * h);
+      ctx.stroke();
+    } else {
+      // まだ描いていない制御点の区間(drawnIdx+1 〜 n-2)だけを描く。
+      for (let i = Math.max(1, drawnIdxRef.current + 1); i <= n - 2; i++) segmentQuad(ctx, s, i, w, h);
+      drawnIdxRef.current = n - 2;
+    }
     ctx.globalCompositeOperation = "source-over";
-    eraseDrawnRef.current = n - 1;
+  }
+
+  // ペンを離したときに残りの「最後の中点→ペン先」の区間を描いて仕上げる(消しゴムは不要)。
+  function finishActive(s: Stroke) {
+    if (s.erase) return;
+    const pts = s.points;
+    const n = pts.length;
+    if (n < 3) return; // n<=2 は appendActive で描き切っている
+    const inkCanvas = inkCanvasRef.current;
+    if (!inkCanvas) return;
+    const { ctx, w, h } = preparedCtx(inkCanvas);
+    ctx.strokeStyle = s.color;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = widthAt(s, pts[n - 1]);
+    ctx.beginPath();
+    ctx.moveTo((pts[n - 2].x + pts[n - 1].x) * 0.5 * w, (pts[n - 2].y + pts[n - 1].y) * 0.5 * h);
+    ctx.lineTo(pts[n - 1].x * w, pts[n - 1].y * h);
+    ctx.stroke();
   }
 
   // ---- 座標変換 ----
@@ -501,13 +517,12 @@ export function PdfAnnotator({
     drawingRef.current = stroke;
     drawIdRef.current = id;
     drawIsTouchRef.current = isTouch;
-    eraseDrawnRef.current = 0;
+    drawnIdxRef.current = 0;
     const list = strokesRef.current.get(pageNum) ?? [];
     list.push(stroke);
     strokesRef.current.set(pageNum, list);
-    // 全再描画はしない(低遅延)。消しゴムは即 ink へ、ペンは live 層へ最初の点を描く。
-    if (erase) eraseIncremental(stroke);
-    else drawLive(stroke, []);
+    // 全再描画はしない(低遅延)。最初の点を ink 層へ追記するだけ。
+    appendActive(stroke);
   }
   function cancelStroke() {
     if (!drawingRef.current) return;
@@ -563,17 +578,11 @@ export function PdfAnnotator({
       e.preventDefault();
       const stroke = drawingRef.current;
       const ne = e.nativeEvent as PointerEvent;
-      // 取りこぼしを拾って(coalesced)確定点として追加。
+      // 取りこぼしを拾って(coalesced)全ての中間点を確定点として追加。
       const evts = ne.getCoalescedEvents?.() ?? [ne];
       for (const ev of evts) stroke.points.push(toNorm(ev.clientX, ev.clientY, ev.pressure));
-      if (stroke.erase) {
-        // 消しゴム: ink 層を増分で削る。
-        eraseIncremental(stroke);
-      } else {
-        // ペン: 予測点でペン先の遅延を補い、live 層に1本だけ再描画。
-        const predicted = (ne.getPredictedEvents?.() ?? []).map((ev) => toNorm(ev.clientX, ev.clientY, ev.pressure));
-        drawLive(stroke, predicted);
-      }
+      // 新しく増えた区間だけを追記(全消去・全再描画なし)。速いペンでも取りこぼさない。
+      appendActive(stroke);
       return;
     }
     // タッチ・ジェスチャ(パン/ピンチ)
@@ -615,15 +624,8 @@ export function PdfAnnotator({
   function endPointer(e: React.PointerEvent) {
     if (e.pointerId === drawIdRef.current) {
       const stroke = drawingRef.current;
-      // ペンは live 層から ink 層へ焼き込んで確定(消しゴムは既に ink 層へ描画済み)。
-      if (stroke && !stroke.erase) {
-        const inkCanvas = inkCanvasRef.current;
-        if (inkCanvas) {
-          const { ctx, w, h } = preparedCtx(inkCanvas);
-          drawStroke(ctx, stroke, w, h);
-        }
-        clearLive();
-      }
+      // 最後のペン先までの残り区間を描いて仕上げる(既に大半は ink 層へ追記済み)。
+      if (stroke) finishActive(stroke);
       drawingRef.current = null;
       drawIdRef.current = null;
       drawIsTouchRef.current = false;
@@ -821,7 +823,6 @@ export function PdfAnnotator({
           <div className="annot-canvas-wrap">
             <canvas ref={pageCanvasRef} className="annot-page" />
             <canvas ref={inkCanvasRef} className="annot-ink" />
-            <canvas ref={liveCanvasRef} className="annot-live" />
           </div>
         </div>
       </div>
