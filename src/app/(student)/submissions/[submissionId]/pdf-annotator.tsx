@@ -415,10 +415,17 @@ export function PdfAnnotator({
     }
   }
 
+  // 低遅延キャンバスの 2D コンテキストを取得。desynchronized=true で OS の画面合成を待たずに
+  // 描画バッファへ直接書き込み、ペン先への追従遅延を約1フレーム縮める(予測点が無い iPad Safari で特に有効)。
+  // getContext の属性は「最初の1回」しか効かないため、ライブ層(ink/active)は必ずこのヘルパ経由で取得する。
+  function liveCtx(c: HTMLCanvasElement) {
+    return c.getContext("2d", { desynchronized: true }) as CanvasRenderingContext2D;
+  }
+
   // dpr を掛けた状態の 2D コンテキストと CSS px の寸法を返す。
   function preparedCtx(c: HTMLCanvasElement) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const ctx = c.getContext("2d") as CanvasRenderingContext2D;
+    const ctx = liveCtx(c);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     return { ctx, dpr, w: displayWRef.current, h: c.height / dpr };
   }
@@ -483,7 +490,7 @@ export function PdfAnnotator({
   function clearActive() {
     const a = activeCanvasRef.current;
     if (!a) return;
-    const ctx = a.getContext("2d") as CanvasRenderingContext2D;
+    const ctx = liveCtx(a);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, a.width, a.height);
   }
