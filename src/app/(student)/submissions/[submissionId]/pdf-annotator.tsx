@@ -403,6 +403,33 @@ export function PdfAnnotator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
+  // ---- iPad Safari の選択メニュー/ルーペ/長押しメニューを抑止 ----
+  // 症状: ペンで書くと「コピー/調べる/翻訳…」のポップアップが出て、2画目が反応しなくなる。
+  // 原因: 手のひら等の touch イベントの既定動作でブラウザが選択・ルーペ・コンテキストメニューを起動する。
+  //       描画は pointer イベントで実装しており、pointer の preventDefault では touch 系統の既定動作を
+  //       止められない。そこで stage 上の touch/contextmenu/selectstart の既定動作を明示的に打ち消す。
+  //       ※ 描画/パン/ピンチは pointer 実装なので touch の既定動作を止めても壊れない(touch-action:none 済)。
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || !ready) return;
+    const opts: AddEventListenerOptions = { passive: false };
+    const prevent = (e: Event) => e.preventDefault();
+    stage.addEventListener("touchstart", prevent, opts);
+    stage.addEventListener("touchmove", prevent, opts);
+    stage.addEventListener("touchend", prevent, opts);
+    stage.addEventListener("contextmenu", prevent, opts);
+    // selectstart は document で拾って抑止(選択の発生自体を止める)。
+    document.addEventListener("selectstart", prevent);
+    return () => {
+      stage.removeEventListener("touchstart", prevent);
+      stage.removeEventListener("touchmove", prevent);
+      stage.removeEventListener("touchend", prevent);
+      stage.removeEventListener("contextmenu", prevent);
+      document.removeEventListener("selectstart", prevent);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
   // 手書きをブラウザに自動保存(提出まで保持)。
   function persist() {
     if (!storageKey) return;
@@ -603,6 +630,11 @@ export function PdfAnnotator({
 
   function onPointerDown(e: PointerEvent) {
     if (!readyRef.current) return;
+    // iPad Safari は手のひら(パーム)のタッチを「テキスト選択」と誤認し、選択メニュー
+    // (コピー/調べる/翻訳)を出すことがある。選択が残ると次の画がメニューに吸われて反応しないため、
+    // 書き始めに残っている選択を消す(選択発生そのものは下の touch/selectstart 抑止で防ぐ)。
+    const sel = window.getSelection?.();
+    if (sel && sel.rangeCount > 0) sel.removeAllRanges();
     if (e.pointerType === "pen") lastPenTimeRef.current = performance.now();
     stopMomentum(); // 慣性スクロール中のタッチは即停止(GoodNotes同様、触れたら止まる)
 
