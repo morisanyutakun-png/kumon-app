@@ -33,6 +33,12 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# 使い捨てのスクラッチ/一時スクリプト(接続文字列などを直書きしがち。誤コミット防止)
+/_*.mjs
+/_*.js
+/_*.ts
+/_*.cjs
+
 # vercel
 .vercel
 
