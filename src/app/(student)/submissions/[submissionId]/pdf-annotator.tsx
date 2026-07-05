@@ -791,7 +791,8 @@ export function PdfAnnotator({
     for (let pn = 1; pn <= numPages; pn++) {
       const page = await doc.getPage(pn);
       const base = page.getViewport({ scale: 1 });
-      const exportScale = Math.min(2, 1600 / base.width);
+      // 自己採点で拡大しても粗くならないよう、書き出し解像度を高めに(目標幅2200px, 上限2.6倍)。
+      const exportScale = Math.min(2.6, 2200 / base.width);
       const vp = page.getViewport({ scale: Math.max(1, exportScale) });
       const canvas = document.createElement("canvas");
       canvas.width = Math.floor(vp.width);

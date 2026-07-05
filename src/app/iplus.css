@@ -1199,18 +1199,36 @@ body {
   padding: 9px 12px; font-weight: 800; font-size: 14px; color: #1f7a3d;
   background: #f4fbf5; border-bottom: 1px solid #e0efe4;
 }
-.sg-pane-body { flex: 1; overflow: auto; padding: 10px; background: #eef2f6; overscroll-behavior: contain; }
-.sg-sol-file { display: grid; gap: 8px; }
-.sg-sol-name {
-  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-  font-weight: 700; font-size: 13px; color: #475569;
-}
+/* ペイン本体 = ズーム枠のホスト(自身はスクロールしない。ズーム/パンは ZoomPane が担当) */
+.sg-pane-body { flex: 1; position: relative; overflow: hidden; background: #eef2f6; }
+.sg-sol-links { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }
 .sg-pdf-pages { display: grid; gap: 10px; justify-items: center; }
 .sg-pdf-page {
   max-width: 100%; height: auto; background: #fff; border-radius: 4px;
   box-shadow: 0 2px 10px rgba(15, 40, 70, 0.14);
 }
 .sg-pdf-note { padding: 20px; text-align: center; color: #64748b; font-weight: 700; }
+
+/* ズーム/パン ビューポート */
+.zpane { position: absolute; inset: 0; }
+.zpane-vp {
+  position: absolute; inset: 0; overflow: hidden; touch-action: none;
+  -webkit-user-select: none; user-select: none; cursor: grab;
+}
+.zpane-surf { transform-origin: 0 0; width: 100%; padding: 8px; box-sizing: border-box; will-change: transform; }
+.zpane-surf img { -webkit-user-drag: none; user-select: none; }
+/* 拡大縮小コントロール(各ペイン右上に浮かせる) */
+.zpane-ctrls {
+  position: absolute; top: 8px; right: 8px; z-index: 3;
+  display: inline-flex; gap: 3px; padding: 3px;
+  background: rgba(255, 255, 255, 0.92); border: 1px solid #cbd5e1; border-radius: 9px;
+  box-shadow: 0 1px 4px rgba(15, 40, 70, 0.16);
+}
+.zpane-ctrls button {
+  min-width: 32px; height: 30px; padding: 0 8px; border: none; background: transparent;
+  border-radius: 6px; font-weight: 800; font-size: 12px; color: #334155; cursor: pointer;
+}
+.zpane-ctrls button:hover { background: #eef2f7; }
 
 @media (max-width: 899px) {
   .sg-split { grid-template-columns: 1fr; }
