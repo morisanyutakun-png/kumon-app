@@ -82,10 +82,11 @@ export function StudentsGrid({ students }: { students: StudentRow[] }) {
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      add();
-    }
+    if (e.key !== "Enter") return;
+    // 日本語入力の変換確定Enterでは登録しない(確定後の本当のEnterだけ追加する)。
+    if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
+    e.preventDefault();
+    add();
   }
 
   return (

@@ -78,6 +78,18 @@ function subjectAccent(subject: string): string {
   }
 }
 
+/**
+ * Enterキーのハンドラ。日本語入力(IME)の「変換確定」Enterは無視し、確定後の本当のEnterだけ発火する。
+ * これで「1回目のEnter=文字確定 / 2回目のEnter=実行」となり、変換確定で意図せず追加/保存されるのを防ぐ。
+ * e.nativeEvent.isComposing が変換中判定。keyCode===229 は一部ブラウザ向けの互換フォールバック。
+ */
+function onEnter(handler: (e: React.KeyboardEvent<HTMLInputElement>) => void) {
+  return (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter" || e.nativeEvent.isComposing || e.keyCode === 229) return;
+    handler(e);
+  };
+}
+
 const ctrl: React.CSSProperties = {
   height: 34,
   border: "1px solid #cdd4db",
@@ -252,7 +264,7 @@ function MaterialListRow({
       <select value={subject} onChange={(e) => { setSubject(e.target.value); save({ subject: e.target.value }); }} style={{ ...ctrl, width: 84 }} aria-label="教科">
         {SUBJECT_OPTIONS(subject).map((s) => <option key={s} value={s}>{s}</option>)}
       </select>
-      <input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => save()} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} style={{ ...ctrl, flex: "1 1 140px", minWidth: 100, fontWeight: 600 }} aria-label="教材名" />
+      <input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => save()} onKeyDown={onEnter((e) => (e.target as HTMLInputElement).blur())} style={{ ...ctrl, flex: "1 1 140px", minWidth: 100, fontWeight: 600 }} aria-label="教材名" />
       <select value={progressType} onChange={(e) => { setProgressType(e.target.value); save({ progressType: e.target.value }); }} style={{ ...ctrl, width: 76 }} aria-label="進み方">
         {PROGRESS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -322,7 +334,7 @@ function RangeRow({
     <li className="mws-range">
       <span className="mws-range-num">{pos}</span>
       <div className="mws-range-body">
-        <input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={saveTitle} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} placeholder="範囲名" style={{ ...ctrl, width: "100%" }} />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={saveTitle} onKeyDown={onEnter((e) => (e.target as HTMLInputElement).blur())} placeholder="範囲名" style={{ ...ctrl, width: "100%" }} />
         <div className="mws-file-row">
           <span className="mws-file-label mws-file-q">問題</span>
           <FileSlot materialId={materialId} unitId={unit.id} files={problemFiles} onChanged={onChanged} kind="assignment" compact addLabel="＋問題PDF" />
@@ -442,7 +454,7 @@ function RangePanel({ sel, onChanged }: { sel: WsSelected; onChanged: () => void
         ) : (
           <>
             <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-              <input ref={addRef} value={newRange} onChange={(e) => setNewRange(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} placeholder="範囲を末尾に追加" style={{ ...ctrl, flex: 1, height: 38 }} />
+              <input ref={addRef} value={newRange} onChange={(e) => setNewRange(e.target.value)} onKeyDown={onEnter((e) => { e.preventDefault(); add(); })} placeholder="範囲を末尾に追加" style={{ ...ctrl, flex: 1, height: 38 }} />
               <button type="button" className="btn-primary" onClick={add} disabled={pending}>＋ 末尾に追加</button>
             </div>
 
@@ -542,7 +554,7 @@ export function MaterialsWorkspace({
           <select value={newSubject} onChange={(e) => setNewSubject(e.target.value)} style={{ ...ctrl, height: 38 }}>
             {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
-          <input ref={newNameRef} value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addMaterial(); } }} placeholder="教材名を入力" style={{ ...ctrl, height: 38, flex: "1 1 220px", minWidth: 160 }} />
+          <input ref={newNameRef} value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={onEnter((e) => { e.preventDefault(); addMaterial(); })} placeholder="教材名を入力" style={{ ...ctrl, height: 38, flex: "1 1 220px", minWidth: 160 }} />
           <select value={newProgress} onChange={(e) => setNewProgress(e.target.value)} style={{ ...ctrl, height: 38 }}>
             {PROGRESS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>

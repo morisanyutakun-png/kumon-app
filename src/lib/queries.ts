@@ -314,10 +314,22 @@ export interface AssignmentMatrixStudent {
   grade: string;
   cells: AssignmentCell[];
 }
+/** 割り当てフォーム用の教材。開始範囲ポインタ表示のため単元/番号情報も持つ。 */
+export interface AssignMaterial {
+  id: string;
+  name: string;
+  subject: string;
+  /** chapter | number | manual */
+  progressType: string;
+  numberStart: number | null;
+  numberEnd: number | null;
+  /** chapter教材の単元タイトル(sortOrder順)。範囲ポインタの選択肢になる。 */
+  units: string[];
+}
 export interface AssignmentMatrix {
   students: AssignmentMatrixStudent[];
   maxCols: number;
-  materials: { id: string; name: string; subject: string }[];
+  materials: AssignMaterial[];
 }
 
 /** 課題割り当てのマトリクス表 (行=生徒, 列=課題1..N) 用データ。 */
@@ -395,7 +407,14 @@ export async function assignmentMatrix(
   const maxCols = studentsOut.reduce((m, s) => Math.max(m, s.cells.length), 0);
 
   const materialRows = await db
-    .select({ id: materials.id, name: materials.name, subject: materials.subject })
+    .select({
+      id: materials.id,
+      name: materials.name,
+      subject: materials.subject,
+      progressType: materials.progressType,
+      numberStart: materials.numberStart,
+      numberEnd: materials.numberEnd,
+    })
     .from(materials)
     .where(
       division
@@ -404,7 +423,28 @@ export async function assignmentMatrix(
     )
     .orderBy(asc(materials.name));
 
-  return { students: studentsOut, maxCols, materials: materialRows };
+  // chapter教材の開始範囲ポインタ用に、単元タイトルを sortOrder 順でまとめる。
+  const matIds = materialRows.map((m) => m.id);
+  const unitTitles = new Map<string, string[]>();
+  if (matIds.length > 0) {
+    const unitRows = await db
+      .select({ materialId: units.materialId, title: units.title })
+      .from(units)
+      .where(inArray(units.materialId, matIds))
+      .orderBy(asc(units.sortOrder));
+    for (const u of unitRows) {
+      const list = unitTitles.get(u.materialId) ?? [];
+      list.push(u.title);
+      unitTitles.set(u.materialId, list);
+    }
+  }
+
+  const materialsOut: AssignMaterial[] = materialRows.map((m) => ({
+    ...m,
+    units: unitTitles.get(m.id) ?? [],
+  }));
+
+  return { students: studentsOut, maxCols, materials: materialsOut };
 }
 
 export interface NotificationRow {

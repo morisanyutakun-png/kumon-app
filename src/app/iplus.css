@@ -585,6 +585,23 @@ body {
   font: inherit; font-size: 12px; font-weight: 700; padding: 5px 8px; cursor: pointer;
 }
 .assign-grid .ag-add-btn:hover { background: #dcfce7; }
+/* 開始範囲ポインタ(◀ ラベル ▶) */
+.assign-grid .ag-startpick {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 4px; border: 1px solid #c9d2de; border-radius: 6px; background: #f0fdf4;
+}
+.assign-grid .ag-startpick-cap { font-size: 10px; font-weight: 800; color: #15803d; padding: 0 2px; }
+.assign-grid .ag-startpick-btn {
+  flex: 0 0 auto; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid #86efac; background: #fff; color: #15803d; border-radius: 5px; cursor: pointer; font-size: 11px;
+}
+.assign-grid .ag-startpick-btn:hover:not(:disabled) { background: #dcfce7; }
+.assign-grid .ag-startpick-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.assign-grid .ag-startpick-val {
+  flex: 1 1 auto; min-width: 0; font-size: 11px; font-weight: 700; color: #14532d;
+  text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.assign-grid .ag-startpick-pos { flex: 0 0 auto; font-size: 10px; color: #64748b; }
 .assign-grid tr:hover td.ag-cell, .assign-grid tr:hover td.ag-name { filter: brightness(0.98); }
 .assign-grid td.empty-cell { background: #f4f5f7; }
 

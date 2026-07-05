@@ -1093,7 +1093,18 @@ export async function addAssignment(fd: FormData) {
     .from(units)
     .where(eq(units.materialId, materialId))
     .orderBy(asc(units.sortOrder));
-  const sessionRange = initialSessionRange(m, unitRows, 1) || rangeText;
+
+  // 開始範囲(progressIndex, 0始まり)。番号教材は開始〜終了番号ぶん、章教材は単元数ぶんが上限。
+  let maxIdx = 0;
+  if (m.progressType === "number") {
+    const s = m.numberStart ?? 0;
+    const e = m.numberEnd ?? 0;
+    maxIdx = s > 0 && e >= s ? e - s : 0;
+  } else if (m.progressType !== "manual") {
+    maxIdx = Math.max(0, unitRows.length - 1);
+  }
+  const startIndex = Math.min(Math.max(0, Math.floor(Number(str(fd, "startIndex")) || 0)), maxIdx);
+  const sessionRange = initialSessionRange(m, unitRows, 1, startIndex) || rangeText;
 
   await db.transaction(async (tx) => {
     const [assign] = await tx
@@ -1104,6 +1115,8 @@ export async function addAssignment(fd: FormData) {
         materialId,
         title: m.name,
         rangeText: sessionRange,
+        progressIndex: startIndex,
+        pointer: startIndex + 1,
         assignedById: p.id,
       })
       .returning();

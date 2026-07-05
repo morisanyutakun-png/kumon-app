@@ -33,18 +33,21 @@ export function isAutoAdvance(m: Material): boolean {
   return m.progressType !== "manual";
 }
 
-/** 新規割当 (progress=0) の初回セッション範囲ラベル。manual は '' (=割当の手入力範囲を使う)。 */
+/** 新規割当の初回セッション範囲ラベル。manual は '' (=割当の手入力範囲を使う)。
+ *  startIndex で開始位置(progressIndex, 0始まり)を指定できる(既定=0=先頭から)。 */
 export function initialSessionRange(
   m: Material,
   unitRows: Unit[],
   unitsPerSession: number,
+  startIndex = 0,
 ): string {
   if (!isAutoAdvance(m)) return "";
+  const start = Math.max(0, startIndex);
   const a: AssignmentProgress = {
-    progressIndex: 0,
+    progressIndex: start,
     unitsPerSession: Math.max(1, unitsPerSession),
     unitsPerSessionPending: null,
-    pointer: 1,
+    pointer: start + 1,
     reviewEnabled: true,
   };
   return currentRangeLabel(a, toMaterialInfo(m), toUnitInfos(unitRows)) ?? "";
