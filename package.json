@@ -16,6 +16,7 @@
     "demo:ddl": "node scripts/gen-demo-ddl.mjs",
     "materials:build": "node scripts/build-materials.mjs",
     "materials:seed": "tsx scripts/seed-math-materials.ts",
+    "files:migrate-blob": "tsx scripts/migrate-files-to-blob.ts",
     "test:unit": "tsx scripts/progress-test.ts",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui"

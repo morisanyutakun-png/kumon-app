@@ -850,6 +850,13 @@ body {
 }
 .topnav a:hover { background: #f5f7f9; color: var(--ink, #14365a); text-decoration: none; }
 .topnav a.active { color: var(--primary); border-bottom-color: var(--primary); }
+/* 返却など未対応件数バッジ */
+.topnav a { gap: 6px; }
+.topnav-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: #ef4444; color: #fff; font-size: 11px; font-weight: 800; line-height: 1;
+}
 
 .appbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; padding-left: 12px; }
 /* 小学部/中高部 切り替え(セグメント) */

@@ -4,17 +4,13 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { students } from "@/db/schema";
-import { getPrincipal, isOperator } from "@/lib/access";
+import { accessibleStudentIds, getPrincipal, isOperator } from "@/lib/access";
 import { divisionForGrade, DIVISION_LABEL, type Division } from "@/lib/division";
+import { listSubmissions } from "@/lib/queries";
 import { DemoBanner } from "@/components/demo-banner";
 import { Brand } from "@/components/brand";
 import { LogoutButton } from "@/components/logout-button";
 import { NavTabs, type NavTabItem } from "@/components/nav-tabs";
-
-const TABS: NavTabItem[] = [
-  { href: "/home", label: "課題" },
-  { href: "/history", label: "成績" },
-];
 
 export default async function StudentLayout({
   children,
@@ -37,6 +33,20 @@ export default async function StudentLayout({
   }
   const brandLabel = division === "secondary" ? "ノビット 中高部" : "ノビットスタディ";
 
+  // 返却タブのバッジ = 自己採点できる(採点待ち)+ 先生から返却 の未対応件数。
+  const ids = await accessibleStudentIds(p);
+  const idList = ids === "*" ? [] : ids;
+  const subRows = await listSubmissions(p.organizationId, { studentIds: idList });
+  const returnCount = subRows.filter(
+    (r) => r.status === "submitted" || r.status === "grading" || r.status === "returned",
+  ).length;
+
+  const tabs: NavTabItem[] = [
+    { href: "/home", label: "課題" },
+    { href: "/returned", label: "返却", badge: returnCount },
+    { href: "/history", label: "成績" },
+  ];
+
   return (
     <div className="flex flex-1 flex-col" data-division={division}>
       <DemoBanner />
@@ -45,7 +55,7 @@ export default async function StudentLayout({
           <Link href="/home" className="brand" aria-label={brandLabel}>
             <Brand division={division} className="brand-logo" />
           </Link>
-          <NavTabs items={TABS} />
+          <NavTabs items={tabs} />
           <div className="appbar-right">
             <span className="appbar-user">
               {p.name}

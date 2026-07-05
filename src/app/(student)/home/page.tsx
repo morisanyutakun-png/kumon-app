@@ -9,7 +9,7 @@ import { encourageMessage, levelInfo, studyStreak } from "@/lib/encourage";
 import { listGradingHistory, listNotifications, listSubmissions } from "@/lib/queries";
 import { Mascot } from "@/components/mascot";
 import { IconCalendar, IconCheck, IconFlame, IconMedal, IconRedo, IconStar } from "@/components/icons";
-import { HomeTabs } from "./home-tabs";
+import { TaskList } from "@/components/task-card";
 
 function subjectColor(subject: string): string {
   switch (subject) {
@@ -36,8 +36,6 @@ export default async function StudentHome() {
   ]);
 
   const todo = rows.filter((r) => r.status === "not_submitted" || r.status === "resubmit_required");
-  const waiting = rows.filter((r) => r.status === "submitted" || r.status === "grading");
-  const returned = rows.filter((r) => r.status === "returned");
   const doneCount = rows.filter((r) => r.status === "done").length;
   const pass = history.filter((h) => h.result === "ok").length;
   const lv = levelInfo(pass);
@@ -139,7 +137,16 @@ export default async function StudentHome() {
         </div>
       </div>
 
-      <HomeTabs todo={todo} waiting={waiting} returned={returned} sec={sec} />
+      {/* 課題(やること)。今日のミッションで先頭を大きく出しているので、残りをここに一覧。 */}
+      {todo.length > 1 && (
+        <section style={{ marginTop: 8 }}>
+          <div className="lsection">
+            {sec ? "ほかの課題" : "ほかの やること"}
+            <span className="lsection-n">{todo.length - 1}</span>
+          </div>
+          <TaskList rows={todo.slice(1)} sec={sec} />
+        </section>
+      )}
     </div>
   );
 }
