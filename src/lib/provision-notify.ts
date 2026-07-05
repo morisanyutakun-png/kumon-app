@@ -62,8 +62,9 @@ export async function sendProvisionEmails(opts: {
         phone: payload.phone,
         subjectLabels: payload.subjectLabels,
         subjectCount: payload.subjectCount,
-        monthlyAmount: payload.monthlyAmount,
+        amount: payload.amount ?? payload.monthlyAmount,
         stripeCustomerId: payload.stripeCustomerId,
+        stripePaymentIntentId: payload.stripePaymentIntentId,
         stripeSubscriptionId: payload.stripeSubscriptionId,
         stripeSessionId: payload.stripeSessionId,
       });

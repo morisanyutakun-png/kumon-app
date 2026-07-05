@@ -81,14 +81,17 @@ export async function sendOperatorNotification(
     phone?: string;
     subjectLabels?: string;
     subjectCount?: number | string;
-    monthlyAmount?: number | string;
+    amount?: number | string;
+    monthlyAmount?: number | string; // 旧(後方互換)
     stripeCustomerId?: string;
-    stripeSubscriptionId?: string;
+    stripePaymentIntentId?: string;
+    stripeSubscriptionId?: string; // 旧(後方互換)
     stripeSessionId?: string;
   },
 ): Promise<{ ok: boolean }> {
-  const amount = d.monthlyAmount !== undefined && d.monthlyAmount !== "" && Number(d.monthlyAmount) > 0
-    ? `${Number(d.monthlyAmount).toLocaleString("ja-JP")} 円 / 月`
+  const amt = d.amount ?? d.monthlyAmount; // 新: 購入金額 / 旧: 月額
+  const amount = amt !== undefined && amt !== "" && Number(amt) > 0
+    ? `${Number(amt).toLocaleString("ja-JP")} 円`
     : "—";
   const row = (label: string, value?: string) =>
     `<tr><td style="padding:5px 10px;color:#64748b;white-space:nowrap;vertical-align:top;">${escapeHtml(label)}</td><td style="padding:5px 10px;font-weight:700;">${value ?? "—"}</td></tr>`;
@@ -110,9 +113,9 @@ export async function sendOperatorNotification(
         ${row("電話", escapeHtml(d.phone || "—"))}
         ${row("契約科目", escapeHtml(d.subjectLabels || "—"))}
         ${row("科目数", d.subjectCount !== undefined && d.subjectCount !== "" ? escapeHtml(String(d.subjectCount)) : "—")}
-        ${row("月額", escapeHtml(amount))}
+        ${row("購入金額", escapeHtml(amount))}
         ${row("Stripe顧客ID", escapeHtml(d.stripeCustomerId || "—"))}
-        ${row("Stripeサブスク", escapeHtml(d.stripeSubscriptionId || "—"))}
+        ${row("Stripe決済(PaymentIntent)", escapeHtml(d.stripePaymentIntentId || d.stripeSubscriptionId || "—"))}
         ${row("Stripeセッション", escapeHtml(d.stripeSessionId || "—"))}
       </table>
     </div>`;

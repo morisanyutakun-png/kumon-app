@@ -198,9 +198,11 @@ export const subscriptions = pgTable(
     subjects: text("subjects").notNull().default(""), // 原値 csv (例: physics,math-2bc)
     subjectLabels: text("subject_labels").notNull().default(""),
     subjectCount: integer("subject_count").notNull().default(0),
-    monthlyAmount: integer("monthly_amount").notNull().default(0),
+    monthlyAmount: integer("monthly_amount").notNull().default(0), // 旧: 月額(サブスク時代・後方互換)
+    amount: integer("amount").notNull().default(0), // 購入金額(一回払い new_purchase)
     stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
-    stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
+    stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }), // 旧: サブスクID(後方互換)
+    stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 255 }), // 一回払いの PaymentIntent
     stripeSessionId: varchar("stripe_session_id", { length: 255 }),
     // 発行したアカウント。
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),

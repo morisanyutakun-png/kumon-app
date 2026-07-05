@@ -27,7 +27,7 @@ export function gradeLabel(code: string): string {
 
 /** yuta-eng 照会API / Webhook のペイロード。数値・真偽値は文字列で来ることがあるため寛容に受ける。 */
 export const provisionPayloadSchema = z.object({
-  type: z.string().optional(),
+  type: z.string().optional(), // "new_purchase"(旧: "new_subscription")。値は分岐に未使用
   paid: z.union([z.boolean(), z.string()]).optional(),
   email: z.string().email(),
   name: z.string().optional().default(""),
@@ -37,9 +37,11 @@ export const provisionPayloadSchema = z.object({
   subjects: z.string().optional().default(""),
   subjectLabels: z.string().optional().default(""),
   subjectCount: z.union([z.number(), z.string()]).optional(),
-  monthlyAmount: z.union([z.number(), z.string()]).optional(),
+  amount: z.union([z.number(), z.string()]).optional(), // 購入金額(一回払い・新)
+  monthlyAmount: z.union([z.number(), z.string()]).optional(), // 旧: 月額(後方互換)
   stripeCustomerId: z.string().optional(),
-  stripeSubscriptionId: z.string().optional(),
+  stripePaymentIntentId: z.string().optional(), // 一回払い PaymentIntent(新)
+  stripeSubscriptionId: z.string().optional(), // 旧: サブスクID(後方互換)
   stripeSessionId: z.string().optional(),
   createdAt: z.string().optional(),
 });
@@ -128,9 +130,11 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
     subjects: (payload.subjects || "").trim(),
     subjectLabels: (payload.subjectLabels || "").trim(),
     subjectCount: payload.subjectCount !== undefined ? toInt(payload.subjectCount) : subjectIds.length,
-    monthlyAmount: toInt(payload.monthlyAmount),
+    monthlyAmount: toInt(payload.monthlyAmount), // 旧列(後方互換)
+    amount: toInt(payload.amount ?? payload.monthlyAmount), // 購入金額(旧月額もフォールバック)
     stripeCustomerId: payload.stripeCustomerId ?? null,
-    stripeSubscriptionId: payload.stripeSubscriptionId ?? null,
+    stripeSubscriptionId: payload.stripeSubscriptionId ?? null, // 旧列(後方互換)
+    stripePaymentIntentId: payload.stripePaymentIntentId ?? null,
     stripeSessionId: payload.stripeSessionId ?? null,
   };
 
