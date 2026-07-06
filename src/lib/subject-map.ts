@@ -15,14 +15,19 @@ export interface PurchaseMaterialTarget {
 
 export const YUTA_SUBJECT_TARGET: Record<string, Omit<PurchaseMaterialTarget, "subjectId">> = {
   "physics-basic": {
-    label: "物理基礎",
-    subjects: ["物理基礎", "物理"],
-    nameIncludes: ["物理基礎"],
+    label: "物理 基礎",
+    subjects: ["物理 基礎", "物理基礎", "物理"],
+    nameIncludes: ["物理 基礎", "物理基礎", "基礎", "入門"],
   },
   physics: {
-    label: "物理",
-    subjects: ["物理"],
-    nameIncludes: ["物理"],
+    label: "物理 標準",
+    subjects: ["物理 標準", "物理"],
+    nameIncludes: ["物理 標準", "標準"],
+  },
+  "physics-advanced": {
+    label: "物理 発展",
+    subjects: ["物理 発展", "物理"],
+    nameIncludes: ["物理 発展", "発展"],
   },
   "chemistry-basic": {
     label: "化学基礎",
