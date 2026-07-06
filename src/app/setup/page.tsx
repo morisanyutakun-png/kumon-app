@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 
 import { Logo } from "@/components/logo";
 import { isPaid, provisionAccount } from "@/lib/provision";
@@ -9,6 +10,18 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 type Search = { [k: string]: string | string[] | undefined };
+
+async function appBaseUrl() {
+  const configured = process.env.AUTH_URL?.replace(/\/$/, "");
+  if (configured) return configured;
+
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (!host) return "";
+
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  return `${proto.split(",")[0]}://${host.split(",")[0]}`;
+}
 
 /**
  * 決済直後の戻り先 /setup?session_id=cs_xxx。
@@ -52,7 +65,8 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
   // 新規発行なら、ここでもメール送信(顧客＋運営者)。Webhook が来なくても確実に届く。
   // 送信関数は try/catch 済みでページを落とさない。
   if (result.status === "created") {
-    const loginUrl = `${(process.env.AUTH_URL ?? "").replace(/\/$/, "")}/login`;
+    const baseUrl = await appBaseUrl();
+    const loginUrl = baseUrl ? `${baseUrl}/login` : "/login";
     await sendProvisionEmails({ result, payload: lookup.payload, loginUrl });
   }
 
