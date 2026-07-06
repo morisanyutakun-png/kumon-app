@@ -71,6 +71,13 @@
       "when": 1783268820951,
       "tag": "0009_flawless_zzzax",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783306498263,
+      "tag": "0010_mighty_alex_power",
+      "breakpoints": true
     }
   ]
 }

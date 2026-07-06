@@ -178,8 +178,10 @@ export const guardianStudents = pgTable(
 // =============================================================================
 
 /**
- * yuta-eng(申込・決済サイト)からの中高部サブスク契約台帳。
- * 1メール = 1契約(= 1ログインアカウント)で冪等管理する。決済は yuta-eng 側で完了済みで、
+ * yuta-eng(申込・決済サイト)からの中高部購入台帳。
+ * 1 Stripe Checkout Session = 1契約(= 1ログインアカウント)で冪等管理する。
+ * 同じ保護者メールで複数購入しても、生徒は購入単位で発行する。
+ * 決済は yuta-eng 側で完了済みで、
  * 本アプリはここを起点にアカウント(users/students)を発行する。
  */
 export const subscriptions = pgTable(
@@ -211,7 +213,7 @@ export const subscriptions = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     activatedAt: timestamp("activated_at", { withTimezone: true }),
   },
-  (t) => [uniqueIndex("subscriptions_email_unique").on(t.email)],
+  (t) => [uniqueIndex("subscriptions_stripe_session_id_unique").on(t.stripeSessionId)],
 );
 
 /** 契約に含まれる科目(正規化)。subjects(csv)を1行ずつに分解して保存。 */

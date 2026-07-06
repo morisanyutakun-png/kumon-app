@@ -9,7 +9,7 @@
  *   2. paid !== true なら何もせず 200(ログのみ)
  *   3. 冪等に仮アカウントを upsert(既に本登録済みなら何もしない)
  *   4. setup_token を発行し、パスワード設定リンクをメール送信
- *   5. 常に 200(yuta-eng はレスポンス本文を使わない)。再試行のため失敗時のみ 5xx。
+ *   5. 成功時は 200。発行または顧客メール送信に失敗した場合は、再試行のため 5xx。
  */
 import { timingSafeEqual } from "node:crypto";
 
@@ -122,9 +122,18 @@ export async function POST(req: Request) {
     const result = await provisionAccount(payload);
     console.info(`[provision] webhook: ${result.status} to=${maskEmail(result.email)}`);
 
-    // ログイン情報(顧客)＋発行通知(運営者)を送信。失敗してもアカウントは作成済み。
-    await sendProvisionEmails({ result, payload, loginUrl: `${baseUrl(req)}/login` });
-    return Response.json({ ok: true, status: result.status });
+    // ログイン情報(顧客)＋発行通知(運営者)を送信。
+    // 顧客メールが失敗した場合は 5xx にして、yuta-eng/Stripe の再送に乗せる。
+    const email = await sendProvisionEmails({ result, payload, loginUrl: `${baseUrl(req)}/login` });
+    if (!email.customer) {
+      console.error(`[provision] 顧客メール送信失敗 to=${maskEmail(result.email)} status=${result.status}`);
+      return Response.json(
+        { ok: false, error: "email_failed", status: result.status, email },
+        { status: 502 },
+      );
+    }
+
+    return Response.json({ ok: true, status: result.status, email });
   } catch (e) {
     // 5xx を返すと yuta-eng 側が再送してくれる(冪等なので再送は安全)。
     console.error(`[provision] webhook 失敗: ${e instanceof Error ? e.message : "unknown"}`);

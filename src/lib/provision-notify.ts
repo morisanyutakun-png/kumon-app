@@ -1,7 +1,7 @@
 /**
  * 発行時のメール送信(顧客＝ログイン情報 / 運営者＝発行通知)。
- * Webhook と /setup の両方から呼べる。新規発行(created)時のみ送る。
- * すべて try/catch 済みの送信関数を使うので、ここが原因でページ/リクエストが落ちることはない。
+ * Webhook と /setup の両方から呼べる。
+ * 同じ決済の再実行でも資格情報が取れるなら再送できるようにし、送信成否を呼び出し元へ返す。
  */
 import "server-only";
 
@@ -17,15 +17,16 @@ export async function sendProvisionEmails(opts: {
   result: ProvisionResult;
   payload: ProvisionPayload;
   loginUrl: string;
-}): Promise<void> {
+}): Promise<{ customer: boolean; operator: boolean | null; skipped: boolean }> {
   const { result, payload, loginUrl } = opts;
-  // 新規発行のときだけ送る(冪等: 2回目以降の already_active では送らない=重複防止)。
-  if (result.status !== "created" || !result.loginId || !result.pin) return;
+  if (!result.loginId || !result.pin) {
+    return { customer: false, operator: null, skipped: true };
+  }
 
   const studentName = payload.studentName || payload.name;
 
   // 顧客へログイン情報。
-  await sendCredentialsEmail({
+  const customer = await sendCredentialsEmail({
     to: result.email,
     loginId: result.loginId,
     pin: result.pin,
@@ -35,6 +36,7 @@ export async function sendProvisionEmails(opts: {
   });
 
   // 運営者(admin/operator でメールあり)＋ 明示指定(OPERATOR_NOTIFY_EMAIL) へ詳細通知。
+  let operator: boolean | null = null;
   try {
     const recipients = new Set<string>();
     const orgId = process.env.NOBIT_PROVISION_ORG_ID;
@@ -52,7 +54,7 @@ export async function sendProvisionEmails(opts: {
     }
     const to = [...recipients];
     if (to.length > 0) {
-      await sendOperatorNotification(to, {
+      const sent = await sendOperatorNotification(to, {
         studentName,
         grade: gradeLabel((payload.grade || "").trim()),
         loginId: result.loginId,
@@ -68,8 +70,12 @@ export async function sendProvisionEmails(opts: {
         stripeSubscriptionId: payload.stripeSubscriptionId,
         stripeSessionId: payload.stripeSessionId,
       });
+      operator = sent.ok;
     }
   } catch (e) {
+    operator = false;
     console.error(`[provision] 運営者通知の送信準備に失敗: ${e instanceof Error ? e.message : "unknown"}`);
   }
+
+  return { customer: customer.ok, operator, skipped: false };
 }

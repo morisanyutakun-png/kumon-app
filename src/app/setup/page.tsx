@@ -62,16 +62,18 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
     return <Shell><LookupError msg="アカウントの発行中にエラーが発生しました。時間をおいて、ログイン情報メールのリンクからお試しください。" /></Shell>;
   }
 
-  // 新規発行なら、ここでもメール送信(顧客＋運営者)。Webhook が来なくても確実に届く。
-  // 送信関数は try/catch 済みでページを落とさない。
-  if (result.status === "created") {
+  // ここでもメール送信(顧客＋運営者)。Webhook が来なくても確実に届く。
+  // 既に発行済みでも資格情報が取れる場合は、メール未達の復旧として再送を試みる。
+  let emailSent = false;
+  if (result.loginId && result.pin) {
     const baseUrl = await appBaseUrl();
     const loginUrl = baseUrl ? `${baseUrl}/login` : "/login";
-    await sendProvisionEmails({ result, payload: lookup.payload, loginUrl });
+    const email = await sendProvisionEmails({ result, payload: lookup.payload, loginUrl });
+    emailSent = email.customer;
   }
 
   if (result.loginId && result.pin) {
-    return <Shell><Credentials loginId={result.loginId} pin={result.pin} /></Shell>;
+    return <Shell><Credentials loginId={result.loginId} pin={result.pin} emailSent={emailSent} /></Shell>;
   }
   // 既に発行済みで、PIN が手元にない(過去発行など)。ログインへ案内。
   return (
@@ -100,11 +102,12 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Credentials({ loginId, pin }: { loginId: string; pin: string }) {
+function Credentials({ loginId, pin, emailSent }: { loginId: string; pin: string; emailSent: boolean }) {
   return (
     <>
       <p className="auth-help" style={{ marginTop: 0 }}>
-        お申し込みありがとうございます。下のログイン情報でご利用いただけます（同じ内容をメールでもお送りしました）。
+        お申し込みありがとうございます。下のログイン情報でご利用いただけます
+        {emailSent ? "（同じ内容をメールでもお送りしました）。" : "。メール送信に失敗した可能性があるため、この画面の内容を保存してください。"}
       </p>
       <div className="setup-info">
         <div className="setup-info-row">

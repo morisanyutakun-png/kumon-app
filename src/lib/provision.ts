@@ -5,7 +5,8 @@
  * 運営が手動作成する生徒と同じ方式に統一する:
  *   - students 行に loginId(st~) + PIN(pinHash/pinPlain) を発行(active)。
  *   - ログインは既存の生徒ログイン(loginId + PIN)経路(auth.ts)をそのまま使う。
- *   - 契約情報は subscriptions に保存(email 一意)。email を冪等キーにする。
+ *   - 契約情報は subscriptions に保存する。
+ *   - stripeSessionId を冪等キーにし、同じメールでも購入ごとに生徒を発行する。
  * 生成した st~ ログインID と PIN は、メール送信 / /setup 画面 / 生徒管理 で確認できる。
  */
 import "server-only";
@@ -105,13 +106,18 @@ export interface ProvisionResult {
 }
 
 /**
- * 冪等にアカウントを発行する。email を冪等キーにし、Webhook と /setup が同時に来ても
- * 二重作成・500 にならないようにする(subscription を email 一意で upsert → 条件付きUPDATEで
- * 生徒を1件だけ紐付け)。運営作成生徒と同じ st~ ログインID + PIN を発行する。
+ * 冪等にアカウントを発行する。stripeSessionId を冪等キーにし、Webhook と /setup が同時に来ても
+ * 二重作成・500 にならないようにする(subscription を Stripe session 一意で upsert →
+ * 条件付きUPDATEで生徒を1件だけ紐付け)。運営作成生徒と同じ st~ ログインID + PIN を発行する。
  */
 export async function provisionAccount(payload: ProvisionPayload): Promise<ProvisionResult> {
   const orgId = provisionOrgId();
   const email = payload.email.trim().toLowerCase();
+  const stripeSessionId = payload.stripeSessionId?.trim();
+  if (!stripeSessionId) {
+    throw new Error("stripeSessionId が未設定です。購入単位の冪等発行に必要です。");
+  }
+
   const studentName = (payload.studentName || payload.name || "").trim();
   const grade = gradeLabel((payload.grade || "").trim());
   const subjectIds = (payload.subjects || "")
@@ -135,14 +141,19 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
     stripeCustomerId: payload.stripeCustomerId ?? null,
     stripeSubscriptionId: payload.stripeSubscriptionId ?? null, // 旧列(後方互換)
     stripePaymentIntentId: payload.stripePaymentIntentId ?? null,
-    stripeSessionId: payload.stripeSessionId ?? null,
+    stripeSessionId,
   };
 
-  // 契約(subscription)を email 一意で upsert。これが冪等の土台。
+  const activeContract = { ...contract, status: "active" as const, activatedAt: new Date() };
+
+  // 契約(subscription)を Stripe session 一意で upsert。これが冪等の土台。
   const [sub] = await db
     .insert(subscriptions)
-    .values({ ...contract, status: "active", activatedAt: new Date() })
-    .onConflictDoUpdate({ target: subscriptions.email, set: { ...contract } })
+    .values(activeContract)
+    .onConflictDoUpdate({
+      target: subscriptions.stripeSessionId,
+      set: activeContract,
+    })
     .returning({ id: subscriptions.id, studentId: subscriptions.studentId });
 
   await replaceSubjects(sub.id, subjectIds);
