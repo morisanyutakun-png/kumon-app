@@ -21,8 +21,7 @@ function isImeEnter(e: React.KeyboardEvent): boolean {
   return e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229;
 }
 import { ActionButton } from "@/components/action-button";
-
-export const GRADES = ["小1", "小2", "小3", "小4", "小5", "小6", "中1", "中2", "中3"];
+import { GRADES, gradeOptions } from "@/lib/division";
 
 export interface RosterRow {
   id: string;
@@ -152,7 +151,7 @@ function EditableRow({ s, admin }: { s: RosterRow; admin: boolean }) {
       <td>
         {admin ? (
           <select value={grade} onChange={(e) => setGrade(e.target.value)}>
-            {GRADES.map((g) => (
+            {gradeOptions(grade).map((g) => (
               <option key={g} value={g}>{g}</option>
             ))}
           </select>

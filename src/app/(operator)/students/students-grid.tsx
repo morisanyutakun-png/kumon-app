@@ -6,8 +6,7 @@ import { toast } from "sonner";
 
 import { deleteStudent, quickAddStudent } from "@/lib/actions/admin-actions";
 import { ActionButton } from "@/components/action-button";
-
-export const GRADES = ["小1", "小2", "小3", "小4", "小5", "小6", "中1", "中2", "中3"];
+import { GRADES } from "@/lib/division";
 
 export interface StudentRow {
   id: string;

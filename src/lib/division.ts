@@ -23,3 +23,19 @@ export const DIVISION_LABEL: Record<Division, string> = {
   elementary: "小学部",
   secondary: "中高部",
 };
+
+/** 管理画面の学年プルダウンの定型選択肢(小学部〜中高部)。自動発行の高校学年(高1〜高卒)も含む。 */
+export const GRADES = [
+  "小1", "小2", "小3", "小4", "小5", "小6",
+  "中1", "中2", "中3",
+  "高1", "高2", "高3", "高卒",
+] as const;
+
+/**
+ * 学年selectの選択肢。現在値が定型リストに無い場合でも必ず先頭に含めることで、
+ * 一覧外の値(例: "その他"・表記ゆれ)が黙って先頭(小1)に化けるのを防ぐ。
+ */
+export function gradeOptions(current?: string | null): string[] {
+  const c = (current ?? "").trim();
+  return c && !(GRADES as readonly string[]).includes(c) ? [c, ...GRADES] : [...GRADES];
+}
