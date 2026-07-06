@@ -1,16 +1,16 @@
 /**
  * 購入科目 → 生徒への教材割り当て(コア)。
  *
- * 生徒の subscription に紐づく購入科目を、対応する教科の org 教材に変換し、
+ * 生徒の subscription に紐づく購入科目を、対応する中高部の org 教材に変換し、
  * 未割り当てぶんだけ assignments(+submissions) を作成する。
  *
  * 手動(運営ボタン)・将来の自動割り当ての両方から呼べる純粋なコアにしてある。
  *   - 手動:   admin-actions の assignPurchasedSubjectsAction(operator の user.id を渡す)
- *   - 自動:   provision の発行時(maybeAutoAssign・PROVISION_AUTO_ASSIGN=1)から。将来用の余地。
+ *   - 自動:   provision の発行時(生徒作成と同時)から。
  */
 import "server-only";
 
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -22,7 +22,11 @@ import {
   units,
 } from "@/db/schema";
 import { initialSessionRange } from "@/lib/progress-db";
-import { materialSubjectsForPurchase } from "@/lib/subject-map";
+import {
+  matchesPurchaseTarget,
+  materialSubjectsForPurchase,
+  materialTargetsForPurchase,
+} from "@/lib/subject-map";
 
 export interface AssignResult {
   assigned: number;
@@ -51,13 +55,26 @@ export async function assignPurchasedSubjects(opts: {
     .select({ subjectId: subscriptionSubjects.subjectId })
     .from(subscriptionSubjects)
     .where(eq(subscriptionSubjects.subscriptionId, sub.id));
-  const labels = materialSubjectsForPurchase(subjRows.map((r) => r.subjectId));
+  const subjectIds = subjRows.map((r) => r.subjectId);
+  const labels = materialSubjectsForPurchase(subjectIds);
+  const targets = materialTargetsForPurchase(subjectIds);
   if (labels.length === 0) return { assigned: 0, skipped: 0, matched: 0, subjects: [], reason: "no_subjects" };
 
-  const mats = await db
+  const allSecondaryMaterials = await db
     .select()
     .from(materials)
-    .where(and(eq(materials.organizationId, organizationId), inArray(materials.subject, labels)));
+    .where(and(eq(materials.organizationId, organizationId), eq(materials.division, "secondary")))
+    .orderBy(asc(materials.sortOrder), asc(materials.subject), asc(materials.name));
+
+  const matchedById = new Map<string, (typeof allSecondaryMaterials)[number]>();
+  for (const target of targets) {
+    for (const material of allSecondaryMaterials) {
+      if (matchesPurchaseTarget(material, target)) {
+        matchedById.set(material.id, material);
+      }
+    }
+  }
+  const mats = [...matchedById.values()];
   if (mats.length === 0) return { assigned: 0, skipped: 0, matched: 0, subjects: labels, reason: "no_materials" };
 
   const existing = await db

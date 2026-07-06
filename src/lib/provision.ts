@@ -6,6 +6,7 @@
  *   - students 行に loginId(st~) + PIN(pinHash/pinPlain) を発行(active)。
  *   - ログインは既存の生徒ログイン(loginId + PIN)経路(auth.ts)をそのまま使う。
  *   - 契約情報は subscriptions に保存する。
+ *   - 購入科目に一致する教材は、発行した生徒へ自動で割り当てる。
  *   - stripeSessionId を冪等キーにし、同じメールでも購入ごとに生徒を発行する。
  * 生成した st~ ログインID と PIN は、メール送信 / /setup 画面 / 生徒管理 で確認できる。
  */
@@ -19,6 +20,7 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { students, subscriptions, subscriptionSubjects } from "@/db/schema";
+import { assignPurchasedSubjects } from "@/lib/assign-purchased";
 
 /** grade コード → 表示用学年(中高部=secondary に解決される表記)。 */
 const GRADE_LABEL: Record<string, string> = { h1: "高1", h2: "高2", h3: "高3", grad: "高卒", other: "その他" };
@@ -161,7 +163,10 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
   // 既に生徒が紐づいていれば、その資格情報を返す(再作成しない)。
   if (sub.studentId) {
     const existing = await fetchStudentCreds(sub.studentId);
-    if (existing) return { status: "already_active", email, subscriptionId: sub.id, ...existing };
+    if (existing) {
+      await autoAssignPurchasedSubjects(orgId, sub.studentId);
+      return { status: "already_active", email, subscriptionId: sub.id, ...existing };
+    }
   }
 
   // 生徒(st~ + PIN)を作成し、条件付きUPDATEで紐付け(同時実行でも1件だけが紐づく)。
@@ -189,11 +194,15 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
       .limit(1);
     if (s2?.studentId) {
       const other = await fetchStudentCreds(s2.studentId);
-      if (other) return { status: "already_active", email, subscriptionId: sub.id, ...other };
+      if (other) {
+        await autoAssignPurchasedSubjects(orgId, s2.studentId);
+        return { status: "already_active", email, subscriptionId: sub.id, ...other };
+      }
     }
+    throw new Error("subscription の生徒紐づけに失敗しました。");
   }
 
-  await maybeAutoAssign(orgId, student.id);
+  await autoAssignPurchasedSubjects(orgId, student.id);
   return { status: "created", email, studentId: student.id, loginId, pin, subscriptionId: sub.id };
 }
 
@@ -219,11 +228,9 @@ async function replaceSubjects(subscriptionId: string, subjectIds: string[]): Pr
   }
 }
 
-/** 将来用の自動割り当て(既定OFF / PROVISION_AUTO_ASSIGN=1)。失敗しても発行は妨げない。 */
-async function maybeAutoAssign(organizationId: string, studentId: string): Promise<void> {
-  if (process.env.PROVISION_AUTO_ASSIGN !== "1") return;
+/** 購入科目の自動割り当て。失敗してもアカウント発行は妨げない。 */
+async function autoAssignPurchasedSubjects(organizationId: string, studentId: string): Promise<void> {
   try {
-    const { assignPurchasedSubjects } = await import("./assign-purchased");
     const r = await assignPurchasedSubjects({ organizationId, studentId, assignedById: null });
     console.info(`[provision] 自動割り当て assigned=${r.assigned} matched=${r.matched} reason=${r.reason ?? "ok"}`);
   } catch (e) {

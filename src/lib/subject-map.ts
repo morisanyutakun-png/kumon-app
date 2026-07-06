@@ -1,28 +1,106 @@
 /**
- * yuta-eng の科目ID → 教材の教科ラベル(materials.subject)への対応表。
+ * yuta-eng の科目ID → 教材マッチ条件。
  *
- * 「購入科目 → 生徒への教材割り当て」で、どの教科の教材を割り当てるかを決める。
- * materials.subject は自由文字列なので、中高部教材を登録する際はここのラベルに
- * 合わせて subject を付けること(合わせれば自動でマッチする)。運用に応じて編集可。
- *
- * yuta-eng 側の科目ID(仕様):
- *   physics-basic, physics, chemistry-basic, chemistry,
- *   math-1a, math-2bc, math-3c, english-reading, english-grammar
+ * 既存の中高部教材は、管理画面の教科欄が「数学」「英語」のような大分類になっている。
+ * そのため購入IDを materials.subject にそのまま突き合わせるだけでは
+ * math-1a → 「数学IA標準」などが拾えない。ここでは購入IDごとに
+ * 教科候補 + 教材名に含まれる語を持たせ、既存教材の命名に合わせて割り当てる。
  */
-export const YUTA_SUBJECT_LABEL: Record<string, string> = {
-  "physics-basic": "物理基礎",
-  physics: "物理",
-  "chemistry-basic": "化学基礎",
-  chemistry: "化学",
-  "math-1a": "数学IA",
-  "math-2bc": "数学IIBC",
-  "math-3c": "数学IIIC",
-  "english-reading": "英語(読解)",
-  "english-grammar": "英語(文法)",
+export interface PurchaseMaterialTarget {
+  subjectId: string;
+  label: string;
+  subjects: string[];
+  nameIncludes: string[];
+}
+
+export const YUTA_SUBJECT_TARGET: Record<string, Omit<PurchaseMaterialTarget, "subjectId">> = {
+  "physics-basic": {
+    label: "物理基礎",
+    subjects: ["物理基礎", "物理"],
+    nameIncludes: ["物理基礎"],
+  },
+  physics: {
+    label: "物理",
+    subjects: ["物理"],
+    nameIncludes: ["物理"],
+  },
+  "chemistry-basic": {
+    label: "化学基礎",
+    subjects: ["化学基礎", "化学"],
+    nameIncludes: ["化学基礎"],
+  },
+  chemistry: {
+    label: "化学",
+    subjects: ["化学"],
+    nameIncludes: ["化学"],
+  },
+  "math-1a": {
+    label: "数学IA",
+    subjects: ["数学IA", "数学"],
+    nameIncludes: ["数学IA", "数学I A", "数学ⅠA", "数学Ⅰ A"],
+  },
+  "math-2bc": {
+    label: "数学IIBC",
+    subjects: ["数学IIBC", "数学"],
+    nameIncludes: ["数学IIBC", "数学II BC", "数学ⅡBC", "数学Ⅱ BC"],
+  },
+  "math-3c": {
+    label: "数学IIIC",
+    subjects: ["数学IIIC", "数学"],
+    nameIncludes: ["数学IIIC", "数学III C", "数学ⅢC", "数学Ⅲ C"],
+  },
+  "english-reading": {
+    label: "英語長文",
+    subjects: ["英語長文", "英語(読解)", "英語"],
+    nameIncludes: ["英語長文", "長文"],
+  },
+  "english-grammar": {
+    label: "英文法",
+    subjects: ["英文法", "英語(文法)", "英語"],
+    nameIncludes: ["英文法", "文法"],
+  },
 };
 
-/** 購入科目ID配列 → 割り当て対象の教科ラベル(重複排除)。未知IDはそのまま通す。 */
+function normalize(s: string): string {
+  return s.normalize("NFKC").toLowerCase().replace(/\s+/g, "");
+}
+
+/** 購入科目ID配列 → 教材マッチ条件(重複排除)。未知IDは subject 完全一致で扱う。 */
+export function materialTargetsForPurchase(subjectIds: string[]): PurchaseMaterialTarget[] {
+  const seen = new Set<string>();
+  const targets: PurchaseMaterialTarget[] = [];
+  for (const rawId of subjectIds) {
+    const subjectId = rawId.trim();
+    if (!subjectId || seen.has(subjectId)) continue;
+    seen.add(subjectId);
+    const target = YUTA_SUBJECT_TARGET[subjectId];
+    if (target) {
+      targets.push({ subjectId, ...target });
+    } else {
+      targets.push({
+        subjectId,
+        label: subjectId,
+        subjects: [subjectId],
+        nameIncludes: [],
+      });
+    }
+  }
+  return targets;
+}
+
+/** 購入科目ID配列 → 表示用ラベル(重複排除)。 */
 export function materialSubjectsForPurchase(subjectIds: string[]): string[] {
-  const labels = subjectIds.map((id) => YUTA_SUBJECT_LABEL[id] ?? id).filter(Boolean);
-  return [...new Set(labels)];
+  return materialTargetsForPurchase(subjectIds).map((target) => target.label);
+}
+
+export function matchesPurchaseTarget(
+  material: { subject: string; name: string },
+  target: PurchaseMaterialTarget,
+): boolean {
+  const subject = normalize(material.subject);
+  const name = normalize(material.name);
+  const subjectMatches = target.subjects.some((s) => normalize(s) === subject);
+  if (!subjectMatches) return false;
+  if (target.nameIncludes.length === 0) return true;
+  return target.nameIncludes.some((token) => name.includes(normalize(token)));
 }
