@@ -99,7 +99,8 @@ export async function readBlob(
   url: string,
   pathname: string,
 ): Promise<{ body: Buffer; contentType: string } | null> {
-  if (url.startsWith(LOCAL_PREFIX) || !hasBlobToken()) {
+  const isHttpUrl = url.startsWith("http://") || url.startsWith("https://");
+  if (url.startsWith(LOCAL_PREFIX) || (!isHttpUrl && !hasBlobToken())) {
     try {
       const src = path.join(LOCAL_DIR, pathname);
       const body = await fs.readFile(src);
@@ -108,6 +109,7 @@ export async function readBlob(
       return null;
     }
   }
+  if (url.startsWith(DB_PREFIX)) return null;
   const res = await fetch(url);
   if (!res.ok) return null;
   const arrayBuf = await res.arrayBuffer();

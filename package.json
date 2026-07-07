@@ -18,6 +18,8 @@
     "materials:seed": "tsx scripts/seed-math-materials.ts",
     "files:migrate-blob": "tsx scripts/migrate-files-to-blob.ts",
     "materials:seed-chemistry": "tsx scripts/seed-chemistry-material.ts",
+    "materials:seed-physics": "tsx scripts/seed-physics-materials.ts",
+    "assignments:backfill-purchased": "tsx scripts/backfill-purchased-assignments.ts",
     "test:unit": "tsx scripts/progress-test.ts",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui"

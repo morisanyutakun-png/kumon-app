@@ -28,6 +28,9 @@ export function gradeLabel(code: string): string {
   return GRADE_LABEL[code] ?? code;
 }
 
+const subjectInputSchema = z.union([z.string(), z.array(z.string())]).optional().default("");
+type SubjectInput = z.infer<typeof subjectInputSchema>;
+
 /** yuta-eng 照会API / Webhook のペイロード。数値・真偽値は文字列で来ることがあるため寛容に受ける。 */
 export const provisionPayloadSchema = z.object({
   type: z.string().optional(), // "new_purchase"(旧: "new_subscription")。値は分岐に未使用
@@ -37,7 +40,7 @@ export const provisionPayloadSchema = z.object({
   phone: z.string().optional().default(""),
   studentName: z.string().optional().default(""),
   grade: z.string().optional().default(""),
-  subjects: z.string().optional().default(""),
+  subjects: subjectInputSchema,
   subjectLabels: z.string().optional().default(""),
   subjectCount: z.union([z.number(), z.string()]).optional(),
   amount: z.union([z.number(), z.string()]).optional(), // 購入金額(一回払い・新)
@@ -58,6 +61,15 @@ function toInt(v: number | string | undefined): number {
   if (typeof v === "number") return Math.trunc(v);
   const n = parseInt(String(v ?? "").replace(/[^\d-]/g, ""), 10);
   return Number.isFinite(n) ? n : 0;
+}
+
+function subjectIdsFromInput(input: SubjectInput): string[] {
+  const raw = Array.isArray(input) ? input : input.split(",");
+  return raw.map((s) => s.trim()).filter(Boolean);
+}
+
+function subjectInputToString(input: SubjectInput): string {
+  return subjectIdsFromInput(input).join(",");
 }
 
 /** ログ用にメールを部分マスク(個人情報を平文で大量に残さない)。 */
@@ -122,10 +134,7 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
 
   const studentName = (payload.studentName || payload.name || "").trim();
   const grade = gradeLabel((payload.grade || "").trim());
-  const subjectIds = (payload.subjects || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const subjectIds = subjectIdsFromInput(payload.subjects);
 
   const contract = {
     organizationId: orgId,
@@ -135,7 +144,7 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
     studentName,
     grade,
     gradeCode: (payload.grade || "").trim(),
-    subjects: (payload.subjects || "").trim(),
+    subjects: subjectInputToString(payload.subjects),
     subjectLabels: (payload.subjectLabels || "").trim(),
     subjectCount: payload.subjectCount !== undefined ? toInt(payload.subjectCount) : subjectIds.length,
     monthlyAmount: toInt(payload.monthlyAmount), // 旧列(後方互換)
