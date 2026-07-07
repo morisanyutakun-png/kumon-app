@@ -37,7 +37,7 @@ export const YUTA_SUBJECT_TARGET: Record<string, Omit<PurchaseMaterialTarget, "s
   chemistry: {
     label: "化学",
     subjects: ["化学"],
-    nameIncludes: ["化学"],
+    nameIncludes: ["化学 総集編", "化学総集編"],
   },
   "math-1a": {
     label: "数学IA",

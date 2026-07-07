@@ -114,7 +114,12 @@ async function refreshAssignmentCompletion(sub: Submission, passed: boolean) {
   await db
     .update(assignments)
     .set({ status: "active" })
-    .where(eq(assignments.id, sub.assignmentId));
+    .where(
+      and(
+        eq(assignments.id, sub.assignmentId),
+        eq(assignments.organizationId, sub.organizationId),
+      ),
+    );
 }
 
 // =============================================================================
@@ -137,7 +142,6 @@ export async function submitAnswer(submissionId: string, formData: FormData) {
     throw new ActionError("答案画像を1枚以上選んでください。");
   }
 
-  const issueNext = sub.status === "not_submitted";
   const attemptNo = sub.attemptCount + 1;
   let sortOrder = 0;
   for (const file of files) {
@@ -170,7 +174,7 @@ export async function submitAnswer(submissionId: string, formData: FormData) {
     attemptCount: attemptNo,
     submittedAt: new Date(),
   });
-  if (issueNext) await issueNextSessionAfterSubmit(sub);
+  await issueNextSessionAfterSubmit(sub);
   revalidateAll(submissionId);
 }
 
@@ -362,22 +366,33 @@ export async function batchGrade(
 }
 
 /**
- * 初回提出後の進度前進。割当を1つ進め、次の範囲があれば新しい提出物(未提出)を作る。
- * 再提出は同じ submission を回すため、ここでは呼ばない。
+ * 提出後の進度前進。現在セッションがまだ前進済みでない場合だけ次の範囲を作る。
+ * 再提出は同じ submission を回すため、すでに次範囲がある場合は何もしない。
  * 手入力(manual)教材は自動進行しない。
  */
 async function issueNextSessionAfterSubmit(sub: Submission) {
   const [assignment] = await db
     .select()
     .from(assignments)
-    .where(eq(assignments.id, sub.assignmentId))
+    .where(
+      and(
+        eq(assignments.id, sub.assignmentId),
+        eq(assignments.organizationId, sub.organizationId),
+      ),
+    )
     .limit(1);
   if (!assignment) return;
+  if (assignment.pointer !== sub.sessionNo) return;
 
   const [material] = await db
     .select()
     .from(materials)
-    .where(eq(materials.id, assignment.materialId))
+    .where(
+      and(
+        eq(materials.id, assignment.materialId),
+        eq(materials.organizationId, sub.organizationId),
+      ),
+    )
     .limit(1);
   if (!material || !isAutoAdvance(material)) return;
 
@@ -398,14 +413,25 @@ async function issueNextSessionAfterSubmit(sub: Submission) {
         pointer: advance.pointer,
         status: "active",
       })
-      .where(eq(assignments.id, assignment.id));
+      .where(
+        and(
+          eq(assignments.id, assignment.id),
+          eq(assignments.organizationId, sub.organizationId),
+        ),
+      );
 
     const [alreadyCreated] =
       nextRange !== null
         ? await tx
             .select({ id: submissions.id })
             .from(submissions)
-            .where(and(eq(submissions.assignmentId, assignment.id), eq(submissions.sessionNo, advance.pointer)))
+            .where(
+              and(
+                eq(submissions.assignmentId, assignment.id),
+                eq(submissions.organizationId, sub.organizationId),
+                eq(submissions.sessionNo, advance.pointer),
+              ),
+            )
             .limit(1)
         : [];
 

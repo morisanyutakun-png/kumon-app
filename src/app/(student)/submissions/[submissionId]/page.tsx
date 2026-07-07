@@ -35,8 +35,11 @@ export default async function StudentSubmissionPage({
     (f) => f.contentType === "application/pdf" || f.fileName.toLowerCase().endsWith(".pdf"),
   );
   const pdfUrl = pdfFile ? `/api/files/material/${pdfFile.id}` : null;
-  // 提出後(採点待ち含む)は、解答解説と自分の答案を出して自己採点できるようにする。
-  const afterSubmit = !canSubmit; // submitted / grading / returned / done
+  // 提出後(採点待ち含む)と再提出時は、解答解説と前回答案を見直せるようにする。
+  const afterSubmit =
+    !canSubmit ||
+    (submission.status === "resubmit_required" &&
+      (submission.attemptCount > 0 || images.length > 0 || gradings.length > 0));
   const hasResult =
     submission.status === "returned" || submission.status === "done" || gradings.length > 0;
   const canSeeReturnedPdf =
@@ -116,7 +119,9 @@ export default async function StudentSubmissionPage({
         <div className="card selfgrade">
           <h2>答え合わせ（自己採点）</h2>
           <p className="muted" style={{ marginTop: 0 }}>
-            提出おつかれさま！解答解説を見て、自分の答案と照らし合わせて丸つけをしましょう。
+            {submission.status === "resubmit_required"
+              ? "前回の答案と解答解説を見直して、もう一度解き直しましょう。"
+              : "提出おつかれさま！解答解説を見て、自分の答案と照らし合わせて丸つけをしましょう。"}
           </p>
 
           {solutionFiles.length > 0 && images.length > 0 ? (

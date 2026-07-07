@@ -80,6 +80,7 @@ function MaterialProgressCards({ rows, sec }: { rows: MaterialProgressRow[]; sec
               <div className="mat-progress-bar"><span style={{ width: `${pct}%` }} /></div>
               <div className="mat-progress-foot">
                 <span>{total ? `合格 ${p.passedCount} / 全${total}` : `合格 ${p.passedCount}`}</span>
+                {p.isComplete && <span>{sec ? "一冊分PDF" : "ぜんぶPDF"}</span>}
                 {p.waitingCount > 0 && <span>{sec ? `採点待ち ${p.waitingCount}` : `先生まち ${p.waitingCount}`}</span>}
                 {p.resubmitCount > 0 && <span>{sec ? `再提出 ${p.resubmitCount}` : `もう一度 ${p.resubmitCount}`}</span>}
               </div>

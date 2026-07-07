@@ -93,7 +93,7 @@ function summarizeAssignment(args: {
   const latest = latestBySubmission(gradeRows);
   const totalCount = expectedSessionCount(assignment, material, unitRows);
 
-  let passedCount = 0;
+  const passedSessions = new Set<number>();
   let waitingCount = 0;
   let resubmitCount = 0;
   let todoCount = 0;
@@ -109,10 +109,11 @@ function summarizeAssignment(args: {
       latestGrade?.result === "ok" &&
       (sub.status === "returned" || sub.status === "done")
     ) {
-      passedCount++;
+      passedSessions.add(sub.sessionNo);
     }
   }
 
+  const passedCount = passedSessions.size;
   const isComplete =
     totalCount !== null &&
     totalCount > 0 &&
