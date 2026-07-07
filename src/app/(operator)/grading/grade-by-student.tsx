@@ -25,7 +25,7 @@ export interface StudentGroup {
 
 /**
  * 1 答案ぶんの採点状態。判定は PHP 添削結果入力表の導出を踏襲:
- *   未実施/課題なし → SKIP(進度を進めない) / 合格 → OK / それ以外(再テスト含む) → NG(やり直し)
+ *   未実施/課題なし → SKIP / 合格 → OK / それ以外(再テスト含む) → NG(やり直し)
  */
 interface Cell {
   range: string;
@@ -76,7 +76,7 @@ const SUBJECT_ACCENT: Record<string, string> = {
 const subjectAccent = (s: string) => SUBJECT_ACCENT[s] ?? "#64748b";
 
 function trackBadge(w: NextWindow | null): string {
-  if (!w) return "手入力";
+  if (!w) return "提出時に次へ";
   if (w.track === "number") return "番号";
   if (w.track === "manual") return "手入力";
   return "章";
@@ -196,7 +196,7 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
   }, [changeZoom, userZoom]);
 
   if (groups.length === 0) {
-    return <p className="empty">採点できる生徒はいません（1日分の課題がそろうと表示されます）。</p>;
+    return <p className="empty">採点待ちの提出はありません。</p>;
   }
 
   const set = (id: string, patch: Partial<Cell>) => setState((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
@@ -250,10 +250,6 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
         comment: notes,
         mode: judge === "ng" ? "resubmit" : "return",
       };
-      if (judge === "ok" && a.next && !a.next.fixed) {
-        const ns = nextState[a.submissionId];
-        item.next = a.next.track === "manual" ? { label: ns.manual } : { startIdx: ns.startIdx, count: ns.count };
-      }
       return item;
     });
     setPendingId(g.studentId);
@@ -295,7 +291,7 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
   return (
     <div className="gstudents entry-grade" ref={sheetsRef}>
       <p className="hint" style={{ marginBottom: 12 }}>
-        生徒ごとに「添削結果入力表」で採点します（採点可能 {groups.length} 名）。各教材に <b>合格</b> / <b>未実施</b> / <b>再テスト</b> をチェック（スペース可）、得点を入れると<b>正答率</b>を自動計算。<b>「結果を反映」</b>で生徒に届きます。矢印キーでセル移動。
+        生徒ごとに「添削結果入力表」で採点します（採点可能 {groups.length} 名）。各教材に <b>合格</b> / <b>未実施</b> / <b>再テスト</b> をチェック（スペース可）。<b>再テスト</b>は同じ範囲の再提出待ちになります。矢印キーでセル移動。
       </p>
 
       {groups.map((g) => {
@@ -304,6 +300,8 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
         const n = g.answers.length;
         const errN = g.answers.filter((a) => rowError(state[a.submissionId])).length;
         const gridStyle = { gridTemplateColumns: `108px repeat(${n}, 172px)` } as React.CSSProperties;
+
+        const hasNextControls = g.answers.some((a) => a.next);
 
         // 行を順に描く: 各行 = ラベル + 列セル
         return (
@@ -363,7 +361,7 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
                       </div>
                       <div className="material-pace">
                         <small className="material-pace-current">
-                          {a.next && a.next.track !== "manual" ? `ペース ${a.next.count}${a.next.track === "number" ? "番" : "章"}ずつ` : "手入力"}
+                          {a.next && a.next.track !== "manual" ? `ペース ${a.next.count}${a.next.track === "number" ? "番" : "章"}ずつ` : "提出時に次を追加"}
                         </small>
                       </div>
                     </div>
@@ -465,34 +463,38 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
                   );
                 })}
 
-                {/* 次回範囲1 */}
-                <div className="sheet-row-label" data-row-label="next1">次回範囲1</div>
-                {g.answers.map((a) => {
-                  const w = a.next;
-                  const c = state[a.submissionId];
-                  const isPass = judgeOf(c) === "ok";
-                  if (!w) return <div key={a.submissionId} className="sheet-cell next-preview-cell"><span className="muted">—</span></div>;
-                  const ns = nextState[a.submissionId];
-                  return (
-                    <div key={a.submissionId} className="sheet-cell next-preview-cell" data-sheet-row="next1">
-                      <div className={`next-cell${isPass ? "" : " is-off"}`}>
-                        {w.fixed ? (
-                          <b className="next-val">{w.label}</b>
-                        ) : w.track === "manual" ? (
-                          <input className="next-manual" value={ns.manual} placeholder="次回の範囲" onChange={(e) => setNext(a.submissionId, { manual: e.target.value })} />
-                        ) : (
-                          <>
-                            <b className="next-val">{renderRange(w, ns.startIdx, ns.count)}</b>
-                            <span className="next-steps">
-                              <span className="next-grp">始<button type="button" onClick={() => stepRange(a.submissionId, w, "start", -1)}>−</button><button type="button" onClick={() => stepRange(a.submissionId, w, "start", 1)}>＋</button></span>
-                              <span className="next-grp">終<button type="button" onClick={() => stepRange(a.submissionId, w, "end", -1)}>−</button><button type="button" onClick={() => stepRange(a.submissionId, w, "end", 1)}>＋</button></span>
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                {hasNextControls && (
+                  <>
+                    {/* 次回範囲1 */}
+                    <div className="sheet-row-label" data-row-label="next1">次回範囲1</div>
+                    {g.answers.map((a) => {
+                      const w = a.next;
+                      const c = state[a.submissionId];
+                      const isPass = judgeOf(c) === "ok";
+                      if (!w) return <div key={a.submissionId} className="sheet-cell next-preview-cell"><span className="muted">—</span></div>;
+                      const ns = nextState[a.submissionId];
+                      return (
+                        <div key={a.submissionId} className="sheet-cell next-preview-cell" data-sheet-row="next1">
+                          <div className={`next-cell${isPass ? "" : " is-off"}`}>
+                            {w.fixed ? (
+                              <b className="next-val">{w.label}</b>
+                            ) : w.track === "manual" ? (
+                              <input className="next-manual" value={ns.manual} placeholder="次回の範囲" onChange={(e) => setNext(a.submissionId, { manual: e.target.value })} />
+                            ) : (
+                              <>
+                                <b className="next-val">{renderRange(w, ns.startIdx, ns.count)}</b>
+                                <span className="next-steps">
+                                  <span className="next-grp">始<button type="button" onClick={() => stepRange(a.submissionId, w, "start", -1)}>−</button><button type="button" onClick={() => stepRange(a.submissionId, w, "start", 1)}>＋</button></span>
+                                  <span className="next-grp">終<button type="button" onClick={() => stepRange(a.submissionId, w, "end", -1)}>−</button><button type="button" onClick={() => stepRange(a.submissionId, w, "end", 1)}>＋</button></span>
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
 
                 {/* 備考 */}
                 <div className="sheet-row-label" data-row-label="remark">備考</div>
@@ -500,7 +502,7 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
                   const c = state[a.submissionId];
                   return (
                     <div key={a.submissionId} className="sheet-cell remark-cell" data-sheet-row="remark">
-                      <input type="text" value={c.remark} placeholder="備考(次回課題に ※追記)" data-gx={ci} data-gy={6} onChange={(e) => set(a.submissionId, { remark: e.target.value })} />
+                      <input type="text" value={c.remark} placeholder="備考・コメント追記" data-gx={ci} data-gy={6} onChange={(e) => set(a.submissionId, { remark: e.target.value })} />
                     </div>
                   );
                 })}

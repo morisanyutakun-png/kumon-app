@@ -1,13 +1,9 @@
 import Link from "next/link";
-import { and, asc, eq, inArray } from "drizzle-orm";
 
-import { db } from "@/db";
-import { assignments, materials, students, units } from "@/db/schema";
 import { requireOperator } from "@/lib/access";
 import { getActiveDivision } from "@/lib/active-division";
 import { divisionForGrade } from "@/lib/division";
 import { listSubmissions, type SubmissionRow } from "@/lib/queries";
-import { nextWindow, type NextWindow } from "@/lib/progress-db";
 import { GradeByStudent, type StudentGroup } from "./grade-by-student";
 
 function fmt(d: Date | null): string {
@@ -80,66 +76,24 @@ export default async function GradingPage({
     );
   }
 
-  // --- 採点待ち: 1日分の割当が全部提出された生徒だけ「採点可能」 ---
-  const [assignRows, allSubs] = await Promise.all([
-    db
-      .select({ aid: assignments.id, studentId: assignments.studentId, name: students.name, grade: students.grade })
-      .from(assignments)
-      .innerJoin(students, eq(assignments.studentId, students.id))
-      .where(and(eq(assignments.organizationId, p.organizationId), eq(assignments.status, "active"))),
-    listSubmissions(p.organizationId),
-  ]);
-
-  // 割当ごとの最新提出
-  const latestByAssign = new Map<string, SubmissionRow>();
-  for (const s of allSubs) if (!latestByAssign.has(s.assignmentId)) latestByAssign.set(s.assignmentId, s);
-
+  // --- 採点待ち: 提出済みが1件でもあれば採点可能 ---
+  const allSubs = await listSubmissions(p.organizationId);
   const agg = new Map<string, Agg>();
-  for (const a of assignRows) {
-    if (divisionForGrade(a.grade) !== division) continue; // 選択中の部門の生徒のみ
-    let g = agg.get(a.studentId);
+  for (const sub of allSubs) {
+    if (divisionForGrade(sub.studentGrade) !== division) continue; // 選択中の部門の生徒のみ
+    let g = agg.get(sub.studentId);
     if (!g) {
-      g = { studentId: a.studentId, name: a.name, grade: a.grade, gradable: [], pend: 0 };
-      agg.set(a.studentId, g);
+      g = { studentId: sub.studentId, name: sub.studentName, grade: sub.studentGrade, gradable: [], pend: 0 };
+      agg.set(sub.studentId, g);
     }
-    const sub = latestByAssign.get(a.aid);
-    const st = sub?.status;
-    if (st === "submitted" || st === "grading") g.gradable.push(sub!);
-    else if (!sub || st === "not_submitted" || st === "resubmit_required") g.pend++;
-    // returned / done(前サイクル) はどちらにも数えない
+    if (sub.status === "submitted" || sub.status === "grading") g.gradable.push(sub);
+    else if (sub.status === "not_submitted" || sub.status === "resubmit_required") g.pend++;
+    // returned / done はどちらにも数えない
   }
 
   const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, "ja");
-  const readyAgg = [...agg.values()].filter((g) => g.gradable.length > 0 && g.pend === 0).sort(byName);
-  const inProgress = [...agg.values()].filter((g) => g.gradable.length > 0 && g.pend > 0).sort(byName);
-
-  // 次回割り当て(自動進行+±調整)用に、対象割当の進度・教材・単元を取得
-  const gradableAids = [...new Set(readyAgg.flatMap((g) => g.gradable.map((s) => s.assignmentId)))];
-  const nextBySubmission = new Map<string, NextWindow>();
-  if (gradableAids.length > 0) {
-    const aRows = await db.select().from(assignments).where(inArray(assignments.id, gradableAids));
-    const matIds = [...new Set(aRows.map((a) => a.materialId))];
-    const [mRows, uRows] = await Promise.all([
-      db.select().from(materials).where(inArray(materials.id, matIds)),
-      db.select().from(units).where(inArray(units.materialId, matIds)).orderBy(asc(units.sortOrder)),
-    ]);
-    const matById = new Map(mRows.map((m) => [m.id, m]));
-    const unitsByMat = new Map<string, typeof uRows>();
-    for (const u of uRows) {
-      const arr = unitsByMat.get(u.materialId) ?? [];
-      arr.push(u);
-      unitsByMat.set(u.materialId, arr);
-    }
-    const winByAssign = new Map<string, NextWindow>();
-    for (const a of aRows) {
-      const m = matById.get(a.materialId);
-      if (m) winByAssign.set(a.id, nextWindow(a, m, unitsByMat.get(a.materialId) ?? []));
-    }
-    for (const g of readyAgg) for (const s of g.gradable) {
-      const w = winByAssign.get(s.assignmentId);
-      if (w) nextBySubmission.set(s.submissionId, w);
-    }
-  }
+  const readyAgg = [...agg.values()].filter((g) => g.gradable.length > 0).sort(byName);
+  const inProgress = [...agg.values()].filter((g) => g.gradable.length === 0 && g.pend > 0).sort(byName);
 
   const groups: StudentGroup[] = readyAgg.map((g) => ({
     studentId: g.studentId,
@@ -152,7 +106,7 @@ export default async function GradingPage({
       rangeText: s.rangeText,
       sessionNo: s.sessionNo,
       attemptCount: s.attemptCount,
-      next: nextBySubmission.get(s.submissionId) ?? null,
+      next: null,
     })),
   }));
 
@@ -165,7 +119,7 @@ export default async function GradingPage({
       {inProgress.length > 0 && (
         <div style={{ marginTop: 22 }}>
           <div className="lsection" style={{ marginBottom: 10 }}>実施中<span className="lsection-n">{inProgress.length}</span></div>
-          <p className="hint" style={{ marginTop: -4, marginBottom: 10 }}>まだ全部の課題を提出していない生徒です。1日分がそろうと採点できます。</p>
+          <p className="hint" style={{ marginTop: -4, marginBottom: 10 }}>まだ提出待ちの課題だけが残っている生徒です。提出済み答案は出た時点で上の採点待ちに表示されます。</p>
           <div className="grid-scroll" style={{ border: "1px solid #dde2e7" }}>
             <table className="record-table" style={{ minWidth: 520 }}>
               <thead>
@@ -196,7 +150,7 @@ function GradingHead({ view, todoCount }: { view: "todo" | "done"; todoCount: nu
     <>
       <div className="page-head" style={{ marginBottom: 14 }}>
         <h1>採点</h1>
-        <p>1日分の課題がそろった生徒を「採点可能」に表示。答案は1つのPDFにまとめて、生徒ごとに ○合格 / ×やり直し を付けて確定します。</p>
+        <p>提出済み答案をすぐに採点できます。生徒は返却を待たずに次の範囲へ進み、不合格だけ同じ範囲を再提出します。</p>
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         <Link href="/grading" className={tabCls(view === "todo")} style={{ padding: "8px 18px" }}>

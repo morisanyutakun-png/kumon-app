@@ -1,9 +1,7 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-
-import { asc } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -12,6 +10,7 @@ import {
   gradings,
   materials,
   notifications,
+  returnedFiles,
   submissionEvents,
   submissionImages,
   submissions,
@@ -20,9 +19,10 @@ import {
 import type { Submission, SubmissionStatus } from "@/db/schema";
 import { getPrincipal, isOperator } from "@/lib/access";
 import type { Principal } from "@/auth";
-import { saveFile } from "@/lib/blob";
+import { saveBlob, saveFile } from "@/lib/blob";
 import { validateScorePair } from "@/lib/grading-validation";
-import { isAutoAdvance, planAdvance, rangeLabelAt } from "@/lib/progress-db";
+import { syncAssignmentCompletion } from "@/lib/material-progress";
+import { isAutoAdvance, planAdvance } from "@/lib/progress-db";
 import {
   actorForRole,
   assertTransition,
@@ -35,6 +35,7 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/gif",
 ]);
 const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15MB
+const MAX_RETURNED_PDF_BYTES = 80 * 1024 * 1024; // 80MB
 
 class ActionError extends Error {}
 
@@ -98,8 +99,22 @@ function revalidateAll(submissionId: string) {
   revalidatePath("/dashboard");
   revalidatePath("/grading");
   revalidatePath(`/grading/${submissionId}`);
+  revalidatePath(`/grading/${submissionId}/write`);
   revalidatePath("/home");
+  revalidatePath("/returned");
+  revalidatePath("/history");
   revalidatePath(`/submissions/${submissionId}`);
+}
+
+async function refreshAssignmentCompletion(sub: Submission, passed: boolean) {
+  if (passed) {
+    await syncAssignmentCompletion(sub.organizationId, sub.assignmentId);
+    return;
+  }
+  await db
+    .update(assignments)
+    .set({ status: "active" })
+    .where(eq(assignments.id, sub.assignmentId));
 }
 
 // =============================================================================
@@ -122,6 +137,7 @@ export async function submitAnswer(submissionId: string, formData: FormData) {
     throw new ActionError("答案画像を1枚以上選んでください。");
   }
 
+  const issueNext = sub.status === "not_submitted";
   const attemptNo = sub.attemptCount + 1;
   let sortOrder = 0;
   for (const file of files) {
@@ -154,6 +170,7 @@ export async function submitAnswer(submissionId: string, formData: FormData) {
     attemptCount: attemptNo,
     submittedAt: new Date(),
   });
+  if (issueNext) await issueNextSessionAfterSubmit(sub);
   revalidateAll(submissionId);
 }
 
@@ -166,6 +183,7 @@ export async function confirmReturned(submissionId: string) {
   if (!p) throw new ActionError("ログインが必要です。");
   const sub = await loadSubmission(p, submissionId);
   await applyTransition(p, sub, "done", "結果を確認");
+  await syncAssignmentCompletion(sub.organizationId, sub.assignmentId);
   revalidateAll(submissionId);
 }
 
@@ -186,6 +204,7 @@ export async function completeSubmission(submissionId: string) {
   if (!p || !isOperator(p)) throw new ActionError("権限がありません。");
   const sub = await loadSubmission(p, submissionId);
   await applyTransition(p, sub, "done", "完了にする");
+  await syncAssignmentCompletion(sub.organizationId, sub.assignmentId);
   revalidateAll(submissionId);
 }
 
@@ -212,7 +231,7 @@ export async function gradeSubmission(submissionId: string, formData: FormData) 
     .map((v) => String(v))
     .filter(Boolean);
 
-  const requiresResubmit = mode === "resubmit";
+  const requiresResubmit = mode === "resubmit" || result === "ng";
 
   await db.transaction(async (tx) => {
     const [grading] = await tx
@@ -250,11 +269,7 @@ export async function gradeSubmission(submissionId: string, formData: FormData) 
     requiresResubmit ? "再提出を依頼" : "採点結果を返却",
     to === "returned" ? { returnedAt: new Date() } : {},
   );
-
-  // 合格して返却した場合のみ、進度を1つ前進させ次セッションを自動生成する。
-  if (!requiresResubmit && result === "ok") {
-    await advanceProgressAfterPass(sub);
-  }
+  await refreshAssignmentCompletion(sub, !requiresResubmit && result === "ok");
 
   revalidateAll(submissionId);
 }
@@ -268,16 +283,11 @@ export interface BatchGradeItem {
   comment?: string;
   /** "return" 返却 / "resubmit" 再提出依頼。 */
   mode: "return" | "resubmit";
-  /**
-   * 合格返却時の「次回割り当て」を上書き指定(採点画面で±調整した場合)。
-   * 自動進行教材: startIdx/count を指定 / 手入力教材: label を指定。
-   */
-  next?: { startIdx?: number; count?: number; label?: string };
 }
 
 /**
  * Excel 風の一括採点。提出済み(または採点中)の複数提出物をまとめて採点・返却する。
- * 各行ごとに 提出済み→採点中→返却/再提出 と正しく遷移し、合格返却なら進度を前進。
+ * 各行ごとに 提出済み→採点中→返却/再提出 と正しく遷移する。
  * 戻り値は処理件数とスキップ件数。
  */
 export async function batchGrade(
@@ -308,7 +318,7 @@ export async function batchGrade(
         ? it.result
         : null;
     // 未実施は再提出を求めず、得点も持たない。やり直し(ng)は再提出依頼。
-    const requiresResubmit = it.mode === "resubmit" && result !== "skip";
+    const requiresResubmit = result !== "skip" && (it.mode === "resubmit" || result === "ng");
     // 未実施は得点・満点を無視して空に揃える (PHP の挙動を踏襲)。
     const score = result === "skip" ? "" : (it.score ?? "").trim();
     const maxScore = result === "skip" ? "" : (it.maxScore ?? "").trim();
@@ -338,12 +348,8 @@ export async function batchGrade(
       requiresResubmit ? "再提出を依頼(一括)" : "採点結果を返却(一括)",
       to === "returned" ? { returnedAt: new Date() } : {},
     );
+    await refreshAssignmentCompletion(current, !requiresResubmit && result === "ok");
 
-    // 合格返却のみ進度を前進。未実施(skip)・やり直しは前進しない。
-    if (!requiresResubmit && result === "ok") {
-      if (it.next) await advanceWithNext(current, it.next);
-      else await advanceProgressAfterPass(current);
-    }
     processed++;
   }
 
@@ -351,14 +357,16 @@ export async function batchGrade(
   revalidatePath("/grading/batch");
   revalidatePath("/dashboard");
   revalidatePath("/home");
+  revalidatePath("/returned");
   return { processed, skipped };
 }
 
 /**
- * 合格返却後の進度前進。割当を1つ進め、次の範囲があれば新しい提出物(未提出)を作る。
+ * 初回提出後の進度前進。割当を1つ進め、次の範囲があれば新しい提出物(未提出)を作る。
+ * 再提出は同じ submission を回すため、ここでは呼ばない。
  * 手入力(manual)教材は自動進行しない。
  */
-async function advanceProgressAfterPass(sub: Submission) {
+async function issueNextSessionAfterSubmit(sub: Submission) {
   const [assignment] = await db
     .select()
     .from(assignments)
@@ -388,11 +396,20 @@ async function advanceProgressAfterPass(sub: Submission) {
         progressIndex: advance.progressIndex,
         unitsPerSession: advance.unitsPerSession,
         pointer: advance.pointer,
-        status: advance.status === "completed" ? "completed" : "active",
+        status: "active",
       })
       .where(eq(assignments.id, assignment.id));
 
-    if (nextRange !== null) {
+    const [alreadyCreated] =
+      nextRange !== null
+        ? await tx
+            .select({ id: submissions.id })
+            .from(submissions)
+            .where(and(eq(submissions.assignmentId, assignment.id), eq(submissions.sessionNo, advance.pointer)))
+            .limit(1)
+        : [];
+
+    if (nextRange !== null && !alreadyCreated) {
       await tx.insert(submissions).values({
         organizationId: sub.organizationId,
         assignmentId: assignment.id,
@@ -400,91 +417,6 @@ async function advanceProgressAfterPass(sub: Submission) {
         status: "not_submitted",
         sessionNo: advance.pointer,
         rangeText: nextRange,
-      });
-    }
-  });
-}
-
-/**
- * 採点画面で±調整した「次回割り当て」で進度を更新し、次セッション(未提出)を作る。
- * 自動進行教材: next.startIdx/count を採用(progressIndex=startIdx, pace=count)。
- * 手入力教材: next.label を次回範囲として割り当てる。
- */
-async function advanceWithNext(
-  sub: Submission,
-  next: { startIdx?: number; count?: number; label?: string },
-) {
-  const [assignment] = await db
-    .select()
-    .from(assignments)
-    .where(eq(assignments.id, sub.assignmentId))
-    .limit(1);
-  if (!assignment) return;
-
-  const [material] = await db
-    .select()
-    .from(materials)
-    .where(eq(materials.id, assignment.materialId))
-    .limit(1);
-  if (!material) return;
-
-  const nextPointer = assignment.pointer + 1;
-
-  // 手入力教材: ラベルをそのまま次回範囲に。
-  if (!isAutoAdvance(material)) {
-    const label = (next.label ?? "").trim();
-    await db.transaction(async (tx) => {
-      await tx.update(assignments).set({ pointer: nextPointer }).where(eq(assignments.id, assignment.id));
-      if (label) {
-        await tx.insert(submissions).values({
-          organizationId: sub.organizationId,
-          assignmentId: assignment.id,
-          studentId: sub.studentId,
-          status: "not_submitted",
-          sessionNo: nextPointer,
-          rangeText: label,
-        });
-      }
-    });
-    return;
-  }
-
-  // 自動進行教材: startIdx/count が無ければ既定の自動進行に委譲。
-  if (typeof next.startIdx !== "number" || typeof next.count !== "number") {
-    await advanceProgressAfterPass(sub);
-    return;
-  }
-
-  const unitRows = await db
-    .select()
-    .from(units)
-    .where(eq(units.materialId, assignment.materialId))
-    .orderBy(asc(units.sortOrder));
-
-  const startIdx = Math.max(0, next.startIdx);
-  const count = Math.max(1, next.count);
-  const label = rangeLabelAt(material, unitRows, startIdx, count);
-  const completed = label === "完了";
-
-  await db.transaction(async (tx) => {
-    await tx
-      .update(assignments)
-      .set({
-        progressIndex: startIdx,
-        unitsPerSession: count,
-        pointer: nextPointer,
-        status: completed ? "completed" : "active",
-      })
-      .where(eq(assignments.id, assignment.id));
-
-    if (!completed) {
-      await tx.insert(submissions).values({
-        organizationId: sub.organizationId,
-        assignmentId: assignment.id,
-        studentId: sub.studentId,
-        status: "not_submitted",
-        sessionNo: nextPointer,
-        rangeText: label,
       });
     }
   });
@@ -527,7 +459,6 @@ export async function saveGradingDraft(submissionId: string, formData: FormData)
   const maxScore = String(formData.get("maxScore") ?? "").trim();
   const result = String(formData.get("result") ?? "").trim();
   const comment = String(formData.get("comment") ?? "").trim();
-  const nextRange = String(formData.get("nextRange") ?? "").trim();
 
   await db
     .update(submissions)
@@ -536,7 +467,6 @@ export async function saveGradingDraft(submissionId: string, formData: FormData)
       draftMaxScore: maxScore === "" ? null : maxScore,
       draftResult: result === "ok" || result === "ng" ? result : null,
       draftComment: comment,
-      draftNextRange: nextRange,
       draftGraderId: p.id,
       draftUpdatedAt: new Date(),
       updatedAt: new Date(),
@@ -547,7 +477,7 @@ export async function saveGradingDraft(submissionId: string, formData: FormData)
 }
 
 /**
- * 採点を確定して返却。採点結果(得点/合否/コメント) + 次回範囲を入力して実行する。
+ * 採点を確定して返却。NGの場合は同じ範囲の再提出待ちにする。
  * 返却時に生徒のダッシュボードへ「お知らせ(添付つきメッセージ)」を作成する。
  */
 export async function returnGrading(submissionId: string, formData: FormData) {
@@ -563,7 +493,9 @@ export async function returnGrading(submissionId: string, formData: FormData) {
   const maxScore = String(formData.get("maxScore") ?? "").trim();
   const result = String(formData.get("result") ?? "").trim();
   const comment = String(formData.get("comment") ?? "").trim();
-  const nextRange = String(formData.get("nextRange") ?? "").trim();
+  if (result !== "ok" && result !== "ng") {
+    throw new ActionError("合格または不合格を選んでください。");
+  }
   const mistakeTagIds = formData
     .getAll("mistakeTagIds")
     .map((v) => String(v))
@@ -581,7 +513,7 @@ export async function returnGrading(submissionId: string, formData: FormData) {
         maxScore: maxScore === "" ? null : maxScore,
         result: result === "ok" || result === "ng" ? result : null,
         comment,
-        requiresResubmit: false,
+        requiresResubmit: result === "ng",
       })
       .returning();
     if (mistakeTagIds.length > 0) {
@@ -592,44 +524,25 @@ export async function returnGrading(submissionId: string, formData: FormData) {
     await tx.update(submissions).set(DRAFT_CLEARED).where(eq(submissions.id, cur.id));
   });
 
-  await applyTransition(p, cur, "returned", "採点結果を返却", {
-    returnedAt: new Date(),
-  });
+  const requiresResubmit = result === "ng";
+  await applyTransition(
+    p,
+    cur,
+    requiresResubmit ? "resubmit_required" : "returned",
+    requiresResubmit ? "再提出を依頼" : "採点結果を返却",
+    requiresResubmit ? {} : { returnedAt: new Date() },
+  );
+  await refreshAssignmentCompletion(cur, result === "ok");
 
   // 生徒ダッシュボードへの通知
   await db.insert(notifications).values({
     organizationId: cur.organizationId,
     studentId: cur.studentId,
     submissionId: cur.id,
-    type: "returned",
-    title: "採点結果が返却されました",
+    type: requiresResubmit ? "resubmit" : "returned",
+    title: requiresResubmit ? "再提出のお願いがあります" : "採点結果が返却されました",
     body: comment,
   });
-
-  // 次回セッションの作成
-  const [assignment] = await db
-    .select()
-    .from(assignments)
-    .where(eq(assignments.id, cur.assignmentId))
-    .limit(1);
-  const [material] = assignment
-    ? await db.select().from(materials).where(eq(materials.id, assignment.materialId)).limit(1)
-    : [undefined];
-
-  if (assignment && material && isAutoAdvance(material) && result === "ok") {
-    // 章/番号: エンジンで自動前進 (次セッション自動生成)
-    await advanceProgressAfterPass(cur);
-  } else if (assignment && nextRange) {
-    // 手入力など: 入力された次回範囲で次セッションを作成
-    await db.insert(submissions).values({
-      organizationId: cur.organizationId,
-      assignmentId: cur.assignmentId,
-      studentId: cur.studentId,
-      status: "not_submitted",
-      sessionNo: cur.sessionNo + 1,
-      rangeText: nextRange,
-    });
-  }
 
   revalidateAll(submissionId);
 }
@@ -658,6 +571,7 @@ export async function requestResubmit(submissionId: string, formData: FormData) 
   });
 
   await applyTransition(p, cur, "resubmit_required", "再提出を依頼");
+  await refreshAssignmentCompletion(cur, false);
 
   await db.insert(notifications).values({
     organizationId: cur.organizationId,
@@ -666,6 +580,42 @@ export async function requestResubmit(submissionId: string, formData: FormData) 
     type: "resubmit",
     title: "再提出のお願いがあります",
     body: comment,
+  });
+
+  revalidateAll(submissionId);
+}
+
+/** 採点者が書き込んだPDFを、提出ごとの返却PDFとして保存する。 */
+export async function saveReturnedPdf(submissionId: string, formData: FormData) {
+  const p = await getPrincipal();
+  if (!p || !isOperator(p)) throw new ActionError("権限がありません。");
+  const sub = await loadSubmission(p, submissionId);
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    throw new ActionError("返却PDFを選択してください。");
+  }
+  const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  if (!isPdf) throw new ActionError("PDFファイルのみ保存できます。");
+  if (file.size > MAX_RETURNED_PDF_BYTES) {
+    throw new ActionError("PDFサイズが大きすぎます (80MBまで)。");
+  }
+
+  const buf = Buffer.from(await file.arrayBuffer());
+  const safeName = (file.name || "returned.pdf").replace(/[^\w.\-]/g, "_");
+  const attemptNo = Math.max(1, sub.attemptCount || 1);
+  const pathname = `${sub.organizationId}/returned/${sub.id}/${attemptNo}/${Date.now()}-${safeName}`;
+  const stored = await saveBlob(pathname, buf, "application/pdf");
+
+  await db.insert(returnedFiles).values({
+    organizationId: sub.organizationId,
+    submissionId: sub.id,
+    attemptNo,
+    blobUrl: stored.url,
+    pathname: stored.pathname,
+    fileName: file.name || "添削済み返却.pdf",
+    contentType: "application/pdf",
+    size: file.size,
+    createdById: p.id,
   });
 
   revalidateAll(submissionId);

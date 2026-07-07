@@ -1170,6 +1170,25 @@ body {
 .ms-week b { color: #1583c4; }
 .meter-fill { background: linear-gradient(90deg, #1aa3e6, #18c39a, #46c35f); }
 
+.mat-progress-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.mat-progress-card {
+  display: block; background: #fff; border: 1px solid #dde2e7; padding: 14px 16px;
+  color: var(--text); text-decoration: none;
+}
+.mat-progress-card:hover { background: #f9fcfe; border-color: #c7d3de; text-decoration: none; }
+.mat-progress-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mat-progress-subject { font-size: 12px; font-weight: 900; color: #64748b; }
+.mat-progress-badge { flex: 0 0 auto; padding: 3px 8px; font-size: 11px; font-weight: 900; border: 1px solid #cbd5e1; color: #334155; background: #f8fafc; }
+.mat-progress-badge.complete { color: #047857; background: #ecfdf5; border-color: #a7f3d0; }
+.mat-progress-badge.resubmit { color: #be123c; background: #fff1f2; border-color: #fecdd3; }
+.mat-progress-badge.waiting { color: #b45309; background: #fffbeb; border-color: #fde68a; }
+.mat-progress-badge.todo { color: #1d4ed8; background: #eff6ff; border-color: #bfdbfe; }
+.mat-progress-title { margin-top: 7px; font-size: 15px; font-weight: 900; color: var(--ink, #14365a); line-height: 1.35; }
+.mat-progress-line { margin-top: 4px; min-height: 18px; font-size: 13px; font-weight: 700; color: #5b6b7c; }
+.mat-progress-bar { height: 8px; margin-top: 10px; background: #eef2f6; overflow: hidden; }
+.mat-progress-bar span { display: block; height: 100%; background: #18c39a; }
+.mat-progress-foot { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; font-size: 12px; font-weight: 800; color: #64748b; }
+
 @media (max-width: 520px) {
   .mission { flex-wrap: wrap; }
   .mission-cta { width: 100%; text-align: center; }
@@ -1186,6 +1205,22 @@ body {
   background: #fff; border: 1px solid #d4e9d9;
 }
 .selfgrade-label { font-size: 13px; font-weight: 800; color: #1f7a3d; margin-bottom: 8px; }
+.returned-pdf-list, .pdf-link-group {
+  display: grid; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #e2e8f0;
+}
+.pdf-link-group:first-child { padding-top: 0; border-top: 0; }
+.returned-pdf-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 13px; color: #334155;
+}
+.returned-pdf-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.complete-book {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 14px; padding: 12px; border: 1px solid #a7f3d0; background: #ecfdf5; color: #065f46;
+}
+.complete-book b { font-size: 15px; font-weight: 900; }
+.complete-book span { font-size: 13px; font-weight: 700; }
+.write-links { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; min-width: 120px; flex-wrap: wrap; }
 
 /* ===== 自己採点スプリット(答案 | 解答 を並置) ===== */
 .sg-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }

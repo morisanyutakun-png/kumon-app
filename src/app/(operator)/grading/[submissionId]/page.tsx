@@ -26,7 +26,7 @@ export default async function GradingDetailPage({
   const detail = await getSubmissionDetail(p.organizationId, submissionId);
   if (!detail) notFound();
 
-  const { submission, assignment, student, material, images, gradings, events } = detail;
+  const { submission, assignment, student, material, solutionFiles, returnedFiles, images, gradings, events } = detail;
   const mistakeTags = await listMistakeTags(p.organizationId);
   const autoAdvance = material.progressType !== "manual";
   const canGrade = submission.status === "submitted" || submission.status === "grading";
@@ -36,7 +36,6 @@ export default async function GradingDetailPage({
     maxScore: submission.draftMaxScore ?? "",
     result: (submission.draftResult ?? "") as "" | "ok" | "ng",
     comment: submission.draftComment ?? "",
-    nextRange: submission.draftNextRange ?? "",
   };
 
   return (
@@ -56,7 +55,14 @@ export default async function GradingDetailPage({
       <div className="grade-workspace">
         {/* 左: 答案 (タブレットで添削しやすい大きな表示) */}
         <div className="grade-canvas">
-          <div className="grade-canvas-head">提出された答案</div>
+          <div className="grade-canvas-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <span>提出された答案</span>
+            {images.length > 0 && (
+              <Link href={`/grading/${submission.id}/write`} className="db-badge">
+                添削PDFを作成
+              </Link>
+            )}
+          </div>
           <div className="grade-canvas-body">
             <AnswerImages images={images} large />
           </div>
@@ -102,6 +108,34 @@ export default async function GradingDetailPage({
             <h2>採点履歴</h2>
             <GradingHistory gradings={gradings} />
           </div>
+
+          {(returnedFiles.length > 0 || solutionFiles.length > 0) && (
+            <div className="card" style={{ margin: "16px 0 0" }}>
+              <h2>配布PDF</h2>
+              {returnedFiles.length > 0 && (
+                <div className="pdf-link-group">
+                  <b>添削済み返却PDF</b>
+                  {returnedFiles.map((f) => (
+                    <div key={f.id} className="returned-pdf-row">
+                      <span>{f.fileName}</span>
+                      <a href={`/api/files/returned/${f.id}`} target="_blank" rel="noreferrer" className="db-badge">開く</a>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {solutionFiles.length > 0 && (
+                <div className="pdf-link-group">
+                  <b>解答解説PDF</b>
+                  {solutionFiles.map((f) => (
+                    <div key={f.id} className="returned-pdf-row">
+                      <span>{f.fileName}</span>
+                      <a href={`/api/files/material/${f.id}`} target="_blank" rel="noreferrer" className="db-badge">開く</a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </aside>
       </div>
 

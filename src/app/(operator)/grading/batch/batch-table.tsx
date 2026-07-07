@@ -20,9 +20,9 @@ export interface BatchRow {
 
 /**
  * 判定 (PHP 添削結果入力表の入力仕様を移植):
- *   ok   = 合格 → 返却・進度+1
+ *   ok   = 合格 → 返却
  *   ng   = やり直し → 再提出依頼
- *   skip = 未実施 → 返却するが進度は進めず、得点も持たない
+ *   skip = 未実施 → 返却するが得点を持たない
  *   ""   = 未判定 (確定対象外)
  */
 type Judge = "" | "ok" | "ng" | "skip";
@@ -135,7 +135,7 @@ export function BatchGradeTable({ rows }: { rows: BatchRow[] }) {
     startTransition(async () => {
       try {
         const res = await batchGrade(items);
-        toast.success(`${res.processed}件を確定しました（合格は進度が1つ進みます）。`);
+        toast.success(`${res.processed}件を確定しました（不合格は再提出待ちになります）。`);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "保存に失敗しました。");
       }
@@ -366,7 +366,7 @@ export function BatchGradeTable({ rows }: { rows: BatchRow[] }) {
 
       <p className="hint" style={{ marginTop: 10 }}>
         各行に <b>○合格</b> / <b>×やり直し</b> / <b>未実施</b> を付け、得点（任意・入れたら満点も必須）とコメントを入れて「確定」。
-        <b>○</b>=返却して学習進度が1つ進む / <b>×</b>=再提出をお願いする / <b>未実施</b>=今回は記録だけして進度は進めません。
+        <b>○</b>=合格として返却 / <b>×</b>=再提出をお願いする / <b>未実施</b>=今回は記録だけ返却します。
         得点を入れると正答率を自動計算します。↑↓キーで同じ列を移動できます。
       </p>
     </div>

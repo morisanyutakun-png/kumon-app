@@ -6,6 +6,7 @@ import { students } from "@/db/schema";
 import { accessibleStudentIds, requirePrincipal } from "@/lib/access";
 import { divisionForGrade } from "@/lib/division";
 import { encourageMessage, levelInfo, studyStreak } from "@/lib/encourage";
+import { listMaterialProgress, type MaterialProgressRow } from "@/lib/material-progress";
 import { listGradingHistory, listNotifications, listSubmissions } from "@/lib/queries";
 import { Mascot } from "@/components/mascot";
 import { IconCalendar, IconCheck, IconFlame, IconMedal, IconRedo, IconStar } from "@/components/icons";
@@ -25,21 +26,107 @@ function subjectColor(subject: string): string {
   }
 }
 
+function todoRank(status: string): number {
+  if (status === "resubmit_required") return 0;
+  if (status === "not_submitted") return 1;
+  return 2;
+}
+
+function progressBadge(p: MaterialProgressRow, sec: boolean): string {
+  switch (p.state) {
+    case "complete": return sec ? "教材終了" : "ぜんぶ合格";
+    case "resubmit": return sec ? "再提出あり" : "もう一度";
+    case "waiting": return sec ? "採点待ち" : "先生まち";
+    case "todo": return sec ? "実施中" : "チャレンジ";
+    case "returned": return sec ? "返却済み" : "へんきゃく";
+    default: return sec ? "準備中" : "じゅんび";
+  }
+}
+
+function progressLine(p: MaterialProgressRow, sec: boolean): string {
+  if (p.isComplete) return sec ? "全範囲が合格済みです。" : "ぜんぶ合格したよ。";
+  const range = p.currentRangeText ? `: ${p.currentRangeText}` : "";
+  if (p.state === "resubmit") return `${sec ? "再提出" : "もう一度"}${range}`;
+  if (p.state === "waiting") return `${sec ? "採点待ち" : "先生まち"}${range}`;
+  if (p.state === "todo") return `${sec ? "次" : "つぎ"}${range}`;
+  return sec ? "次の案内をお待ちください。" : "つぎの案内をまってね。";
+}
+
+function MaterialProgressCards({ rows, sec }: { rows: MaterialProgressRow[]; sec: boolean }) {
+  if (rows.length === 0) return null;
+  return (
+    <section style={{ marginBottom: 24 }}>
+      <div className="lsection">
+        {sec ? "教材の進み具合" : "きょうざいの すすみぐあい"}
+        <span className="lsection-n">{rows.length}</span>
+      </div>
+      <div className="mat-progress-grid">
+        {rows.map((p) => {
+          const total = p.totalCount;
+          const pct = total && total > 0 ? Math.min(100, Math.round((p.passedCount / total) * 100)) : 0;
+          const href = p.currentSubmissionId
+            ? `/submissions/${p.currentSubmissionId}`
+            : p.isComplete
+              ? `/api/files/material-complete/${p.assignmentId}?dl=1`
+              : null;
+          const body = (
+            <>
+              <div className="mat-progress-head">
+                <span className="mat-progress-subject">{p.subject || "教材"}</span>
+                <span className={`mat-progress-badge ${p.state}`}>{progressBadge(p, sec)}</span>
+              </div>
+              <div className="mat-progress-title">{p.materialName}</div>
+              <div className="mat-progress-line">{progressLine(p, sec)}</div>
+              <div className="mat-progress-bar"><span style={{ width: `${pct}%` }} /></div>
+              <div className="mat-progress-foot">
+                <span>{total ? `合格 ${p.passedCount} / 全${total}` : `合格 ${p.passedCount}`}</span>
+                {p.waitingCount > 0 && <span>{sec ? `採点待ち ${p.waitingCount}` : `先生まち ${p.waitingCount}`}</span>}
+                {p.resubmitCount > 0 && <span>{sec ? `再提出 ${p.resubmitCount}` : `もう一度 ${p.resubmitCount}`}</span>}
+              </div>
+            </>
+          );
+          if (p.isComplete) {
+            return (
+              <a key={p.assignmentId} href={`/api/files/material-complete/${p.assignmentId}?dl=1`} className="mat-progress-card">
+                {body}
+              </a>
+            );
+          }
+          return href ? (
+            <Link key={p.assignmentId} href={href} className="mat-progress-card">
+              {body}
+            </Link>
+          ) : (
+            <div key={p.assignmentId} className="mat-progress-card">
+              {body}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default async function StudentHome() {
   const p = await requirePrincipal();
   const ids = await accessibleStudentIds(p);
   const idList = ids === "*" ? [] : ids;
-  const [rows, notices, history] = await Promise.all([
+  const [rows, notices, history, progressRows] = await Promise.all([
     listSubmissions(p.organizationId, { studentIds: idList }),
     listNotifications(p.organizationId, idList, { unreadOnly: true }),
     listGradingHistory(p.organizationId, { studentIds: idList }),
+    listMaterialProgress(p.organizationId, { studentIds: idList }),
   ]);
 
-  const todo = rows.filter((r) => r.status === "not_submitted" || r.status === "resubmit_required");
+  const todo = rows
+    .filter((r) => r.status === "not_submitted" || r.status === "resubmit_required")
+    .sort((a, b) => todoRank(a.status) - todoRank(b.status) || b.updatedAt.getTime() - a.updatedAt.getTime());
   const doneCount = rows.filter((r) => r.status === "done").length;
   const pass = history.filter((h) => h.result === "ok").length;
   const lv = levelInfo(pass);
   const streak = studyStreak(rows.map((r) => r.submittedAt).filter((d): d is Date => !!d));
+  // Server Component: request-time dashboard metrics.
+  // eslint-disable-next-line react-hooks/purity
   const weekAgo = Date.now() - 7 * 86400000;
   const weekCount = rows.filter((r) => r.submittedAt && new Date(r.submittedAt).getTime() >= weekAgo).length;
 
@@ -136,6 +223,8 @@ export default async function StudentHome() {
           <div className="ms ms-week"><span className="ms-ico"><IconCalendar size={20} /></span><b>{weekCount}</b><span>今週の提出</span></div>
         </div>
       </div>
+
+      <MaterialProgressCards rows={progressRows} sec={sec} />
 
       {/* 課題(やること)。今日のミッションで先頭を大きく出しているので、残りをここに一覧。 */}
       {todo.length > 1 && (

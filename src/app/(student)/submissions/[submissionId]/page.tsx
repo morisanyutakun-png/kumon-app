@@ -26,7 +26,7 @@ export default async function StudentSubmissionPage({
   const allowed = await canAccessStudent(p, detail.student.id);
   if (!allowed) notFound();
 
-  const { submission, assignment, material, materialFiles, solutionFiles, images, gradings } = detail;
+  const { submission, assignment, material, materialFiles, solutionFiles, returnedFiles, images, gradings } = detail;
   const sec = isSecondary(detail.student.grade);
   const canSubmit =
     submission.status === "not_submitted" || submission.status === "resubmit_required";
@@ -39,6 +39,10 @@ export default async function StudentSubmissionPage({
   const afterSubmit = !canSubmit; // submitted / grading / returned / done
   const hasResult =
     submission.status === "returned" || submission.status === "done" || gradings.length > 0;
+  const canSeeReturnedPdf =
+    submission.status === "returned" ||
+    submission.status === "done" ||
+    submission.status === "resubmit_required";
 
   return (
     <div>
@@ -162,6 +166,25 @@ export default async function StudentSubmissionPage({
         <div className="card">
           <h2>先生からの採点結果・コメント</h2>
           <GradingHistory gradings={gradings} />
+          {canSeeReturnedPdf && returnedFiles.length > 0 && (
+            <div className="returned-pdf-list">
+              <div className="selfgrade-label">先生の添削PDF</div>
+              {returnedFiles.map((f) => (
+                <div key={f.id} className="returned-pdf-row">
+                  <span>{f.fileName}</span>
+                  <a href={`/api/files/returned/${f.id}`} target="_blank" rel="noreferrer" className="db-badge">開く</a>
+                  <a href={`/api/files/returned/${f.id}?dl=1`} className="db-badge">保存する</a>
+                </div>
+              ))}
+            </div>
+          )}
+          {assignment.status === "completed" && (
+            <div className="complete-book">
+              <b>教材終了！</b>
+              <span>一冊分のPDFを受け取れます。</span>
+              <a href={`/api/files/material-complete/${assignment.id}?dl=1`} className="btn-primary">一冊分PDFを保存</a>
+            </div>
+          )}
           {submission.status === "returned" && (
             <div style={{ marginTop: 12 }}>
               <ActionButton action={confirmReturned.bind(null, submission.id)} successMessage="確認しました。">

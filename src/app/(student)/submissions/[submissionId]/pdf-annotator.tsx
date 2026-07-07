@@ -5,13 +5,26 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getStroke } from "perfect-freehand";
 
-import { submitAnswer } from "@/lib/actions/submission-actions";
+import { saveReturnedPdf, submitAnswer } from "@/lib/actions/submission-actions";
 
 /** 正規化座標(0〜1)の点。表示サイズ・ズームが変わっても保持できる。p=筆圧(0〜1)。 */
 type Point = { x: number; y: number; p?: number };
 type Stroke = { color: string; width: number; erase: boolean; points: Point[] };
 type Tf = { z: number; tx: number; ty: number };
 type XY = { x: number; y: number };
+type PdfViewport = { width: number; height: number };
+type PdfPage = {
+  getViewport(opts: { scale: number }): PdfViewport;
+  render(opts: { canvasContext: CanvasRenderingContext2D; viewport: PdfViewport }): { promise: Promise<void> };
+};
+type PdfDocumentProxy = {
+  numPages: number;
+  getPage(pageNumber: number): Promise<PdfPage>;
+};
+type PdfJsModule = {
+  GlobalWorkerOptions: { workerSrc: string };
+  getDocument(opts: { url: string }): { promise: Promise<PdfDocumentProxy> };
+};
 
 const COLORS = ["#1f2937", "#e11d48", "#2563eb", "#16a34a", "#f59e0b"];
 const PEN_WIDTHS = [2, 4, 7];
@@ -78,7 +91,7 @@ export function PdfAnnotator({
   const predictedRef = useRef<Point[]>([]); // 現フレームの予測点(描画のみ、保存しない)
   const renderRafRef = useRef<number | null>(null); // 描画中ストロークの rAF 再描画
 
-  const pdfRef = useRef<any>(null);
+  const pdfRef = useRef<PdfDocumentProxy | null>(null);
   const strokesRef = useRef<Map<number, Stroke[]>>(new Map());
   const drawingRef = useRef<Stroke | null>(null);
   const drawIdRef = useRef<number | null>(null); // 描画中ポインタID
@@ -140,7 +153,7 @@ export function PdfAnnotator({
     let cancelled = false;
     (async () => {
       try {
-        const pdfjs: any = await import("pdfjs-dist");
+        const pdfjs = await import("pdfjs-dist") as PdfJsModule;
         pdfjs.GlobalWorkerOptions.workerSrc = "/pdf/pdf.worker.min.mjs";
         const doc = await pdfjs.getDocument({ url: pdfUrl }).promise;
         if (cancelled) return;
@@ -169,7 +182,7 @@ export function PdfAnnotator({
     return () => {
       cancelled = true;
     };
-  }, [pdfUrl]);
+  }, [pdfUrl, storageKey]);
 
   // ---- 変形(ズーム/パン)の適用 ----
   // stage の寸法・位置をキャッシュ(ジェスチャ中の毎回の getBoundingClientRect/レイアウト読みを避ける)。
@@ -341,8 +354,7 @@ export function PdfAnnotator({
       window.removeEventListener("scroll", measureStage, true);
       clearTimeout(t);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+  }, [ready, measureStage, renderPage]);
 
   // ---- ホイール/トラックパッド(デスクトップ) ----
   // Ctrl/⌘+ホイール=カーソル位置を中心にズーム、通常ホイール=スクロール。
@@ -373,8 +385,7 @@ export function PdfAnnotator({
       stage.removeEventListener("wheel", onWheel);
       clearTimeout(syncT);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+  }, [ready, applyZoom, measureStage, scheduleTransform, stopMomentum, syncZoomState]);
 
   // ---- ポインタ入力(ネイティブ登録) ----
   // ポイント:
@@ -400,7 +411,7 @@ export function PdfAnnotator({
       window.removeEventListener("pointerup", up, opts);
       window.removeEventListener("pointercancel", up, opts);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
   // ---- iPad Safari の選択メニュー/ルーペ/長押しメニューを抑止 ----
@@ -427,7 +438,6 @@ export function PdfAnnotator({
       stage.removeEventListener("contextmenu", prevent);
       document.removeEventListener("selectstart", prevent);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
   // 手書きをブラウザに自動保存(提出まで保持)。
@@ -787,6 +797,7 @@ export function PdfAnnotator({
   /** 各ページを「PDF描画＋手書き」で1枚のPNGに焼き込んで返す。 */
   async function renderPages(): Promise<{ bytes: Uint8Array; w: number; h: number }[]> {
     const doc = pdfRef.current;
+    if (!doc) throw new Error("PDFを開けませんでした。");
     const out: { bytes: Uint8Array; w: number; h: number }[] = [];
     for (let pn = 1; pn <= numPages; pn++) {
       const page = await doc.getPage(pn);
@@ -846,7 +857,6 @@ export function PdfAnnotator({
       const pages = await renderPages();
 
       if (mode === "markup") {
-        // 採点者の添削: 提出せず、書き込み済みPDFをダウンロード。
         const { PDFDocument } = await import("pdf-lib");
         const pdf = await PDFDocument.create();
         for (const pg of pages) {
@@ -855,6 +865,20 @@ export function PdfAnnotator({
           page.drawImage(img, { x: 0, y: 0, width: pg.w, height: pg.h });
         }
         const out = await pdf.save();
+        if (submissionId) {
+          const fd = new FormData();
+          fd.append("file", new File([out as BlobPart], `${downloadName}.pdf`, { type: "application/pdf" }));
+          await saveReturnedPdf(submissionId, fd);
+          if (storageKey) {
+            try { localStorage.removeItem(storageKey); } catch { /* noop */ }
+          }
+          toast.success("返却PDFとして保存しました。");
+          if (redirectTo) router.push(redirectTo);
+          else router.refresh();
+          return;
+        }
+
+        // 生徒一括の添削画面など、提出物に紐づかない場合は従来どおりダウンロード。
         const url = URL.createObjectURL(new Blob([out as BlobPart], { type: "application/pdf" }));
         const a = document.createElement("a");
         a.href = url;
@@ -953,10 +977,12 @@ export function PdfAnnotator({
 
       <div className="annot-submit">
         <button type="button" className="btn-primary big" onClick={requestSubmit} disabled={!ready || submitting}>
-          {submitting
+        {submitting
             ? (mode === "markup" ? "作成中…" : "提出中…")
             : mode === "markup"
-              ? "⬇ 書き込み済みPDFをダウンロード"
+              ? submissionId
+                ? "✓ 返却PDFとして保存"
+                : "⬇ 書き込み済みPDFをダウンロード"
               : resubmit
                 ? "✓ 書き込んで再提出する"
                 : "✓ 完了して提出する"}

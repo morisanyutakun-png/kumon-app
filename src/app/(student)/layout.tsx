@@ -38,7 +38,11 @@ export default async function StudentLayout({
   const idList = ids === "*" ? [] : ids;
   const subRows = await listSubmissions(p.organizationId, { studentIds: idList });
   const returnCount = subRows.filter(
-    (r) => r.status === "submitted" || r.status === "grading" || r.status === "returned",
+    (r) =>
+      r.status === "submitted" ||
+      r.status === "grading" ||
+      r.status === "returned" ||
+      r.status === "resubmit_required",
   ).length;
 
   const tabs: NavTabItem[] = [

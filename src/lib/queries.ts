@@ -13,6 +13,7 @@ import {
   materials,
   mistakeTags,
   notifications,
+  returnedFiles,
   students,
   submissionEvents,
   submissionImages,
@@ -119,6 +120,8 @@ export interface SubmissionDetail {
   materialFiles: (typeof materialFiles.$inferSelect)[];
   /** 解答解説(answer_key)のファイル。提出後の自己採点で開示する。 */
   solutionFiles: (typeof materialFiles.$inferSelect)[];
+  /** 先生が添削して保存した返却PDF。 */
+  returnedFiles: (typeof returnedFiles.$inferSelect)[];
   images: SubmissionImage[];
   gradings: (Grading & { mistakes: MistakeTag[] })[];
   events: (typeof submissionEvents.$inferSelect)[];
@@ -195,6 +198,12 @@ export async function getSubmissionDetail(
     .where(eq(submissionImages.submissionId, sub.id))
     .orderBy(asc(submissionImages.attemptNo), asc(submissionImages.sortOrder));
 
+  const retFiles = await db
+    .select()
+    .from(returnedFiles)
+    .where(eq(returnedFiles.submissionId, sub.id))
+    .orderBy(desc(returnedFiles.createdAt));
+
   const gradeRows = await db
     .select()
     .from(gradings)
@@ -236,6 +245,7 @@ export async function getSubmissionDetail(
     material,
     materialFiles: matFiles,
     solutionFiles: solFiles,
+    returnedFiles: retFiles,
     images,
     gradings: gradingsWithMistakes,
     events,

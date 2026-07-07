@@ -307,6 +307,27 @@ export const materialFiles = pgTable("material_files", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+/** 教材終了時に配布する「一冊分PDF」。実体は Blob、DB には参照だけ保存。 */
+export const materialCompleteFiles = pgTable(
+  "material_complete_files",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    materialId: uuid("material_id")
+      .notNull()
+      .references(() => materials.id, { onDelete: "cascade" }),
+    blobUrl: text("blob_url").notNull(),
+    pathname: text("pathname").notNull(),
+    fileName: varchar("file_name", { length: 255 }).notNull().default(""),
+    contentType: varchar("content_type", { length: 128 }).notNull().default("application/pdf"),
+    size: integer("size").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("material_complete_files_material_unique").on(t.materialId)],
+);
+
 // =============================================================================
 // 割当 (課題配布)
 // =============================================================================
@@ -430,6 +451,29 @@ export const submissionImages = pgTable("submission_images", {
   size: integer("size").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+/** 先生が添削して返却するPDF。提出ごと・提出回ごとに履歴保持する。 */
+export const returnedFiles = pgTable(
+  "returned_files",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    submissionId: uuid("submission_id")
+      .notNull()
+      .references(() => submissions.id, { onDelete: "cascade" }),
+    attemptNo: integer("attempt_no").notNull().default(1),
+    blobUrl: text("blob_url").notNull(),
+    pathname: text("pathname").notNull(),
+    fileName: varchar("file_name", { length: 255 }).notNull().default(""),
+    contentType: varchar("content_type", { length: 128 }).notNull().default("application/pdf"),
+    size: integer("size").notNull().default(0),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("returned_files_submission_idx").on(t.submissionId)],
+);
 
 /** 採点結果。再採点ごとに行を追加し、attemptNo で版を区別する (履歴保持)。 */
 export const gradings = pgTable("gradings", {
@@ -564,6 +608,16 @@ export const materialFilesRelations = relations(materialFiles, ({ one }) => ({
   }),
 }));
 
+export const materialCompleteFilesRelations = relations(
+  materialCompleteFiles,
+  ({ one }) => ({
+    material: one(materials, {
+      fields: [materialCompleteFiles.materialId],
+      references: [materials.id],
+    }),
+  }),
+);
+
 export const assignmentsRelations = relations(assignments, ({ one, many }) => ({
   organization: one(organizations, {
     fields: [assignments.organizationId],
@@ -594,6 +648,7 @@ export const submissionsRelations = relations(submissions, ({ one, many }) => ({
     references: [students.id],
   }),
   images: many(submissionImages),
+  returnedFiles: many(returnedFiles),
   gradings: many(gradings),
   events: many(submissionEvents),
 }));
@@ -607,6 +662,17 @@ export const submissionImagesRelations = relations(
     }),
   }),
 );
+
+export const returnedFilesRelations = relations(returnedFiles, ({ one }) => ({
+  submission: one(submissions, {
+    fields: [returnedFiles.submissionId],
+    references: [submissions.id],
+  }),
+  createdBy: one(users, {
+    fields: [returnedFiles.createdById],
+    references: [users.id],
+  }),
+}));
 
 export const gradingsRelations = relations(gradings, ({ one, many }) => ({
   submission: one(submissions, {
@@ -638,9 +704,11 @@ export type Student = typeof students.$inferSelect;
 export type Material = typeof materials.$inferSelect;
 export type Unit = typeof units.$inferSelect;
 export type MaterialFile = typeof materialFiles.$inferSelect;
+export type MaterialCompleteFile = typeof materialCompleteFiles.$inferSelect;
 export type Assignment = typeof assignments.$inferSelect;
 export type Submission = typeof submissions.$inferSelect;
 export type SubmissionImage = typeof submissionImages.$inferSelect;
+export type ReturnedFile = typeof returnedFiles.$inferSelect;
 export type Grading = typeof gradings.$inferSelect;
 export type MistakeTag = typeof mistakeTags.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;

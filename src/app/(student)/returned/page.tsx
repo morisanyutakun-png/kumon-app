@@ -14,6 +14,7 @@ export default async function ReturnedPage() {
   const idList = ids === "*" ? [] : ids;
   const rows = await listSubmissions(p.organizationId, { studentIds: idList });
 
+  const resubmits = rows.filter((r) => r.status === "resubmit_required");
   const waiting = rows.filter((r) => r.status === "submitted" || r.status === "grading");
   const returned = rows.filter((r) => r.status === "returned");
 
@@ -23,7 +24,7 @@ export default async function ReturnedPage() {
     grade = s?.grade ?? "";
   }
   const sec = divisionForGrade(grade) === "secondary";
-  const total = waiting.length + returned.length;
+  const total = resubmits.length + waiting.length + returned.length;
 
   return (
     <div>
@@ -42,6 +43,15 @@ export default async function ReturnedPage() {
         </div>
       ) : (
         <div style={{ display: "grid", gap: 18 }}>
+          {resubmits.length > 0 && (
+            <section>
+              <div className="lsection">
+                {sec ? "再提出が必要" : "もう一度ていしゅつ"}
+                <span className="lsection-n">{resubmits.length}</span>
+              </div>
+              <TaskList rows={resubmits} sec={sec} />
+            </section>
+          )}
           {waiting.length > 0 && (
             <section>
               <div className="lsection">
