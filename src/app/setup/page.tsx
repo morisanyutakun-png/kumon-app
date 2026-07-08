@@ -26,7 +26,7 @@ async function appBaseUrl() {
 /**
  * 決済直後の戻り先 /setup?session_id=cs_xxx。
  * 照会APIで確認 → 冪等にアカウント発行(生成パスワード) → ログイン情報を画面表示。
- * 同じ内容はメールでも送られる(Webhook 経由)。
+ * Webhook と同じ決済を処理しても、メールは Resend の冪等キーで二重送信を抑える。
  */
 export default async function SetupPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
@@ -62,18 +62,18 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
     return <Shell><LookupError msg="アカウントの発行中にエラーが発生しました。時間をおいて、ログイン情報メールのリンクからお試しください。" /></Shell>;
   }
 
-  // ここでもメール送信(顧客＋運営者)。Webhook が来なくても確実に届く。
-  // 既に発行済みでも資格情報が取れる場合は、メール未達の復旧として再送を試みる。
-  let emailSent = false;
+  // Webhook が未到達でも /setup 側でメールまで届くようにする。
+  // Webhook 成功後のページ表示でも同じ決済なら Resend の冪等キーで二重送信されない。
+  let emailStatus: "sent" | "skipped" | "failed" = "skipped";
   if (result.loginId && result.pin) {
     const baseUrl = await appBaseUrl();
     const loginUrl = baseUrl ? `${baseUrl}/login` : "/login";
     const email = await sendProvisionEmails({ result, payload: lookup.payload, loginUrl });
-    emailSent = email.customer;
+    emailStatus = email.customer ? "sent" : "failed";
   }
 
   if (result.loginId && result.pin) {
-    return <Shell><Credentials loginId={result.loginId} pin={result.pin} emailSent={emailSent} /></Shell>;
+    return <Shell><Credentials loginId={result.loginId} pin={result.pin} emailStatus={emailStatus} /></Shell>;
   }
   // 既に発行済みで、PIN が手元にない(過去発行など)。ログインへ案内。
   return (
@@ -102,12 +102,27 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Credentials({ loginId, pin, emailSent }: { loginId: string; pin: string; emailSent: boolean }) {
+function Credentials({
+  loginId,
+  pin,
+  emailStatus,
+}: {
+  loginId: string;
+  pin: string;
+  emailStatus: "sent" | "skipped" | "failed";
+}) {
+  const emailMessage =
+    emailStatus === "sent"
+      ? "（同じ内容をメールでもお送りしました）。"
+      : emailStatus === "skipped"
+        ? "。メールはすでに送信済みの可能性があるため、この画面では再送していません。"
+        : "。メール送信に失敗した可能性があるため、この画面の内容を保存してください。";
+
   return (
     <>
       <p className="auth-help" style={{ marginTop: 0 }}>
         お申し込みありがとうございます。下のログイン情報でご利用いただけます
-        {emailSent ? "（同じ内容をメールでもお送りしました）。" : "。メール送信に失敗した可能性があるため、この画面の内容を保存してください。"}
+        {emailMessage}
       </p>
       <div className="setup-info">
         <div className="setup-info-row">

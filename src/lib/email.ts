@@ -14,7 +14,7 @@ function fromAddress(): string {
 }
 
 /** Resend へ送信(共通)。失敗・未設定でも throw せず {ok} を返す。 */
-async function send(to: string[], subject: string, html: string): Promise<{ ok: boolean }> {
+async function send(to: string[], subject: string, html: string, idempotencyKey?: string): Promise<{ ok: boolean }> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("[provision] RESEND_API_KEY 未設定のためメール送信をスキップしました。");
@@ -22,9 +22,15 @@ async function send(to: string[], subject: string, html: string): Promise<{ ok: 
   }
   if (to.length === 0) return { ok: false };
   try {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    };
+    if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
+
     const res = await fetch(RESEND_ENDPOINT, {
       method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ from: fromAddress(), to, subject, html }),
     });
     if (!res.ok) {
@@ -48,6 +54,7 @@ export async function sendCredentialsEmail(opts: {
   loginUrl: string;
   studentName?: string;
   subjectLabels?: string;
+  idempotencyKey?: string;
 }): Promise<{ ok: boolean }> {
   const greeting = opts.studentName ? `${escapeHtml(opts.studentName)} さん` : "ご契約者さま";
   const subjects = opts.subjectLabels ? `<p>ご契約科目: <b>${escapeHtml(opts.subjectLabels)}</b></p>` : "";
@@ -65,7 +72,7 @@ export async function sendCredentialsEmail(opts: {
       </p>
       <p style="color:#64748b;font-size:13px;">このメールに心当たりがない場合は破棄してください。</p>
     </div>`;
-  return send([opts.to], "【ノビットスタディ】ログイン情報のご案内", html);
+  return send([opts.to], "【ノビットスタディ】ログイン情報のご案内", html, opts.idempotencyKey);
 }
 
 /** 運営者へ「新しい生徒が発行された」通知(契約内容・金額・生徒情報つき)を送る。 */
@@ -88,6 +95,7 @@ export async function sendOperatorNotification(
     stripeSubscriptionId?: string; // 旧(後方互換)
     stripeSessionId?: string;
   },
+  opts?: { idempotencyKey?: string },
 ): Promise<{ ok: boolean }> {
   const amt = d.amount ?? d.monthlyAmount; // 新: 購入金額 / 旧: 月額
   const amount = amt !== undefined && amt !== "" && Number(amt) > 0
@@ -119,7 +127,7 @@ export async function sendOperatorNotification(
         ${row("Stripeセッション", escapeHtml(d.stripeSessionId || "—"))}
       </table>
     </div>`;
-  return send(to, `【ノビットスタディ】新規発行: ${d.studentName || d.email}`, html);
+  return send(to, `【ノビットスタディ】新規発行: ${d.studentName || d.email}`, html, opts?.idempotencyKey);
 }
 
 function escapeHtml(s: string): string {

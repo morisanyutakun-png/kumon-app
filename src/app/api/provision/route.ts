@@ -8,7 +8,7 @@
  *   1. x-nobit-secret を NOBIT_REGISTER_SECRET と照合(不一致は 401)
  *   2. paid !== true なら何もせず 200(ログのみ)
  *   3. 冪等に仮アカウントを upsert(既に本登録済みなら何もしない)
- *   4. setup_token を発行し、パスワード設定リンクをメール送信
+ *   4. ログイン情報メール・運営通知を冪等送信
  *   5. 成功時は 200。発行または顧客メール送信に失敗した場合は、再試行のため 5xx。
  */
 import { timingSafeEqual } from "node:crypto";
@@ -123,6 +123,7 @@ export async function POST(req: Request) {
     console.info(`[provision] webhook: ${result.status} to=${maskEmail(result.email)}`);
 
     // ログイン情報(顧客)＋発行通知(運営者)を送信。
+    // /setup と同じ決済を処理しても、Resend の冪等キーで二重送信を抑える。
     // 顧客メールが失敗した場合は 5xx にして、yuta-eng/Stripe の再送に乗せる。
     const email = await sendProvisionEmails({ result, payload, loginUrl: `${baseUrl(req)}/login` });
     if (!email.customer) {

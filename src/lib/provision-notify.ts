@@ -1,7 +1,7 @@
 /**
  * 発行時のメール送信(顧客＝ログイン情報 / 運営者＝発行通知)。
  * Webhook と /setup の両方から呼べる。
- * 同じ決済の再実行でも資格情報が取れるなら再送できるようにし、送信成否を呼び出し元へ返す。
+ * 同じ決済の再実行では Resend の冪等キーで二重送信を抑制する。
  */
 import "server-only";
 
@@ -24,6 +24,7 @@ export async function sendProvisionEmails(opts: {
   }
 
   const studentName = payload.studentName || payload.name;
+  const emailKeyBase = payload.stripeSessionId ? `provision:${payload.stripeSessionId}` : undefined;
 
   // 顧客へログイン情報。
   const customer = await sendCredentialsEmail({
@@ -33,6 +34,7 @@ export async function sendProvisionEmails(opts: {
     loginUrl,
     studentName,
     subjectLabels: payload.subjectLabels,
+    idempotencyKey: emailKeyBase ? `${emailKeyBase}:customer` : undefined,
   });
 
   // 運営者(admin/operator でメールあり)＋ 明示指定(OPERATOR_NOTIFY_EMAIL) へ詳細通知。
@@ -69,6 +71,8 @@ export async function sendProvisionEmails(opts: {
         stripePaymentIntentId: payload.stripePaymentIntentId,
         stripeSubscriptionId: payload.stripeSubscriptionId,
         stripeSessionId: payload.stripeSessionId,
+      }, {
+        idempotencyKey: emailKeyBase ? `${emailKeyBase}:operator` : undefined,
       });
       operator = sent.ok;
     }
