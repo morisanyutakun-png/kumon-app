@@ -18,7 +18,7 @@ export async function loginStudent(page: Page, loginId: string, pin: string) {
   await login(page, loginId, pin);
 }
 
-/** 1x1 透明 PNG のバイト列 (テスト用答案画像)。 */
+/** 1x1 透明 PNG のバイト列 (テスト用答案ファイル)。 */
 export function tinyPng(): Buffer {
   return Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",

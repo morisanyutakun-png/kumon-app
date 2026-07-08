@@ -8,6 +8,16 @@ import { submitAnswer } from "@/lib/actions/submission-actions";
 
 type Pick = { file: File; url: string };
 
+function isPdf(file: File) {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
+
+function formatBytes(bytes: number) {
+  if (bytes >= 1024 * 1024) return `${Math.round((bytes / 1024 / 1024) * 10) / 10} MB`;
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${bytes} B`;
+}
+
 export function SubmitForm({
   submissionId,
   resubmit,
@@ -20,11 +30,15 @@ export function SubmitForm({
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [picks, setPicks] = useState<Pick[]>([]);
+  const picksRef = useRef<Pick[]>([]);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
-    return () => picks.forEach((p) => URL.revokeObjectURL(p.url));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    picksRef.current = picks;
+  }, [picks]);
+
+  useEffect(() => {
+    return () => picksRef.current.forEach((p) => URL.revokeObjectURL(p.url));
   }, []);
 
   function onPicked(e: React.ChangeEvent<HTMLInputElement>) {
@@ -48,7 +62,7 @@ export function SubmitForm({
       return;
     }
     const fd = new FormData();
-    for (const p of picks) fd.append("images", p.file);
+    for (const p of picks) fd.append("files", p.file);
     startTransition(async () => {
       try {
         await submitAnswer(submissionId, fd);
@@ -67,8 +81,8 @@ export function SubmitForm({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
-        capture="environment"
+        name="files"
+        accept="application/pdf,image/*"
         multiple
         onChange={onPicked}
         style={{ display: "none" }}
@@ -76,29 +90,40 @@ export function SubmitForm({
 
       {picks.length === 0 ? (
         <button type="button" className="photo-drop" onClick={() => inputRef.current?.click()}>
-          <span className="photo-drop-ico" aria-hidden>📷</span>
-          <span style={{ fontWeight: 700 }}>{secondary ? "答案の写真を選ぶ・撮影" : "写真をえらぶ・撮る"}</span>
-          <span className="muted" style={{ fontSize: 13 }}>答案の写真を何枚でも選べます</span>
+          <span className="photo-drop-ico" aria-hidden>📎</span>
+          <span style={{ fontWeight: 700 }}>{secondary ? "PDF・写真を選んで提出" : "PDF・写真をえらんで提出"}</span>
+          <span className="muted" style={{ fontSize: 13 }}>
+            GoodNotesなどで書き込んだPDF、または答案写真を選べます
+          </span>
         </button>
       ) : (
         <>
           <div className="photo-grid">
-            {picks.map((p, i) => (
-              <div key={p.url} className="photo-thumb">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.url} alt={`選択 ${i + 1}`} />
-                <button type="button" className="photo-del" onClick={() => remove(i)} aria-label="削除">×</button>
-              </div>
-            ))}
+            {picks.map((p, i) =>
+              isPdf(p.file) ? (
+                <div key={p.url} className="photo-file">
+                  <span className="photo-file-icon">PDF</span>
+                  <span className="photo-file-name">{p.file.name}</span>
+                  <span className="photo-file-size">{formatBytes(p.file.size)}</span>
+                  <button type="button" className="photo-del" onClick={() => remove(i)} aria-label="削除">×</button>
+                </div>
+              ) : (
+                <div key={p.url} className="photo-thumb">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.url} alt={`選択 ${i + 1}`} />
+                  <button type="button" className="photo-del" onClick={() => remove(i)} aria-label="削除">×</button>
+                </div>
+              ),
+            )}
             <button type="button" className="photo-add" onClick={() => inputRef.current?.click()}>＋ 追加</button>
           </div>
-          <p className="muted" style={{ margin: 0 }}>{picks.length} 枚 選択中</p>
+          <p className="muted" style={{ margin: 0 }}>{picks.length} 件 選択中</p>
         </>
       )}
 
       <div>
         <button type="button" className="btn-primary big" onClick={submit} disabled={pending}>
-          {pending ? "送信中…" : picks.length === 0 ? (secondary ? "写真を選んで提出" : "写真をえらんで提出") : resubmit ? "再提出する" : "提出する"}
+          {pending ? "送信中…" : picks.length === 0 ? (secondary ? "PDF・写真を選んで提出" : "PDF・写真をえらんで提出") : resubmit ? "再提出する" : "提出する"}
         </button>
       </div>
     </div>

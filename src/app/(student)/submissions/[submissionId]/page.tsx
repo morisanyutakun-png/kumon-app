@@ -107,6 +107,13 @@ export default async function StudentSubmissionPage({
                 タッチペン・指で直接書き込めます。書いた内容は自動保存され、提出するまで消えません。
                 解き終わったら画面の「提出する」から提出してください。
               </p>
+              <div className="solve-alt">
+                <span>または</span>
+              </div>
+              <p className="muted" style={{ margin: "0 0 10px", fontSize: 13 }}>
+                GoodNotesなど別のアプリで書き込んだPDFや、紙に解いた答案写真でも提出できます。
+              </p>
+              <SubmitForm submissionId={submission.id} resubmit={submission.status === "resubmit_required"} secondary={sec} />
             </>
           ) : (
             <SubmitForm submissionId={submission.id} resubmit={submission.status === "resubmit_required"} secondary={sec} />

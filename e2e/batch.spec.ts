@@ -49,7 +49,7 @@ test("一括採点で合格返却 → 生徒が結果確認", async ({ browser }
   await st.getByText(materialName).first().click();
   await expect(st).toHaveURL(/\/submissions\//);
   const submissionUrl = st.url();
-  await st.locator('input[name="images"]').setInputFiles({
+  await st.locator('input[name="files"]').setInputFiles({
     name: "a.png",
     mimeType: "image/png",
     buffer: tinyPng(),

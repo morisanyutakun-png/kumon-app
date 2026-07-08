@@ -6,7 +6,7 @@
  *
  * いずれの場合も実体 URL はクライアントへ直接渡さず、必ず認証付きの
  * 配信ルート (/api/files/...) を経由して読み出す (権限確認のため)。
- * DB には pathname と (Blob時の) url を保存する。
+ * DB には pathname と URL/メタ情報だけを保存する。
  */
 import { promises as fs } from "node:fs";
 import os from "node:os";
@@ -32,9 +32,10 @@ function hasBlobToken(): boolean {
 
 /**
  * ファイルを保存し、DB行へ格納する値を返す。
- * - Blob設定あり → Vercel Blob に保存し url を返す(dataB64 は null)。
- * - Blob設定なし → 実体を DB に base64 で保持(Vercelの /tmp 揮発でファイルが
- *   消えて 404 になる問題を回避)。blobUrl は "db://<pathname>"。
+ * - Blob設定あり → Vercel Blob に保存。
+ * - Blob設定なし(ローカル開発) → ./.uploads に保存。
+ *
+ * 既存行の読み取り互換のため dataB64 列は残すが、今後の保存では使用しない。
  */
 export async function saveFile(
   pathname: string,
@@ -42,11 +43,8 @@ export async function saveFile(
   contentType: string,
 ): Promise<{ blobUrl: string; pathname: string; dataB64: string | null }> {
   const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
-  if (hasBlobToken()) {
-    const stored = await saveBlob(pathname, buffer, contentType);
-    return { blobUrl: stored.url, pathname: stored.pathname, dataB64: null };
-  }
-  return { blobUrl: DB_PREFIX + pathname, pathname, dataB64: buffer.toString("base64") };
+  const stored = await saveBlob(pathname, buffer, contentType);
+  return { blobUrl: stored.url, pathname: stored.pathname, dataB64: null };
 }
 
 /**
@@ -85,6 +83,10 @@ export async function saveBlob(
       addRandomSuffix: true,
     });
     return { url: res.url, pathname: res.pathname };
+  }
+
+  if (process.env.VERCEL) {
+    throw new Error("BLOB_READ_WRITE_TOKEN is required to save files on Vercel.");
   }
 
   // local fallback

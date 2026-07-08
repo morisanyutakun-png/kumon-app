@@ -299,7 +299,7 @@ export const materialFiles = pgTable("material_files", {
   kind: materialFileKindEnum("kind").notNull().default("assignment"),
   blobUrl: text("blob_url").notNull(),
   pathname: text("pathname").notNull(),
-  /** Blob未設定環境ではファイル実体をDBに base64 で保持(Vercelの/tmp揮発対策)。 */
+  /** 旧フォールバック行の読み取り互換用。今後の保存では使用しない。 */
   dataB64: text("data_b64"),
   fileName: varchar("file_name", { length: 255 }).notNull().default(""),
   contentType: varchar("content_type", { length: 128 }).notNull().default(""),
@@ -431,7 +431,7 @@ export const notifications = pgTable(
   (t) => [index("notifications_student_idx").on(t.studentId, t.readAt)],
 );
 
-/** 答案画像。実体は Vercel Blob、DB には URL とメタのみ。閲覧は権限確認必須。 */
+/** 答案ファイル(PDF/画像)。実体は Vercel Blob、DB には URL とメタのみ。閲覧は権限確認必須。 */
 export const submissionImages = pgTable("submission_images", {
   id: uuid("id").defaultRandom().primaryKey(),
   organizationId: uuid("organization_id")
@@ -444,7 +444,7 @@ export const submissionImages = pgTable("submission_images", {
   sortOrder: integer("sort_order").notNull().default(0),
   blobUrl: text("blob_url").notNull(),
   pathname: text("pathname").notNull(),
-  /** Blob未設定環境ではファイル実体をDBに base64 で保持(Vercelの/tmp揮発対策)。 */
+  /** 旧フォールバック行の読み取り互換用。今後の保存では使用しない。 */
   dataB64: text("data_b64"),
   fileName: varchar("file_name", { length: 255 }).notNull().default(""),
   contentType: varchar("content_type", { length: 128 }).notNull().default(""),

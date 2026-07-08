@@ -58,7 +58,7 @@ test("課題登録→提出→採点→返却→確認の一連フロー", async
   await expect(st).toHaveURL(/\/submissions\//);
   const submissionUrl = st.url();
 
-  await st.locator('input[name="images"]').setInputFiles({
+  await st.locator('input[name="files"]').setInputFiles({
     name: "answer.png",
     mimeType: "image/png",
     buffer: tinyPng(),

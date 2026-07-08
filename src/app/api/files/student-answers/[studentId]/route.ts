@@ -8,8 +8,18 @@ import { readStored } from "@/lib/blob";
 
 export const runtime = "nodejs";
 
+function isPdfFile(row: { contentType: string; fileName: string }) {
+  return row.contentType === "application/pdf" || row.fileName.toLowerCase().endsWith(".pdf");
+}
+
+async function appendPdf(target: PDFDocument, body: Buffer | Uint8Array) {
+  const src = await PDFDocument.load(body);
+  const pages = await target.copyPages(src, src.getPageIndices());
+  for (const page of pages) target.addPage(page);
+}
+
 /**
- * その生徒の「採点待ち(提出済み/採点中)」の答案画像を、提出順に1つのPDFへ結合して配信。
+ * その生徒の「採点待ち(提出済み/採点中)」の答案ファイルを、提出順に1つのPDFへ結合して配信。
  * 添削をまとめて行うための統合PDF。アクセスは運営者 or その生徒に限る。
  */
 export async function GET(
@@ -46,13 +56,22 @@ export async function GET(
   const pdf = await PDFDocument.create();
 
   for (const sub of subs) {
-    // 各提出の最新提出回の画像だけを使う
+    // 各提出の最新提出回だけを使う
     const all = imgs.filter((i) => i.submissionId === sub.id);
     const latestAttempt = all.reduce((m, i) => Math.max(m, i.attemptNo), 0);
     const pageImgs = all.filter((i) => i.attemptNo === latestAttempt);
     for (const im of pageImgs) {
       const file = await readStored(im);
       if (!file) continue;
+      if (isPdfFile(im)) {
+        try {
+          await appendPdf(pdf, file.body);
+        } catch {
+          continue;
+        }
+        continue;
+      }
+
       const bytes = new Uint8Array(file.body);
       let embedded;
       try {

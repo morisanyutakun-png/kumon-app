@@ -34,7 +34,15 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/webp",
   "image/gif",
 ]);
-const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15MB
+const IMAGE_EXT_TO_TYPE = new Map([
+  [".png", "image/png"],
+  [".jpg", "image/jpeg"],
+  [".jpeg", "image/jpeg"],
+  [".webp", "image/webp"],
+  [".gif", "image/gif"],
+]);
+const MAX_IMAGE_FILE_BYTES = 15 * 1024 * 1024; // 15MB
+const MAX_ANSWER_PDF_BYTES = 80 * 1024 * 1024; // 80MB
 const MAX_RETURNED_PDF_BYTES = 80 * 1024 * 1024; // 80MB
 
 class ActionError extends Error {}
@@ -106,6 +114,23 @@ function revalidateAll(submissionId: string) {
   revalidatePath(`/submissions/${submissionId}`);
 }
 
+function extname(name: string): string {
+  const i = name.lastIndexOf(".");
+  return i >= 0 ? name.slice(i).toLowerCase() : "";
+}
+
+function answerFileContentType(file: File): string | null {
+  const rawType = file.type.toLowerCase();
+  const ext = extname(file.name);
+  if (rawType === "application/pdf" || ext === ".pdf") return "application/pdf";
+  if (ALLOWED_IMAGE_TYPES.has(rawType)) return rawType;
+  return IMAGE_EXT_TO_TYPE.get(ext) ?? null;
+}
+
+function maxBytesForAnswerFile(contentType: string): number {
+  return contentType === "application/pdf" ? MAX_ANSWER_PDF_BYTES : MAX_IMAGE_FILE_BYTES;
+}
+
 async function refreshAssignmentCompletion(sub: Submission, passed: boolean) {
   if (passed) {
     await syncAssignmentCompletion(sub.organizationId, sub.assignmentId);
@@ -135,26 +160,28 @@ export async function submitAnswer(submissionId: string, formData: FormData) {
     throw new ActionError("この課題は現在提出できる状態ではありません。");
   }
 
-  const files = formData
-    .getAll("images")
+  const files = [...formData.getAll("files"), ...formData.getAll("images")]
     .filter((f): f is File => f instanceof File && f.size > 0);
   if (files.length === 0) {
-    throw new ActionError("答案画像を1枚以上選んでください。");
+    throw new ActionError("答案ファイルを1つ以上選んでください。");
   }
 
   const attemptNo = sub.attemptCount + 1;
   let sortOrder = 0;
   for (const file of files) {
-    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-      throw new ActionError(`未対応の画像形式です: ${file.type}`);
+    const contentType = answerFileContentType(file);
+    if (!contentType) {
+      throw new ActionError("未対応のファイル形式です。PDFまたは画像を選んでください。");
     }
-    if (file.size > MAX_FILE_BYTES) {
-      throw new ActionError("画像サイズが大きすぎます (15MBまで)。");
+    const maxBytes = maxBytesForAnswerFile(contentType);
+    if (file.size > maxBytes) {
+      const limitMb = Math.round(maxBytes / 1024 / 1024);
+      throw new ActionError(`ファイルサイズが大きすぎます (${limitMb}MBまで)。`);
     }
     const buf = Buffer.from(await file.arrayBuffer());
     const safeName = file.name.replace(/[^\w.\-]/g, "_");
     const pathname = `${sub.organizationId}/submissions/${sub.id}/${attemptNo}/${sortOrder}-${safeName}`;
-    const stored = await saveFile(pathname, buf, file.type);
+    const stored = await saveFile(pathname, buf, contentType);
     await db.insert(submissionImages).values({
       organizationId: sub.organizationId,
       submissionId: sub.id,
@@ -164,7 +191,7 @@ export async function submitAnswer(submissionId: string, formData: FormData) {
       pathname: stored.pathname,
       dataB64: stored.dataB64,
       fileName: file.name,
-      contentType: file.type,
+      contentType,
       size: file.size,
     });
     sortOrder++;

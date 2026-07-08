@@ -8,8 +8,8 @@ import { readStored } from "@/lib/blob";
 export const runtime = "nodejs";
 
 /**
- * 答案画像の配信。必ず認証 + 権限確認を通す。
- * 他生徒の画像は閲覧不可 (運営者は同 org 内のみ許可)。
+ * 答案ファイルの配信。必ず認証 + 権限確認を通す。
+ * 他生徒のファイルは閲覧不可 (運営者は同 org 内のみ許可)。
  */
 export async function GET(
   _req: Request,

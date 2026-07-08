@@ -15,7 +15,7 @@ export interface BatchRow {
   rangeText: string;
   sessionNo: number;
   attemptCount: number;
-  images: { id: string; fileName: string }[];
+  images: { id: string; fileName: string; contentType?: string }[];
 }
 
 /**
@@ -33,6 +33,10 @@ interface RowState {
   comment: string;
 }
 const empty: RowState = { score: "", maxScore: "", judge: "", comment: "" };
+
+function isPdfFile(file: { fileName: string; contentType?: string }) {
+  return file.contentType === "application/pdf" || file.fileName.toLowerCase().endsWith(".pdf");
+}
 
 /** 正答率 (%) を返す。算出できなければ null。 */
 function accuracyPct(score: string, maxScore: string): number | null {
@@ -242,18 +246,31 @@ export function BatchGradeTable({ rows }: { rows: BatchRow[] }) {
                           target="_blank"
                           rel="noreferrer"
                           title={img.fileName}
+                          style={{
+                            height: 34,
+                            width: 34,
+                            display: "grid",
+                            placeItems: "center",
+                            border: "1px solid var(--line)",
+                            background: "#fff",
+                            color: "#0f172a",
+                            fontSize: 10,
+                            fontWeight: 900,
+                            textDecoration: "none",
+                          }}
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={`/api/files/submission/${img.id}`}
-                            alt={img.fileName}
-                            style={{
-                              height: 34,
-                              width: 34,
-                              objectFit: "cover",
-                              border: "1px solid var(--line)",
-                            }}
-                          />
+                          {isPdfFile(img) ? (
+                            "PDF"
+                          ) : (
+                            <>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={`/api/files/submission/${img.id}`}
+                                alt={img.fileName}
+                                style={{ height: "100%", width: "100%", objectFit: "cover" }}
+                              />
+                            </>
+                          )}
                         </a>
                       ))}
                       {r.images.length === 0 && (

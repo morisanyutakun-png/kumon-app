@@ -46,6 +46,15 @@ export async function buildSubmissionAnswerPdf(
   for (const im of pageImgs) {
     const file = await readStored(im);
     if (!file) continue;
+    if (isPdfFile(im)) {
+      try {
+        await appendPdf(pdf, file.body);
+      } catch {
+        continue;
+      }
+      continue;
+    }
+
     const bytes = new Uint8Array(file.body);
     let embedded;
     try {

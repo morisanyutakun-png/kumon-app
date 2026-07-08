@@ -4,7 +4,7 @@
  * 原則:
  *   - すべての業務クエリは principal.organizationId でフィルタする (テナント分離)。
  *   - 生徒・保護者は「自分が閲覧できる生徒」に限ってデータへアクセスできる。
- *   - 答案画像などの個人データは canAccessStudent() を必ず通す。
+ *   - 答案ファイルなどの個人データは canAccessStudent() を必ず通す。
  */
 import { and, eq } from "drizzle-orm";
 import { cookies } from "next/headers";

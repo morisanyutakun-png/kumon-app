@@ -13,7 +13,7 @@ export function SelfGradeSplit({
   children,
 }: {
   solutions: { id: string; fileName: string }[];
-  /** 左ペインの中身(提出した答案画像)。 */
+  /** 左ペインの中身(提出した答案ファイル)。 */
   children: ReactNode;
 }) {
   const [pane, setPane] = useState<"answer" | "solution">("answer");
@@ -67,6 +67,25 @@ export function SelfGradeSplit({
 // -----------------------------------------------------------------------------
 const MIN_Z = 1; // フィット幅より小さくはしない
 const MAX_Z = 5;
+
+type ZoomViewport = HTMLDivElement & {
+  _zoomBtn?: (ratio: number) => void;
+  _zoomReset?: () => void;
+};
+
+type PdfViewport = { width: number; height: number };
+type PdfPage = {
+  getViewport(opts: { scale: number }): PdfViewport;
+  render(opts: { canvasContext: CanvasRenderingContext2D; viewport: PdfViewport }): { promise: Promise<void> };
+};
+type PdfDocument = {
+  numPages: number;
+  getPage(pageNumber: number): Promise<PdfPage>;
+};
+type PdfJsModule = {
+  GlobalWorkerOptions: { workerSrc: string };
+  getDocument(opts: { url: string }): { promise: Promise<PdfDocument> };
+};
 
 /** 子要素を、ピンチ/ダブルタップ/ホイール/±ボタンで拡大・パンできる枠に収める。 */
 function ZoomPane({ children }: { children: ReactNode }) {
@@ -185,8 +204,9 @@ function ZoomPane({ children }: { children: ReactNode }) {
 
     // ボタン操作用に window へ小さなAPIをぶら下げず、ref経由で呼べるよう保持。
     vp.dataset.zoomReady = "1";
-    (vp as any)._zoomBtn = (ratio: number) => { measure(); zoomAt(vp.clientWidth / 2, vp.clientHeight / 2, ratio); schedule(); syncLabel(); };
-    (vp as any)._zoomReset = () => { tf.current = { z: 1, tx: 0, ty: 0 }; schedule(); syncLabel(); };
+    const zoomVp = vp as ZoomViewport;
+    zoomVp._zoomBtn = (ratio: number) => { measure(); zoomAt(vp.clientWidth / 2, vp.clientHeight / 2, ratio); schedule(); syncLabel(); };
+    zoomVp._zoomReset = () => { tf.current = { z: 1, tx: 0, ty: 0 }; schedule(); syncLabel(); };
 
     return () => {
       vp.removeEventListener("pointerdown", down);
@@ -198,8 +218,8 @@ function ZoomPane({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const btn = (ratio: number) => (vpRef.current as any)?._zoomBtn?.(ratio);
-  const reset = () => (vpRef.current as any)?._zoomReset?.();
+  const btn = (ratio: number) => (vpRef.current as ZoomViewport | null)?._zoomBtn?.(ratio);
+  const reset = () => (vpRef.current as ZoomViewport | null)?._zoomReset?.();
 
   return (
     <div className="zpane">
@@ -208,8 +228,15 @@ function ZoomPane({ children }: { children: ReactNode }) {
         <button type="button" onClick={reset} title="等倍に戻す">{zPct}%</button>
         <button type="button" onClick={() => btn(1.4)} aria-label="拡大">＋</button>
       </div>
-      {/* パン中に答案画像リンクが誤って開かないようクリック既定動作を抑止(拡大はダブルタップ/ボタンで) */}
-      <div ref={vpRef} className="zpane-vp" onClickCapture={(e) => e.preventDefault()}>
+      {/* パン中に答案ファイルのリンクが誤って開かないようクリック既定動作を抑止(拡大はダブルタップ/ボタンで)。PDFの開く/保存だけ通す。 */}
+      <div
+        ref={vpRef}
+        className="zpane-vp"
+        onClickCapture={(e) => {
+          if ((e.target as HTMLElement).closest("a.db-badge")) return;
+          e.preventDefault();
+        }}
+      >
         <div ref={surfRef} className="zpane-surf">{children}</div>
       </div>
     </div>
@@ -226,7 +253,7 @@ function SolutionPdf({ url }: { url: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    let doc: any = null;
+    let doc: PdfDocument | null = null;
     let lastW = 0;
     let raf = 0;
     const pages = pagesRef.current;
@@ -271,7 +298,7 @@ function SolutionPdf({ url }: { url: string }) {
 
     (async () => {
       try {
-        const pdfjs: any = await import("pdfjs-dist");
+        const pdfjs = (await import("pdfjs-dist")) as unknown as PdfJsModule;
         pdfjs.GlobalWorkerOptions.workerSrc = "/pdf/pdf.worker.min.mjs";
         doc = await pdfjs.getDocument({ url }).promise;
         if (cancelled) return;
