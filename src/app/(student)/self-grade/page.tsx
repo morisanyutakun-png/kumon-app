@@ -6,27 +6,15 @@ import { students } from "@/db/schema";
 import { accessibleStudentIds, requirePrincipal } from "@/lib/access";
 import { divisionForGrade } from "@/lib/division";
 import { listSubmissions, type SubmissionRow } from "@/lib/queries";
+import { MaterialCoverIcon } from "@/components/material-cover-icon";
 import { StatusBadge } from "@/components/status-badge";
-
-function subjectColor(subject: string): string {
-  switch (subject) {
-    case "算数": case "数学": return "#1aa3e6";
-    case "国語": return "#ff5d8f";
-    case "理科": case "物理": return "#18c39a";
-    case "化学": return "#00a3a3";
-    case "生物": return "#3bb54a";
-    case "社会": case "地歴公民": return "#ff8a3d";
-    case "英語": return "#7c5cfc";
-    case "情報": case "プログラミング": return "#13b6c9";
-    default: return "#1c9dd8";
-  }
-}
+import { subjectAccentColor } from "@/lib/material-covers";
 
 function SelfGradeCard({ r, sec }: { r: SubmissionRow; sec: boolean }) {
-  const color = subjectColor(r.subject);
+  const color = subjectAccentColor(r.subject);
   return (
     <Link href={`/submissions/${r.submissionId}#self-grade`} className="task selfgrade-task">
-      <span className="task-ico" style={{ background: color }}>{(r.subject || "答")[0]}</span>
+      <MaterialCoverIcon materialName={r.materialName} subject={r.subject} />
       <div className="task-main">
         <div className="task-title">{r.assignmentTitle || r.materialName}<StatusBadge status={r.status} /></div>
         <div className="task-meta">

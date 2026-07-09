@@ -4,6 +4,7 @@ import { requireOperator } from "@/lib/access";
 import { getActiveDivision } from "@/lib/active-division";
 import { assignmentMatrix } from "@/lib/queries";
 import { SUBMISSION_STATUS_LABELS } from "@/lib/submission-state";
+import { MaterialCoverIcon } from "@/components/material-cover-icon";
 import { AgAddCell, AgDeleteButton } from "./assign-cells";
 
 /** 教科ごとのアクセント色 (PHP ag_subject_color 相当)。 */
@@ -81,8 +82,13 @@ export default async function AssignmentsPage() {
                         className="ag-cell assigned"
                         style={{ ["--c" as string]: c.accent, ["--soft" as string]: c.soft, ["--ink" as string]: c.ink, background: c.soft }}
                       >
-                        <div className="ag-mat">{cell.materialName}</div>
-                        {cell.rangeText && <div className="ag-range">{cell.rangeText}</div>}
+                        <div className="ag-material-head">
+                          <MaterialCoverIcon materialName={cell.materialName} subject={cell.subject} className="ag-cover" />
+                          <div className="ag-material-copy">
+                            <div className="ag-mat">{cell.materialName}</div>
+                            {cell.rangeText && <div className="ag-range">{cell.rangeText}</div>}
+                          </div>
+                        </div>
                         <div className="ag-actions">
                           {cell.status && (
                             <span className="ag-status">{SUBMISSION_STATUS_LABELS[cell.status]}</span>
