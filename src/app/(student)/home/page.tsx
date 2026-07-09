@@ -119,9 +119,12 @@ export default async function StudentHome() {
     listMaterialProgress(p.organizationId, { studentIds: idList }),
   ]);
 
-  const todo = rows
+  const unsubmitted = rows
     .filter((r) => r.status === "not_submitted" || r.status === "resubmit_required")
     .sort((a, b) => todoRank(a.status) - todoRank(b.status) || b.updatedAt.getTime() - a.updatedAt.getTime());
+  const waiting = rows
+    .filter((r) => r.status === "submitted" || r.status === "grading")
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
   const doneCount = rows.filter((r) => r.status === "done").length;
   const pass = history.filter((h) => h.result === "ok").length;
   const lv = levelInfo(pass);
@@ -144,7 +147,7 @@ export default async function StudentHome() {
     ? sec ? `こんにちは、${p.name} さん` : `こんにちは、${p.name} さん！`
     : "こんにちは！";
 
-  const mission = todo[0];
+  const mission = unsubmitted[0];
   const missionColor = mission ? subjectColor(mission.subject) : "#1c9dd8";
 
   return (
@@ -177,12 +180,12 @@ export default async function StudentHome() {
         </div>
       )}
 
-      {/* 今日のミッション */}
+      {/* 次に取り組む課題 */}
       {mission ? (
         <Link href={`/submissions/${mission.submissionId}`} className="mission" style={{ ["--accent" as string]: missionColor }}>
           {!sec && <span className="mission-mascot"><Mascot pose="point" sizes="90px" /></span>}
           <div className="mission-body">
-            <div className="mission-label">{sec ? "今日の課題" : "きょうのミッション"}</div>
+            <div className="mission-label">{sec ? "次に取り組む課題" : "つぎに やること"}</div>
             <div className="mission-title">{mission.assignmentTitle || mission.materialName}</div>
             <div className="mission-meta">{mission.subject}{mission.rangeText ? ` ・ ${mission.rangeText}` : ""}</div>
           </div>
@@ -194,6 +197,14 @@ export default async function StudentHome() {
           <div className="mission-body">
             <div className="mission-title">{sec ? "準備OK" : "じゅんび オッケー！"}</div>
             <div className="mission-meta">{sec ? "先生からの課題が届くと、ここに表示されます。" : "先生からの課題がとどくと、ここに出るよ。たのしみにまっててね。"}</div>
+          </div>
+        </div>
+      ) : waiting.length > 0 ? (
+        <div className="mission mission-done">
+          {!sec && <span className="mission-mascot"><Mascot pose="wave" sizes="90px" /></span>}
+          <div className="mission-body">
+            <div className="mission-title">{sec ? "提出済みです" : "ていしゅつ できたよ！"}</div>
+            <div className="mission-meta">{sec ? "下の採点待ちで、提出済みの課題を確認できます。自己採点は専用タブからできます。" : "下の さいてんまちで、出した課題をかくにんできるよ。こたえあわせは自己採点タブでできるよ。"}</div>
           </div>
         </div>
       ) : (
@@ -227,14 +238,28 @@ export default async function StudentHome() {
 
       <MaterialProgressCards rows={progressRows} sec={sec} />
 
-      {/* 課題(やること)。今日のミッションで先頭を大きく出しているので、残りをここに一覧。 */}
-      {todo.length > 1 && (
+      {waiting.length > 0 && (
         <section style={{ marginTop: 8 }}>
           <div className="lsection">
-            {sec ? "ほかの課題" : "ほかの やること"}
-            <span className="lsection-n">{todo.length - 1}</span>
+            {sec ? "採点待ち" : "さいてんまち"}
+            <span className="lsection-n">{waiting.length}</span>
           </div>
-          <TaskList rows={todo.slice(1)} sec={sec} />
+          <p className="hint" style={{ marginTop: -6, marginBottom: 10 }}>
+            {sec
+              ? "提出済みです。先生の返却を待たずに、自己採点タブで解答解説を確認できます。"
+              : "ていしゅつずみだよ。先生の返却をまっている間も、自己採点タブでこたえあわせできるよ。"}
+          </p>
+          <TaskList rows={waiting} sec={sec} />
+        </section>
+      )}
+
+      {unsubmitted.length > 0 && (
+        <section style={{ marginTop: 8 }}>
+          <div className="lsection">
+            {sec ? "未提出（割り当て）" : "まだ ていしゅつしていない課題"}
+            <span className="lsection-n">{unsubmitted.length}</span>
+          </div>
+          <TaskList rows={unsubmitted} sec={sec} />
         </section>
       )}
     </div>

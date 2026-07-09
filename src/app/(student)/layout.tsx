@@ -33,20 +33,26 @@ export default async function StudentLayout({
   }
   const brandLabel = division === "secondary" ? "ノビット 中高部" : "ノビットスタディ";
 
-  // 返却タブのバッジ = 自己採点できる(採点待ち)+ 先生から返却 の未対応件数。
   const ids = await accessibleStudentIds(p);
   const idList = ids === "*" ? [] : ids;
   const subRows = await listSubmissions(p.organizationId, { studentIds: idList });
-  const returnCount = subRows.filter(
+  const taskCount = subRows.filter(
     (r) =>
+      r.status === "not_submitted" ||
+      r.status === "resubmit_required" ||
       r.status === "submitted" ||
-      r.status === "grading" ||
-      r.status === "returned" ||
-      r.status === "resubmit_required",
+      r.status === "grading",
+  ).length;
+  const selfGradeCount = subRows.filter(
+    (r) => r.status === "submitted" || r.status === "grading",
+  ).length;
+  const returnCount = subRows.filter(
+    (r) => r.status === "returned" || r.status === "resubmit_required",
   ).length;
 
   const tabs: NavTabItem[] = [
-    { href: "/home", label: "課題" },
+    { href: "/home", label: "課題", badge: taskCount },
+    { href: "/self-grade", label: "自己採点", badge: selfGradeCount },
     { href: "/returned", label: "返却", badge: returnCount },
     { href: "/history", label: "成績" },
   ];

@@ -74,18 +74,56 @@ type ZoomViewport = HTMLDivElement & {
 };
 
 type PdfViewport = { width: number; height: number };
+type PdfRenderOptions = {
+  canvasContext: CanvasRenderingContext2D;
+  viewport: PdfViewport;
+  intent?: "display" | "print" | "any";
+  annotationMode?: number;
+  background?: string;
+};
 type PdfPage = {
   getViewport(opts: { scale: number }): PdfViewport;
-  render(opts: { canvasContext: CanvasRenderingContext2D; viewport: PdfViewport }): { promise: Promise<void> };
+  render(opts: PdfRenderOptions): { promise: Promise<void> };
 };
 type PdfDocument = {
   numPages: number;
   getPage(pageNumber: number): Promise<PdfPage>;
 };
+type PdfDocumentInit = {
+  url: string;
+  cMapUrl?: string;
+  cMapPacked?: boolean;
+  standardFontDataUrl?: string;
+  useSystemFonts?: boolean;
+  disableFontFace?: boolean;
+};
 type PdfJsModule = {
   GlobalWorkerOptions: { workerSrc: string };
-  getDocument(opts: { url: string }): { promise: Promise<PdfDocument> };
+  AnnotationMode?: { ENABLE: number };
+  getDocument(opts: PdfDocumentInit): { promise: Promise<PdfDocument> };
 };
+
+const PDFJS_DOCUMENT_OPTIONS = {
+  cMapUrl: "/pdf/cmaps/",
+  cMapPacked: true,
+  standardFontDataUrl: "/pdf/standard_fonts/",
+  useSystemFonts: true,
+  disableFontFace: false,
+} satisfies Omit<PdfDocumentInit, "url">;
+
+function pdfRenderOptions(
+  pdfjs: PdfJsModule | null,
+  canvasContext: CanvasRenderingContext2D,
+  viewport: PdfViewport,
+): PdfRenderOptions {
+  return {
+    canvasContext,
+    viewport,
+    intent: "display",
+    annotationMode: pdfjs?.AnnotationMode?.ENABLE,
+    background: "#ffffff",
+  };
+}
 
 /** 子要素を、ピンチ/ダブルタップ/ホイール/±ボタンで拡大・パンできる枠に収める。 */
 function ZoomPane({ children }: { children: ReactNode }) {
@@ -254,6 +292,7 @@ function SolutionPdf({ url }: { url: string }) {
   useEffect(() => {
     let cancelled = false;
     let doc: PdfDocument | null = null;
+    let pdfjsMod: PdfJsModule | null = null;
     let lastW = 0;
     let raf = 0;
     const pages = pagesRef.current;
@@ -284,7 +323,7 @@ function SolutionPdf({ url }: { url: string }) {
         canvas.style.height = `${vp.height}px`;
         const ctx = canvas.getContext("2d")!;
         ctx.scale(q, q);
-        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        await page.render(pdfRenderOptions(pdfjsMod, ctx, vp)).promise;
         if (cancelled || lastW !== cssW) return;
         frag.appendChild(canvas);
       }
@@ -299,8 +338,9 @@ function SolutionPdf({ url }: { url: string }) {
     (async () => {
       try {
         const pdfjs = (await import("pdfjs-dist")) as unknown as PdfJsModule;
+        pdfjsMod = pdfjs;
         pdfjs.GlobalWorkerOptions.workerSrc = "/pdf/pdf.worker.min.mjs";
-        doc = await pdfjs.getDocument({ url }).promise;
+        doc = await pdfjs.getDocument({ url, ...PDFJS_DOCUMENT_OPTIONS }).promise;
         if (cancelled) return;
         schedule();
       } catch (e) {

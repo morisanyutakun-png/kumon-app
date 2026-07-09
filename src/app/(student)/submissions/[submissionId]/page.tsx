@@ -123,7 +123,7 @@ export default async function StudentSubmissionPage({
 
       {/* 提出後: 答え合わせ(自己採点) — 解答解説 + 自分の答案 を即時開示 */}
       {afterSubmit && (
-        <div className="card selfgrade">
+        <div id="self-grade" className="card selfgrade">
           <h2>答え合わせ（自己採点）</h2>
           <p className="muted" style={{ marginTop: 0 }}>
             {submission.status === "resubmit_required"

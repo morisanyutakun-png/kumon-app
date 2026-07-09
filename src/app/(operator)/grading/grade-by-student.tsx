@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -363,6 +364,10 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
                         <small className="material-pace-current">
                           {a.next && a.next.track !== "manual" ? `ペース ${a.next.count}${a.next.track === "number" ? "番" : "章"}ずつ` : "提出時に次を追加"}
                         </small>
+                      </div>
+                      <div className="material-actions">
+                        <Link href={`/grading/${a.submissionId}`} className="entry-mini-link">答案を見る</Link>
+                        <Link href={`/grading/${a.submissionId}/write`} className="entry-mini-link strong">添削PDF</Link>
                       </div>
                     </div>
                   );

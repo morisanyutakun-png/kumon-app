@@ -7,7 +7,7 @@ import { divisionForGrade } from "@/lib/division";
 import { listSubmissions } from "@/lib/queries";
 import { TaskList } from "@/components/task-card";
 
-/** 返却・答え合わせ専用画面。提出後の自己採点(採点待ち)と、先生からの返却をまとめる。 */
+/** 先生からの返却物だけを確認する画面。自己採点は /self-grade に分離する。 */
 export default async function ReturnedPage() {
   const p = await requirePrincipal();
   const ids = await accessibleStudentIds(p);
@@ -15,8 +15,8 @@ export default async function ReturnedPage() {
   const rows = await listSubmissions(p.organizationId, { studentIds: idList });
 
   const resubmits = rows.filter((r) => r.status === "resubmit_required");
-  const waiting = rows.filter((r) => r.status === "submitted" || r.status === "grading");
   const returned = rows.filter((r) => r.status === "returned");
+  const done = rows.filter((r) => r.status === "done");
 
   let grade = "";
   if (p.role === "student" && p.studentId) {
@@ -24,16 +24,16 @@ export default async function ReturnedPage() {
     grade = s?.grade ?? "";
   }
   const sec = divisionForGrade(grade) === "secondary";
-  const total = resubmits.length + waiting.length + returned.length;
+  const total = resubmits.length + returned.length + done.length;
 
   return (
     <div>
       <div className="page-head" style={{ marginBottom: 14 }}>
-        <h1>{sec ? "返却・答え合わせ" : "へんきゃく・こたえあわせ"}</h1>
+        <h1>{sec ? "返却" : "へんきゃく"}</h1>
         <p>
           {sec
-            ? "提出した課題の自己採点と、先生からの返却をここで確認します。"
-            : "ていしゅつした課題の こたえあわせと、せんせいからの へんきゃくが ここに でるよ。"}
+            ? "先生の採点コメント、添削PDF、再提出の指示をここで確認します。自己採点は専用タブに分けました。"
+            : "せんせいのコメント、てんさくPDF、もう一度のお願いがここに出るよ。こたえあわせは自己採点タブだよ。"}
         </p>
       </div>
 
@@ -52,15 +52,6 @@ export default async function ReturnedPage() {
               <TaskList rows={resubmits} sec={sec} />
             </section>
           )}
-          {waiting.length > 0 && (
-            <section>
-              <div className="lsection">
-                {sec ? "採点待ち・自己採点できます" : "こたえあわせできるよ"}
-                <span className="lsection-n">{waiting.length}</span>
-              </div>
-              <TaskList rows={waiting} sec={sec} />
-            </section>
-          )}
           {returned.length > 0 && (
             <section>
               <div className="lsection">
@@ -68,6 +59,15 @@ export default async function ReturnedPage() {
                 <span className="lsection-n">{returned.length}</span>
               </div>
               <TaskList rows={returned} sec={sec} />
+            </section>
+          )}
+          {done.length > 0 && (
+            <section>
+              <div className="lsection">
+                {sec ? "確認済み" : "かくにんずみ"}
+                <span className="lsection-n">{done.length}</span>
+              </div>
+              <TaskList rows={done} sec={sec} />
             </section>
           )}
         </div>

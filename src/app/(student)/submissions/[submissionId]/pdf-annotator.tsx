@@ -13,23 +13,46 @@ type Stroke = { color: string; width: number; erase: boolean; points: Point[] };
 type Tf = { z: number; tx: number; ty: number };
 type XY = { x: number; y: number };
 type PdfViewport = { width: number; height: number };
+type PdfRenderOptions = {
+  canvasContext: CanvasRenderingContext2D;
+  viewport: PdfViewport;
+  intent?: "display" | "print" | "any";
+  annotationMode?: number;
+  background?: string;
+};
 type PdfPage = {
   getViewport(opts: { scale: number }): PdfViewport;
-  render(opts: { canvasContext: CanvasRenderingContext2D; viewport: PdfViewport }): { promise: Promise<void> };
+  render(opts: PdfRenderOptions): { promise: Promise<void> };
 };
 type PdfDocumentProxy = {
   numPages: number;
   getPage(pageNumber: number): Promise<PdfPage>;
 };
+type PdfDocumentInit = {
+  url: string;
+  cMapUrl?: string;
+  cMapPacked?: boolean;
+  standardFontDataUrl?: string;
+  useSystemFonts?: boolean;
+  disableFontFace?: boolean;
+};
 type PdfJsModule = {
   GlobalWorkerOptions: { workerSrc: string };
-  getDocument(opts: { url: string }): { promise: Promise<PdfDocumentProxy> };
+  AnnotationMode?: { ENABLE: number };
+  getDocument(opts: PdfDocumentInit): { promise: Promise<PdfDocumentProxy> };
 };
 
 const COLORS = ["#1f2937", "#e11d48", "#2563eb", "#16a34a", "#f59e0b"];
 const PEN_WIDTHS = [2, 4, 7];
 const MIN_Z = 1;
 const MAX_Z = 6;
+const PDFJS_DOCUMENT_OPTIONS = {
+  cMapUrl: "/pdf/cmaps/",
+  cMapPacked: true,
+  standardFontDataUrl: "/pdf/standard_fonts/",
+  useSystemFonts: true,
+  disableFontFace: false,
+} satisfies Omit<PdfDocumentInit, "url">;
 // ペンを使った直後のこの時間(ms)内のタッチは「手のひら」とみなして無視する(GoodNotes風)。
 // 画数の切れ目(筆を離して次を書く)で手のひらが誤爆しないための猶予。
 const PALM_REJECT_MS = 800;
@@ -38,6 +61,20 @@ const PALM_REJECT_MS = 800;
 // streamline を小さめにして「ペンへの追従(低遅延)」を優先、smoothing で見た目を整える。
 const PF = { thinning: 0.6, smoothing: 0.5, streamline: 0.32, simulatePressure: false } as const;
 const EMPTY_PTS: Point[] = [];
+
+function pdfRenderOptions(
+  pdfjs: PdfJsModule | null,
+  canvasContext: CanvasRenderingContext2D,
+  viewport: PdfViewport,
+): PdfRenderOptions {
+  return {
+    canvasContext,
+    viewport,
+    intent: "display",
+    annotationMode: pdfjs?.AnnotationMode?.ENABLE,
+    background: "#ffffff",
+  };
+}
 
 // perfect-freehand の輪郭点列を Path2D 用の SVG パス文字列に変換(公式README掲載の実装)。
 function strokeToPath(pts: number[][]): string {
@@ -92,6 +129,7 @@ export function PdfAnnotator({
   const renderRafRef = useRef<number | null>(null); // 描画中ストロークの rAF 再描画
 
   const pdfRef = useRef<PdfDocumentProxy | null>(null);
+  const pdfjsRef = useRef<PdfJsModule | null>(null);
   const strokesRef = useRef<Map<number, Stroke[]>>(new Map());
   const drawingRef = useRef<Stroke | null>(null);
   const drawIdRef = useRef<number | null>(null); // 描画中ポインタID
@@ -154,8 +192,9 @@ export function PdfAnnotator({
     (async () => {
       try {
         const pdfjs = await import("pdfjs-dist") as PdfJsModule;
+        pdfjsRef.current = pdfjs;
         pdfjs.GlobalWorkerOptions.workerSrc = "/pdf/pdf.worker.min.mjs";
-        const doc = await pdfjs.getDocument({ url: pdfUrl }).promise;
+        const doc = await pdfjs.getDocument({ url: pdfUrl, ...PDFJS_DOCUMENT_OPTIONS }).promise;
         if (cancelled) return;
         pdfRef.current = doc;
         setNumPages(doc.numPages);
@@ -326,7 +365,7 @@ export function PdfAnnotator({
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
     ctx.scale(dpr, dpr);
-    await page.render({ canvasContext: ctx, viewport }).promise;
+    await page.render(pdfRenderOptions(pdfjsRef.current, ctx, viewport)).promise;
 
     redrawInk();
     measureStage();
@@ -811,7 +850,7 @@ export function PdfAnnotator({
       const ctx = canvas.getContext("2d")!;
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      await page.render(pdfRenderOptions(pdfjsRef.current, ctx, vp)).promise;
 
       const strokes = strokesRef.current.get(pn) ?? [];
       if (strokes.length) {

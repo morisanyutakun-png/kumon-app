@@ -109,6 +109,7 @@ function revalidateAll(submissionId: string) {
   revalidatePath(`/grading/${submissionId}`);
   revalidatePath(`/grading/${submissionId}/write`);
   revalidatePath("/home");
+  revalidatePath("/self-grade");
   revalidatePath("/returned");
   revalidatePath("/history");
   revalidatePath(`/submissions/${submissionId}`);
