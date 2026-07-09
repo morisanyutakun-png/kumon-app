@@ -399,8 +399,16 @@ export function PdfAnnotator({
     const stage = stageRef.current;
     if (!doc || !stage) return;
 
-    const cap = fullBleed ? 2200 : 1100;
-    const maxW = Math.max(280, Math.min((stage.clientWidth || 900) - 32, cap));
+    const stageW = stage.clientWidth || 900;
+    const sideGutter = fullBleed
+      ? stageW >= 900
+        ? 96
+        : stageW >= 700
+          ? 72
+          : 32
+      : 32;
+    const cap = fullBleed ? 920 : 1100;
+    const maxW = Math.max(280, Math.min(stageW - sideGutter, cap));
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     for (let pn = 1; pn <= doc.numPages; pn++) {

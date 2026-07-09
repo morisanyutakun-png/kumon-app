@@ -49,11 +49,10 @@ export default async function StudentLayout({
   ).length;
 
   const tabs: NavTabItem[] = [
-    { href: "/home", label: "ホーム", exact: true },
+    { href: "/home", label: "学習状況", exact: true },
     { href: "/tasks", label: "課題", badge: taskCount },
     { href: "/self-grade", label: "自己採点", badge: selfGradeCount },
     { href: "/returned", label: "返却", badge: returnCount },
-    { href: "/history", label: "成績" },
   ];
 
   return (

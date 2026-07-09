@@ -67,12 +67,11 @@ function MaterialProgressCards({ rows, sec }: { rows: MaterialProgressRow[]; sec
   );
 }
 
-function ActionIcon({ kind }: { kind: "tasks" | "self" | "returned" | "grades" }) {
+function ActionIcon({ kind }: { kind: "tasks" | "self" | "returned" }) {
   switch (kind) {
     case "tasks": return <IconCheck size={22} />;
     case "self": return <IconStar size={22} />;
     case "returned": return <IconRedo size={22} />;
-    case "grades": return <IconMedal size={22} />;
   }
 }
 
@@ -87,7 +86,7 @@ function ActionCard({
   label: string;
   value: string;
   tone: string;
-  kind: "tasks" | "self" | "returned" | "grades";
+  kind: "tasks" | "self" | "returned";
 }) {
   return (
     <Link href={href} className={`lp-action-card ${tone}`}>
@@ -187,13 +186,6 @@ export default async function StudentHome() {
           tone="tone-returned"
           kind="returned"
         />
-        <ActionCard
-          href="/history"
-          label={sec ? "成績" : "せいせき"}
-          value={`${doneCount}`}
-          tone="tone-grades"
-          kind="grades"
-        />
       </div>
 
       <div className="meter lp-meter">
@@ -216,8 +208,7 @@ export default async function StudentHome() {
 
       <section className="lp-section">
         <div className="lsection">
-          {sec ? "成績サマリー" : "せいせきサマリー"}
-          <Link href="/history" className="db-badge">{sec ? "詳しく見る" : "くわしく見る"}</Link>
+          {sec ? "学習レポート" : "がんばりレポート"}
         </div>
         <GradeReport rows={history} showStudentName={p.role === "parent"} secondary={sec} />
       </section>

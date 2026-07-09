@@ -1207,7 +1207,7 @@ body {
 /* 生徒LP: タブ入口 + 成績サマリー */
 .lp-hero { margin-bottom: 14px; }
 .lp-action-grid {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
   margin-bottom: 18px;
 }
 .lp-action-card {
@@ -1246,9 +1246,7 @@ body {
 .lp-action-card.tone-task { --lp-tone: #1d8bd1; }
 .lp-action-card.tone-self { --lp-tone: #0f9e74; }
 .lp-action-card.tone-returned { --lp-tone: #be123c; }
-.lp-action-card.tone-grades { --lp-tone: #d97706; }
 .lp-section { margin-top: 20px; }
-.lp-section .lsection { justify-content: space-between; }
 .lp-meter { margin-bottom: 18px; }
 
 .task-page-head {
@@ -1268,12 +1266,14 @@ body {
 .task-empty b { color: var(--ink, #14365a); }
 .task-empty span { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 8px; align-items: center; }
 
-@media (max-width: 560px) {
+@media (max-width: 760px) {
   .lp-action-grid { grid-template-columns: 1fr; gap: 10px; }
   .lp-action-card { min-height: 74px; padding: 12px 12px 12px 13px; }
   .lp-action-icon { width: 42px; height: 42px; }
   .lp-action-label { font-size: 17px; }
   .lp-action-arrow { width: 38px; height: 38px; }
+}
+@media (max-width: 560px) {
   .task-page-head { align-items: stretch; flex-direction: column; }
   .task-page-count { width: 100%; }
 }
