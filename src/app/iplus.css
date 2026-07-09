@@ -1207,25 +1207,31 @@ body {
 /* 生徒LP: タブ入口 + 成績サマリー */
 .lp-hero { margin-bottom: 14px; }
 .lp-action-grid {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;
   margin-bottom: 18px;
 }
 .lp-action-card {
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px;
-  min-height: 98px; padding: 14px; border: 1px solid #dde2e7; background: #fff;
+  min-height: 78px; padding: 14px 16px; border: 2px solid #dde2e7; background: #fff;
   color: var(--ink, #14365a); text-decoration: none;
-  transition: background .1s, border-color .1s, transform .1s;
+  box-shadow: 0 1px 2px rgba(15, 40, 70, 0.04);
+  transition: background .1s, border-color .1s, transform .1s, box-shadow .1s;
 }
-.lp-action-card:hover { background: #f9fcfe; border-color: #c7d3de; transform: translateY(-1px); text-decoration: none; }
+.lp-action-card:hover { background: #f9fcfe; border-color: var(--lp-tone, var(--primary)); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(15, 40, 70, 0.09); text-decoration: none; }
 .lp-action-icon {
   width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;
   color: #fff; background: var(--lp-tone, var(--primary));
 }
-.lp-action-main { display: grid; gap: 2px; min-width: 0; }
-.lp-action-label { font-size: 13px; font-weight: 900; color: #475569; }
-.lp-action-value { font-size: 28px; line-height: 1; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--lp-tone, var(--primary)); }
-.lp-action-meta { font-size: 12px; font-weight: 800; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lp-action-arrow { color: #94a3b8; font-weight: 900; }
+.lp-action-main { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.lp-action-label { min-width: 0; font-size: 16px; font-weight: 900; color: #334155; line-height: 1.35; overflow-wrap: anywhere; }
+.lp-action-value {
+  flex: 0 0 auto; min-width: 34px; height: 34px; padding: 0 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--lp-tone, var(--primary)) 12%, #fff);
+  border: 1px solid color-mix(in srgb, var(--lp-tone, var(--primary)) 34%, #fff);
+  font-size: 21px; line-height: 1; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--lp-tone, var(--primary));
+}
+.lp-action-arrow { color: #94a3b8; font-size: 22px; font-weight: 900; }
 .lp-action-card.tone-task { --lp-tone: #1d8bd1; }
 .lp-action-card.tone-self { --lp-tone: #0f9e74; }
 .lp-action-card.tone-returned { --lp-tone: #be123c; }
@@ -1251,12 +1257,9 @@ body {
 .task-empty b { color: var(--ink, #14365a); }
 .task-empty span { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 8px; align-items: center; }
 
-@media (max-width: 880px) {
-  .lp-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 @media (max-width: 560px) {
   .lp-action-grid { grid-template-columns: 1fr; }
-  .lp-action-card { min-height: 82px; }
+  .lp-action-card { min-height: 72px; }
   .task-page-head { align-items: stretch; flex-direction: column; }
   .task-page-count { width: 100%; }
 }

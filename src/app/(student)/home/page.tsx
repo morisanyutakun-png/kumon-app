@@ -80,14 +80,12 @@ function ActionCard({
   href,
   label,
   value,
-  meta,
   tone,
   kind,
 }: {
   href: string;
   label: string;
   value: string;
-  meta: string;
   tone: string;
   kind: "tasks" | "self" | "returned" | "grades";
 }) {
@@ -97,7 +95,6 @@ function ActionCard({
       <span className="lp-action-main">
         <span className="lp-action-label">{label}</span>
         <span className="lp-action-value">{value}</span>
-        <span className="lp-action-meta">{meta}</span>
       </span>
       <span className="lp-action-arrow">→</span>
     </Link>
@@ -173,7 +170,6 @@ export default async function StudentHome() {
           href="/tasks"
           label={sec ? "課題" : "かだい"}
           value={`${actionable.length}`}
-          meta={sec ? "実施できる未提出" : "いまできる課題"}
           tone="tone-task"
           kind="tasks"
         />
@@ -181,7 +177,6 @@ export default async function StudentHome() {
           href="/self-grade"
           label={sec ? "自己採点" : "こたえあわせ"}
           value={`${selfGrade.length}`}
-          meta={sec ? "提出済み・未返却" : "出したあとに見る"}
           tone="tone-self"
           kind="self"
         />
@@ -189,15 +184,13 @@ export default async function StudentHome() {
           href="/returned"
           label={sec ? "返却" : "へんきゃく"}
           value={`${returned.length}`}
-          meta={sec ? "添削済み・再提出" : "先生からの返却"}
           tone="tone-returned"
           kind="returned"
         />
         <ActionCard
           href="/history"
-          label={sec ? "成績詳細" : "せいせき"}
+          label={sec ? "成績" : "せいせき"}
           value={`${doneCount}`}
-          meta={sec ? "完了済みの履歴" : "かんりょう"}
           tone="tone-grades"
           kind="grades"
         />
