@@ -80,6 +80,7 @@ function ActionCard({
   label,
   hint,
   value,
+  cta,
   tone,
   kind,
 }: {
@@ -87,6 +88,7 @@ function ActionCard({
   label: string;
   hint: string;
   value: string;
+  cta: string;
   tone: string;
   kind: "tasks" | "self" | "returned";
 }) {
@@ -98,7 +100,10 @@ function ActionCard({
           <span className="lp-action-label">{label}</span>
           <span className="lp-action-hint">{hint}</span>
         </span>
-        <span className="lp-action-value">{value}</span>
+        <span className="lp-action-side">
+          <span className="lp-action-value">{value}</span>
+          <span className="lp-action-cta">{cta}</span>
+        </span>
       </span>
     </Link>
   );
@@ -138,11 +143,20 @@ export default async function StudentHome() {
   const greet = p.role === "student"
     ? sec ? `こんにちは、${p.name} さん` : `こんにちは、${p.name} さん！`
     : "こんにちは！";
+  const primaryHref = actionable.length > 0 ? "/tasks" : selfGrade.length > 0 ? "/self-grade" : returned.length > 0 ? "/returned" : "/tasks";
+  const primaryLabel = actionable.length > 0
+    ? sec ? "今日の課題に取り組む" : "きょうの課題をやる"
+    : selfGrade.length > 0
+      ? sec ? "答え合わせへ進む" : "こたえあわせへ"
+      : returned.length > 0
+        ? sec ? "返却を確認する" : "へんきゃくを見る"
+        : sec ? "課題を確認する" : "かだいを見る";
 
   return (
-    <div>
+    <div className="student-home">
       <div className="learn-hero lp-hero">
         <div className="learn-hero-body">
+          <div className="learn-hero-kicker">{sec ? "Learning Dashboard" : "きょうのホーム"}</div>
           <h1 className="learn-hero-title">{greet}</h1>
           <div className="learn-hero-sub">{message}</div>
           <div className="hero-chips">
@@ -150,6 +164,7 @@ export default async function StudentHome() {
             <span className="hero-chip"><IconStar size={15} /> {sec ? `合格 ${pass}` : `はなまる ${pass}こ`}</span>
             <span className="hero-chip"><IconMedal size={15} /> {lv.name}</span>
           </div>
+          <Link href={primaryHref} className="hero-primary-cta">{primaryLabel}</Link>
         </div>
         {!sec && <span className="learn-hero-mascot" aria-hidden><Mascot className="learn-mascot" /></span>}
       </div>
@@ -168,12 +183,21 @@ export default async function StudentHome() {
         </div>
       )}
 
+      <div className="lp-section-head">
+        <div>
+          <span className="lp-section-kicker">{sec ? "Next Actions" : "つぎにやること"}</span>
+          <h2>{sec ? "今日の学習" : "きょうの学習"}</h2>
+        </div>
+        <span className="lp-flow-mini">{sec ? "提出 → 自己採点 → 返却" : "出す → こたえあわせ → へんきゃく"}</span>
+      </div>
+
       <div className="lp-action-grid">
         <ActionCard
           href="/tasks"
           label={sec ? "課題" : "かだい"}
           hint={sec ? "未提出" : "できるもの"}
           value={`${actionable.length}`}
+          cta={sec ? "取り組む" : "とりくむ"}
           tone="tone-task"
           kind="tasks"
         />
@@ -182,6 +206,7 @@ export default async function StudentHome() {
           label={sec ? "自己採点" : "こたえあわせ"}
           hint={sec ? "即確認" : "すぐ見る"}
           value={`${selfGrade.length}`}
+          cta={sec ? "答え合わせ" : "見る"}
           tone="tone-self"
           kind="self"
         />
@@ -190,6 +215,7 @@ export default async function StudentHome() {
           label={sec ? "返却" : "へんきゃく"}
           hint={sec ? "添削" : "先生から"}
           value={`${returned.length}`}
+          cta={sec ? "確認" : "見る"}
           tone="tone-returned"
           kind="returned"
         />
