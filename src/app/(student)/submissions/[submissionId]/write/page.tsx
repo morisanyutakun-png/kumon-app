@@ -50,6 +50,7 @@ export default async function WritePage({
           fullBleed
           penOnly
           redirectTo={back}
+          downloadName={`${assignment.title || material.name}_${submission.rangeText || "答案"}_書き込み`}
         />
       </div>
     </div>

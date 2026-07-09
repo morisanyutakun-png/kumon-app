@@ -78,12 +78,14 @@ function ActionIcon({ kind }: { kind: "tasks" | "self" | "returned" }) {
 function ActionCard({
   href,
   label,
+  hint,
   value,
   tone,
   kind,
 }: {
   href: string;
   label: string;
+  hint: string;
   value: string;
   tone: string;
   kind: "tasks" | "self" | "returned";
@@ -92,10 +94,12 @@ function ActionCard({
     <Link href={href} className={`lp-action-card ${tone}`}>
       <span className="lp-action-icon"><ActionIcon kind={kind} /></span>
       <span className="lp-action-main">
-        <span className="lp-action-label">{label}</span>
+        <span className="lp-action-copy">
+          <span className="lp-action-label">{label}</span>
+          <span className="lp-action-hint">{hint}</span>
+        </span>
         <span className="lp-action-value">{value}</span>
       </span>
-      <span className="lp-action-arrow">→</span>
     </Link>
   );
 }
@@ -168,6 +172,7 @@ export default async function StudentHome() {
         <ActionCard
           href="/tasks"
           label={sec ? "課題" : "かだい"}
+          hint={sec ? "未提出" : "できるもの"}
           value={`${actionable.length}`}
           tone="tone-task"
           kind="tasks"
@@ -175,6 +180,7 @@ export default async function StudentHome() {
         <ActionCard
           href="/self-grade"
           label={sec ? "自己採点" : "こたえあわせ"}
+          hint={sec ? "即確認" : "すぐ見る"}
           value={`${selfGrade.length}`}
           tone="tone-self"
           kind="self"
@@ -182,6 +188,7 @@ export default async function StudentHome() {
         <ActionCard
           href="/returned"
           label={sec ? "返却" : "へんきゃく"}
+          hint={sec ? "添削" : "先生から"}
           value={`${returned.length}`}
           tone="tone-returned"
           kind="returned"
@@ -206,7 +213,7 @@ export default async function StudentHome() {
         </div>
       </div>
 
-      <section className="lp-section">
+      <section className="lp-section lp-report-section">
         <div className="lsection">
           {sec ? "学習レポート" : "がんばりレポート"}
         </div>

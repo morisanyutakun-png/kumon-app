@@ -46,6 +46,7 @@ const IMAGE_EXT_TO_TYPE = new Map([
 const MAX_IMAGE_FILE_BYTES = 15 * 1024 * 1024; // 15MB
 const MAX_ANSWER_PDF_BYTES = 80 * 1024 * 1024; // 80MB
 const MAX_RETURNED_PDF_BYTES = 80 * 1024 * 1024; // 80MB
+const MAX_SUBMISSION_FILES = 3;
 
 class ActionError extends Error {}
 
@@ -167,6 +168,9 @@ export async function submitAnswer(submissionId: string, formData: FormData) {
     .filter((f): f is File => f instanceof File && f.size > 0);
   if (files.length === 0) {
     throw new ActionError("答案ファイルを1つ以上選んでください。");
+  }
+  if (files.length > MAX_SUBMISSION_FILES) {
+    throw new ActionError(`答案ファイルは${MAX_SUBMISSION_FILES}件までにしてください。`);
   }
 
   const attemptNo = sub.attemptCount + 1;

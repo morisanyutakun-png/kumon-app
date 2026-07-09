@@ -88,7 +88,7 @@ export default async function StudentSubmissionPage({
       {/* 解く(一画面) */}
       {canSubmit && (
         <div className="card">
-          <h2>{submission.status === "resubmit_required" ? "再提出する" : "この課題を解く"}</h2>
+          <h2>{submission.status === "resubmit_required" ? "もう一度取り組む" : "この課題を進める"}</h2>
           {submission.status === "resubmit_required" && (
             <p className="r-NG" style={{ marginTop: 0 }}>
               先生から再提出の依頼があります。コメントを確認して、もう一度提出してください。
@@ -104,19 +104,28 @@ export default async function StudentSubmissionPage({
                 ✏️ 一画面で書き込んで解く
               </Link>
               <p className="muted" style={{ margin: "10px 0 0", fontSize: 13 }}>
-                タッチペン・指で直接書き込めます。書いた内容は自動保存され、提出するまで消えません。
-                解き終わったら画面の「提出する」から提出してください。
+                タッチペン・指で直接書き込めます。解き終わったら「これで保存する」でPDF化し、
+                この画面で添付内容を確認してから提出します。
               </p>
               <div className="solve-alt">
                 <span>または</span>
               </div>
-              <p className="muted" style={{ margin: "0 0 10px", fontSize: 13 }}>
-                GoodNotesなど別のアプリで書き込んだPDFや、紙に解いた答案写真でも提出できます。
-              </p>
-              <SubmitForm submissionId={submission.id} resubmit={submission.status === "resubmit_required"} secondary={sec} />
+              <div id="submit" className="submit-panel">
+                <div className="submit-panel-head">
+                  <b>提出前の確認</b>
+                  <span>保存したPDF、GoodNotesのPDF、途中式の写真などを最大3件まで添付できます。</span>
+                </div>
+                <SubmitForm submissionId={submission.id} resubmit={submission.status === "resubmit_required"} secondary={sec} />
+              </div>
             </>
           ) : (
-            <SubmitForm submissionId={submission.id} resubmit={submission.status === "resubmit_required"} secondary={sec} />
+            <div id="submit" className="submit-panel">
+              <div className="submit-panel-head">
+                <b>提出前の確認</b>
+                <span>PDF・写真を最大3件まで添付できます。</span>
+              </div>
+              <SubmitForm submissionId={submission.id} resubmit={submission.status === "resubmit_required"} secondary={sec} />
+            </div>
           )}
         </div>
       )}

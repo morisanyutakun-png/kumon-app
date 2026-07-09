@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getStroke } from "perfect-freehand";
 
-import { saveReturnedPdf, saveStudentReturnedPdf, submitAnswer } from "@/lib/actions/submission-actions";
+import { saveReturnedPdf, saveStudentReturnedPdf } from "@/lib/actions/submission-actions";
+import { savePendingAnswerFiles } from "@/lib/pending-answer-files";
 
 /** 正規化座標(0〜1)の点。表示サイズ・ズームが変わっても保持できる。p=筆圧(0〜1)。 */
 type Point = { x: number; y: number; p?: number };
@@ -201,7 +202,6 @@ export function PdfAnnotator({
   readyRef.current = ready;
   const [zoomPct, setZoomPct] = useState(100);
   const [submitting, setSubmitting] = useState(false);
-  const [confirming, setConfirming] = useState(false); // 提出確認ダイアログ
   const [, force] = useState(0);
 
   // ---- pdfjs ロード ----
@@ -966,28 +966,35 @@ export function PdfAnnotator({
       return;
     }
     if (!hasAnyInk) {
-      toast.error("書き込んでから提出してください。");
+      toast.error("書き込んでから保存してください。");
       return;
     }
-    setConfirming(true);
+    void submit();
+  }
+
+  function safePdfName(name: string) {
+    return name.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, " ").trim() || "答案";
+  }
+
+  async function makePdfBytes(pages: { bytes: Uint8Array; w: number; h: number }[]) {
+    const { PDFDocument } = await import("pdf-lib");
+    const pdf = await PDFDocument.create();
+    for (const pg of pages) {
+      const img = await pdf.embedPng(pg.bytes);
+      const page = pdf.addPage([pg.w, pg.h]);
+      page.drawImage(img, { x: 0, y: 0, width: pg.w, height: pg.h });
+    }
+    return pdf.save();
   }
 
   async function submit() {
     if (submitting) return;
-    setConfirming(false);
     setSubmitting(true);
     try {
       const pages = await renderPages();
+      const out = await makePdfBytes(pages);
 
       if (mode === "markup") {
-        const { PDFDocument } = await import("pdf-lib");
-        const pdf = await PDFDocument.create();
-        for (const pg of pages) {
-          const img = await pdf.embedPng(pg.bytes);
-          const page = pdf.addPage([pg.w, pg.h]);
-          page.drawImage(img, { x: 0, y: 0, width: pg.w, height: pg.h });
-        }
-        const out = await pdf.save();
         if (submissionId) {
           const fd = new FormData();
           fd.append("file", new File([out as BlobPart], `${downloadName}.pdf`, { type: "application/pdf" }));
@@ -1021,18 +1028,14 @@ export function PdfAnnotator({
         return;
       }
 
-      const fd = new FormData();
-      pages.forEach((pg, i) => fd.append("images", new File([pg.bytes as BlobPart], `page-${i + 1}.png`, { type: "image/png" })));
-      await submitAnswer(submissionId!, fd);
-      if (storageKey) {
-        try { localStorage.removeItem(storageKey); } catch { /* noop */ }
-      }
-      toast.success(resubmit ? "再提出しました。" : "提出しました。解答解説で答え合わせをしましょう。");
-      if (redirectTo) router.push(redirectTo);
-      else router.refresh();
+      if (!submissionId) throw new Error("提出物が見つかりません。");
+      const file = new File([out as BlobPart], `${safePdfName(downloadName)}.pdf`, { type: "application/pdf" });
+      await savePendingAnswerFiles(submissionId, [file]);
+      toast.success("書き込みPDFを保存しました。添付を確認して提出してください。");
+      router.push(redirectTo ? `${redirectTo}#submit` : `/submissions/${submissionId}#submit`);
     } catch (e) {
       console.error(e);
-      toast.error(e instanceof Error ? e.message : mode === "markup" ? "ダウンロードに失敗しました。" : "提出に失敗しました。");
+      toast.error(e instanceof Error ? e.message : mode === "markup" ? "保存に失敗しました。" : "PDFの保存に失敗しました。");
     } finally {
       setSubmitting(false);
     }
@@ -1081,7 +1084,7 @@ export function PdfAnnotator({
         {mode === "submit" && (
           <div className="annot-top-submit">
             <button type="button" className="btn-primary" onClick={requestSubmit} disabled={!ready || submitting}>
-              {submitting ? "提出中…" : resubmit ? "✓ 再提出" : "✓ 提出する"}
+              {submitting ? "保存中…" : "✓ 保存する"}
             </button>
           </div>
         )}
@@ -1118,33 +1121,18 @@ export function PdfAnnotator({
                   ? "✓ 提出ごとの返却PDFとして保存"
                   : "⬇ 書き込み済みPDFをダウンロード"
               : resubmit
-                ? "✓ 書き込んで再提出する"
-                : "✓ 完了して提出する"}
+                ? "✓ これで保存する"
+                : "✓ これで保存する"}
         </button>
-        {mode === "submit" && !hasAnyInk && ready && <span className="muted" style={{ marginLeft: 10 }}>書き込んでから提出してください。</span>}
+        {mode === "submit" && !hasAnyInk && ready && <span className="muted" style={{ marginLeft: 10 }}>書き込んでから保存してください。</span>}
       </div>
       <p className="hint" style={{ marginTop: 6 }}>
-        {penOnly
+        {mode === "submit"
+          ? "保存すると書き込み済みPDFが提出画面に自動で添付されます。最終提出は添付内容を確認してから行います。"
+          : penOnly
           ? "ペン（Apple Pencil など）で書きます。手のひらが当たっても書き込まれません。指では1本でスクロール、2本指のピンチで拡大縮小できます。書き込みは自動保存され、提出するまで消えません。"
           : "タッチペン・指のどちらでも書けます。2本指でスクロール、ピンチで拡大縮小。Apple Pencil を使うときは「手のひら無効」にすると手が当たっても書けません。書き込みは自動保存され、提出するまで消えません。"}
       </p>
-
-      {confirming && (
-        <div className="annot-confirm" role="dialog" aria-modal="true" onClick={() => setConfirming(false)}>
-          <div className="annot-confirm-box" onClick={(e) => e.stopPropagation()}>
-            <div className="annot-confirm-title">{resubmit ? "再提出しますか？" : "本当に提出しますか？"}</div>
-            <p className="annot-confirm-body">
-              提出すると先生に答案が送られ、すぐに解答解説で答え合わせ（自己採点）ができます。
-            </p>
-            <div className="annot-confirm-actions">
-              <button type="button" className="annot-btn" onClick={() => setConfirming(false)} disabled={submitting}>もどる</button>
-              <button type="button" className="btn-primary" onClick={submit} disabled={submitting}>
-                {submitting ? "提出中…" : "はい、提出する"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
