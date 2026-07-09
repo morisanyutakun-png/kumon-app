@@ -33,7 +33,7 @@ export default async function GradingPage({
   const p = await requireOperator();
   const division = await getActiveDivision();
   const { tab } = await searchParams;
-  const view = tab === "done" ? "done" : "todo";
+  const view = tab === "done" ? "done" : tab === "markup" ? "markup" : "input";
 
   if (view === "done") {
     const doneSubs = (await listSubmissions(p.organizationId, {
@@ -110,9 +110,55 @@ export default async function GradingPage({
     })),
   }));
 
+  if (view === "markup") {
+    return (
+      <div>
+        <GradingHead view="markup" todoCount={groups.length} />
+
+        {readyAgg.length === 0 ? (
+          <p className="empty">一括添削できる提出はありません。</p>
+        ) : (
+          <div className="batch-student-grid">
+            {readyAgg.map((g) => (
+              <section key={g.studentId} className="batch-student-card">
+                <div className="batch-student-head">
+                  <div>
+                    <h2>{g.name}</h2>
+                    <p>{g.grade} ・ 提出 {g.gradable.length} 件</p>
+                  </div>
+                  <Link href={`/grading/write/${g.studentId}`} className="btn-primary">まとめて添削</Link>
+                </div>
+                <div className="batch-student-actions">
+                  <a href={`/api/files/student-answers/${g.studentId}`} target="_blank" rel="noreferrer" className="db-badge">提出PDFを開く</a>
+                  <a href={`/api/files/student-solutions/${g.studentId}`} target="_blank" rel="noreferrer" className="db-badge">解答解説PDF</a>
+                  <Link href="/grading?tab=input" className="db-badge">点数入力へ</Link>
+                </div>
+                <ol className="batch-submission-list">
+                  {g.gradable.map((s) => (
+                    <li key={s.submissionId}>
+                      <Link href={`/grading/${s.submissionId}`}>{s.materialName}</Link>
+                      <span>{s.subject} ・ {s.rangeText || "範囲なし"}</span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ))}
+          </div>
+        )}
+
+        {inProgress.length > 0 && (
+          <div style={{ marginTop: 22 }}>
+            <div className="lsection" style={{ marginBottom: 10 }}>実施中<span className="lsection-n">{inProgress.length}</span></div>
+            <p className="hint" style={{ marginTop: -4, marginBottom: 10 }}>提出待ちの課題だけが残っている生徒です。提出されると一括添削タブに表示されます。</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
-      <GradingHead view="todo" todoCount={groups.length} />
+      <GradingHead view="input" todoCount={groups.length} />
 
       <GradeByStudent groups={groups} grader={p.name} />
 
@@ -144,17 +190,20 @@ export default async function GradingPage({
   );
 }
 
-function GradingHead({ view, todoCount }: { view: "todo" | "done"; todoCount: number }) {
+function GradingHead({ view, todoCount }: { view: "markup" | "input" | "done"; todoCount: number }) {
   const tabCls = (on: boolean) => (on ? "btn-primary" : "btn-secondary");
   return (
     <>
       <div className="page-head" style={{ marginBottom: 14 }}>
         <h1>採点</h1>
-        <p>提出済み答案をすぐに採点できます。生徒は返却を待たずに次の範囲へ進み、不合格だけ同じ範囲を再提出します。</p>
+        <p>一括添削でPDFへ書き込み、点数入力・返却で合否とコメントを確定します。生徒は返却を待たずに次の範囲へ進みます。</p>
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        <Link href="/grading" className={tabCls(view === "todo")} style={{ padding: "8px 18px" }}>
-          採点待ち{view === "todo" && <b style={{ marginLeft: 6 }}>{todoCount}</b>}
+        <Link href="/grading?tab=markup" className={tabCls(view === "markup")} style={{ padding: "8px 18px" }}>
+          一括添削{view === "markup" && <b style={{ marginLeft: 6 }}>{todoCount}</b>}
+        </Link>
+        <Link href="/grading?tab=input" className={tabCls(view === "input")} style={{ padding: "8px 18px" }}>
+          点数入力・返却{view === "input" && <b style={{ marginLeft: 6 }}>{todoCount}</b>}
         </Link>
         <Link href="/grading?tab=done" className={tabCls(view === "done")} style={{ padding: "8px 18px" }}>
           返却済

@@ -2,6 +2,7 @@
 
 import { and, asc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { PDFDocument } from "pdf-lib";
 
 import { db } from "@/db";
 import {
@@ -22,6 +23,7 @@ import type { Principal } from "@/auth";
 import { saveBlob, saveFile } from "@/lib/blob";
 import { validateScorePair } from "@/lib/grading-validation";
 import { syncAssignmentCompletion } from "@/lib/material-progress";
+import { buildStudentAnswerBundlePdf } from "@/lib/pdf-bundles";
 import { isAutoAdvance, planAdvance } from "@/lib/progress-db";
 import {
   actorForRole,
@@ -673,6 +675,65 @@ export async function saveReturnedPdf(submissionId: string, formData: FormData) 
   });
 
   revalidateAll(submissionId);
+}
+
+/** 生徒ごとにまとめて添削したPDFを、区切りページ単位で各提出物の返却PDFとして保存する。 */
+export async function saveStudentReturnedPdf(studentId: string, formData: FormData) {
+  const p = await getPrincipal();
+  if (!p || !isOperator(p)) throw new ActionError("権限がありません。");
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    throw new ActionError("返却PDFを選択してください。");
+  }
+  const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  if (!isPdf) throw new ActionError("PDFファイルのみ保存できます。");
+  if (file.size > MAX_RETURNED_PDF_BYTES * 4) {
+    throw new ActionError("PDFサイズが大きすぎます (320MBまで)。");
+  }
+
+  const bundle = await buildStudentAnswerBundlePdf(p.organizationId, studentId);
+  if (!bundle || bundle.submissions.length === 0) {
+    throw new ActionError("採点待ちの提出がありません。");
+  }
+
+  const sourceBytes = Buffer.from(await file.arrayBuffer());
+  const source = await PDFDocument.load(sourceBytes);
+  const maxPage = Math.max(...bundle.submissions.map((s) => s.endPage));
+  if (source.getPageCount() <= maxPage) {
+    throw new ActionError("保存するPDFのページ数が、現在の一括添削PDFと一致しません。最新の一括添削画面から保存してください。");
+  }
+
+  const now = Date.now();
+  for (const meta of bundle.submissions) {
+    const part = await PDFDocument.create();
+    const indices = Array.from({ length: meta.pageCount }, (_, i) => meta.startPage + i);
+    const copied = await part.copyPages(source, indices);
+    for (const page of copied) part.addPage(page);
+    const out = await part.save();
+
+    const attemptNo = Math.max(1, meta.attemptCount || 1);
+    const safeRange = (meta.rangeText || `session-${meta.sessionNo}`).replace(/[^\w.\-]/g, "_");
+    const fileName = `${meta.materialName}_${meta.rangeText || `${meta.sessionNo}回目`}_添削済み.pdf`;
+    const pathname = `${p.organizationId}/returned/${meta.submissionId}/${attemptNo}/${now}-batch-${safeRange}.pdf`;
+    const stored = await saveBlob(pathname, out, "application/pdf");
+
+    await db.insert(returnedFiles).values({
+      organizationId: p.organizationId,
+      submissionId: meta.submissionId,
+      attemptNo,
+      blobUrl: stored.url,
+      pathname: stored.pathname,
+      fileName,
+      contentType: "application/pdf",
+      size: out.byteLength,
+      createdById: p.id,
+    });
+    revalidateAll(meta.submissionId);
+  }
+
+  revalidatePath(`/grading/write/${studentId}`);
+  revalidatePath("/grading");
+  revalidatePath("/grading?tab=markup");
 }
 
 /** 生徒・保護者がその提出物のお知らせを既読にする。 */

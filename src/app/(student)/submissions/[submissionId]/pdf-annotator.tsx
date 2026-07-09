@@ -5,13 +5,26 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getStroke } from "perfect-freehand";
 
-import { saveReturnedPdf, submitAnswer } from "@/lib/actions/submission-actions";
+import { saveReturnedPdf, saveStudentReturnedPdf, submitAnswer } from "@/lib/actions/submission-actions";
 
 /** 正規化座標(0〜1)の点。表示サイズ・ズームが変わっても保持できる。p=筆圧(0〜1)。 */
 type Point = { x: number; y: number; p?: number };
 type Stroke = { color: string; width: number; erase: boolean; points: Point[] };
 type Tf = { z: number; tx: number; ty: number };
 type XY = { x: number; y: number };
+type PageLayer = {
+  wrap: HTMLDivElement | null;
+  page: HTMLCanvasElement | null;
+  ink: HTMLCanvasElement | null;
+  active: HTMLCanvasElement | null;
+};
+type CompletePageLayer = {
+  wrap: HTMLDivElement;
+  page: HTMLCanvasElement;
+  ink: HTMLCanvasElement;
+  active: HTMLCanvasElement;
+};
+type PageMetrics = { w: number; h: number; dpr: number };
 type PdfViewport = { width: number; height: number };
 type PdfRenderOptions = {
   canvasContext: CanvasRenderingContext2D;
@@ -103,6 +116,7 @@ export function PdfAnnotator({
   mode = "submit",
   downloadName = "添削",
   penOnly = false,
+  batchStudentId,
 }: {
   pdfUrl: string;
   submissionId?: string;
@@ -114,15 +128,16 @@ export function PdfAnnotator({
   downloadName?: string;
   /** true=ペン専用(手のひら無効を固定・切替不可)。指はスクロール/ズーム専用。 */
   penOnly?: boolean;
+  /** 生徒ごとの一括添削PDFを提出ごとに切り分けて返却PDF保存する場合に指定。 */
+  batchStudentId?: string;
 }) {
   const router = useRouter();
   // 手書きをブラウザに自動保存するキー(提出前に閉じても復元できる)。
   const storageKey = submissionId ? `kumon-ink-v1-${submissionId}` : null;
   const stageRef = useRef<HTMLDivElement>(null); // ビューポート(固定枠)
   const surfaceRef = useRef<HTMLDivElement>(null); // 変形(ズーム/パン)する層
-  const pageCanvasRef = useRef<HTMLCanvasElement>(null);
-  const inkCanvasRef = useRef<HTMLCanvasElement>(null); // 確定した手書き(committed)
-  const activeCanvasRef = useRef<HTMLCanvasElement>(null); // 描画中の1本だけ(最前面, 毎フレーム再描画)
+  const pageLayersRef = useRef<Map<number, PageLayer>>(new Map());
+  const pageMetricsRef = useRef<Map<number, PageMetrics>>(new Map());
   const inkRectRef = useRef<DOMRect | null>(null); // 描画中は不変なのでストローク開始時にキャッシュ
   const drawnIdxRef = useRef(0); // 消しゴムの増分描画で「描き済み」の点インデックス
   const predictedRef = useRef<Point[]>([]); // 現フレームの予測点(描画のみ、保存しない)
@@ -132,11 +147,12 @@ export function PdfAnnotator({
   const pdfjsRef = useRef<PdfJsModule | null>(null);
   const strokesRef = useRef<Map<number, Stroke[]>>(new Map());
   const drawingRef = useRef<Stroke | null>(null);
+  const drawingPageRef = useRef(1);
   const drawIdRef = useRef<number | null>(null); // 描画中ポインタID
   const drawIsTouchRef = useRef(false);
   const penActiveRef = useRef(false); // Apple Pencil 等が接地中 → 手(タッチ)を無視
-  const displayWRef = useRef(0);
-  const displayHRef = useRef(0);
+  const contentWRef = useRef(0);
+  const contentHRef = useRef(0);
 
   // ズーム/パン
   const tfRef = useRef<Tf>({ z: 1, tx: 0, ty: 0 });
@@ -159,6 +175,7 @@ export function PdfAnnotator({
   const widthRef = useRef(PEN_WIDTHS[1]);
   const fingerDrawRef = useRef(true);
   const pageNumRef = useRef(1);
+  const numPagesRef = useRef(1);
   const readyRef = useRef(false);
   const strokeStartTimeRef = useRef(0); // 進行中ストロークの開始時刻(古い pointerup で誤終了しない用)
   const lastPenTimeRef = useRef(-1e9); // 直近のペン(Apple Pencil)イベント時刻。手のひら誤爆判定用
@@ -180,6 +197,7 @@ export function PdfAnnotator({
   widthRef.current = width;
   fingerDrawRef.current = fingerDraw;
   pageNumRef.current = pageNum;
+  numPagesRef.current = numPages;
   readyRef.current = ready;
   const [zoomPct, setZoomPct] = useState(100);
   const [submitting, setSubmitting] = useState(false);
@@ -191,6 +209,8 @@ export function PdfAnnotator({
     let cancelled = false;
     (async () => {
       try {
+        pageLayersRef.current.clear();
+        pageMetricsRef.current.clear();
         const pdfjs = await import("pdfjs-dist") as PdfJsModule;
         pdfjsRef.current = pdfjs;
         pdfjs.GlobalWorkerOptions.workerSrc = "/pdf/pdf.worker.min.mjs";
@@ -231,13 +251,20 @@ export function PdfAnnotator({
     stageRectRef.current = stage.getBoundingClientRect();
     stageWRef.current = stage.clientWidth;
     stageHRef.current = stage.clientHeight;
+    const surface = surfaceRef.current;
+    if (surface) {
+      contentWRef.current = surface.scrollWidth;
+      contentHRef.current = surface.scrollHeight;
+    }
   }, []);
 
   // はみ出し過ぎないようクランプ(小さいときは中央寄せ)。DOMには触れない。
   const clampTf = useCallback(() => {
     const t = tfRef.current;
     const sW = stageWRef.current, sH = stageHRef.current;
-    const cw = displayWRef.current * t.z, ch = displayHRef.current * t.z;
+    const baseW = contentWRef.current || 1;
+    const baseH = contentHRef.current || 1;
+    const cw = baseW * t.z, ch = baseH * t.z;
     t.tx = cw <= sW ? (sW - cw) / 2 : Math.min(0, Math.max(sW - cw, t.tx));
     t.ty = ch <= sH ? (sH - ch) / 2 : Math.min(0, Math.max(sH - ch, t.ty));
   }, []);
@@ -334,49 +361,82 @@ export function PdfAnnotator({
     if (renderRafRef.current != null) cancelAnimationFrame(renderRafRef.current);
   }, []);
 
-  // ---- 現在ページを描画 ----
-  const renderPage = useCallback(async () => {
+  function ensureLayer(page: number): PageLayer {
+    const existing = pageLayersRef.current.get(page);
+    if (existing) return existing;
+    const created: PageLayer = { wrap: null, page: null, ink: null, active: null };
+    pageLayersRef.current.set(page, created);
+    return created;
+  }
+
+  function setLayerRef(page: number, key: keyof PageLayer, el: HTMLDivElement | HTMLCanvasElement | null) {
+    const layer = ensureLayer(page);
+    if (key === "wrap") layer.wrap = el as HTMLDivElement | null;
+    else layer[key] = el as HTMLCanvasElement | null;
+  }
+
+  function completeLayer(page: number): CompletePageLayer | null {
+    const layer = pageLayersRef.current.get(page);
+    if (!layer?.wrap || !layer.page || !layer.ink || !layer.active) return null;
+    return layer as CompletePageLayer;
+  }
+
+  function hitPage(clientX: number, clientY: number): { page: number; layer: CompletePageLayer } | null {
+    for (let pn = 1; pn <= numPagesRef.current; pn++) {
+      const layer = completeLayer(pn);
+      if (!layer) continue;
+      const r = layer.ink.getBoundingClientRect();
+      if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
+        return { page: pn, layer };
+      }
+    }
+    return null;
+  }
+
+  // ---- 全ページを縦に描画 ----
+  const renderPagesOnScreen = useCallback(async () => {
     const doc = pdfRef.current;
     const stage = stageRef.current;
-    const pageCanvas = pageCanvasRef.current;
-    const inkCanvas = inkCanvasRef.current;
-    const activeCanvas = activeCanvasRef.current;
-    if (!doc || !stage || !pageCanvas || !inkCanvas || !activeCanvas) return;
+    if (!doc || !stage) return;
 
-    const page = await doc.getPage(pageNum);
-    const base = page.getViewport({ scale: 1 });
     const cap = fullBleed ? 2200 : 1100;
-    const maxW = Math.min(stage.clientWidth || 900, cap);
-    const scale = maxW / base.width;
-    const viewport = page.getViewport({ scale });
+    const maxW = Math.max(280, Math.min((stage.clientWidth || 900) - 32, cap));
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-    displayWRef.current = viewport.width;
-    displayHRef.current = viewport.height;
+    for (let pn = 1; pn <= doc.numPages; pn++) {
+      const layer = completeLayer(pn);
+      if (!layer) return;
+      const page = await doc.getPage(pn);
+      const base = page.getViewport({ scale: 1 });
+      const scale = maxW / base.width;
+      const viewport = page.getViewport({ scale });
 
-    for (const c of [pageCanvas, inkCanvas, activeCanvas]) {
-      c.width = Math.floor(viewport.width * dpr);
-      c.height = Math.floor(viewport.height * dpr);
-      c.style.width = `${viewport.width}px`;
-      c.style.height = `${viewport.height}px`;
+      pageMetricsRef.current.set(pn, { w: viewport.width, h: viewport.height, dpr });
+
+      for (const c of [layer.page, layer.ink, layer.active]) {
+        c.width = Math.floor(viewport.width * dpr);
+        c.height = Math.floor(viewport.height * dpr);
+        c.style.width = `${viewport.width}px`;
+        c.style.height = `${viewport.height}px`;
+      }
+
+      const ctx = layer.page.getContext("2d")!;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, layer.page.width, layer.page.height);
+      ctx.scale(dpr, dpr);
+      await page.render(pdfRenderOptions(pdfjsRef.current, ctx, viewport)).promise;
+      redrawInk(pn);
     }
 
-    const ctx = pageCanvas.getContext("2d")!;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
-    ctx.scale(dpr, dpr);
-    await page.render(pdfRenderOptions(pdfjsRef.current, ctx, viewport)).promise;
-
-    redrawInk();
     measureStage();
     writeTransform();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageNum, fullBleed, measureStage, writeTransform]);
+  }, [numPages, fullBleed, measureStage, writeTransform]);
 
   useEffect(() => {
-    if (ready) renderPage();
+    if (ready) renderPagesOnScreen();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, pageNum]);
+  }, [ready, numPages]);
 
   useEffect(() => {
     if (!ready) return;
@@ -384,7 +444,7 @@ export function PdfAnnotator({
     const onResize = () => {
       measureStage();
       clearTimeout(t);
-      t = setTimeout(() => renderPage(), 150);
+      t = setTimeout(() => renderPagesOnScreen(), 150);
     };
     window.addEventListener("resize", onResize);
     window.addEventListener("scroll", measureStage, true);
@@ -393,7 +453,7 @@ export function PdfAnnotator({
       window.removeEventListener("scroll", measureStage, true);
       clearTimeout(t);
     };
-  }, [ready, measureStage, renderPage]);
+  }, [ready, measureStage, renderPagesOnScreen]);
 
   // ---- ホイール/トラックパッド(デスクトップ) ----
   // Ctrl/⌘+ホイール=カーソル位置を中心にズーム、通常ホイール=スクロール。
@@ -503,7 +563,7 @@ export function PdfAnnotator({
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const ctx = liveCtx(c);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    return { ctx, dpr, w: displayWRef.current, h: c.height / dpr };
+    return { ctx, dpr, w: c.width / dpr, h: c.height / dpr };
   }
 
   // ペンの太さ(2/4/7)→ perfect-freehand の size(直径 px)。倍率は書き出し時に使う。
@@ -544,7 +604,7 @@ export function PdfAnnotator({
   }
   // 消しゴムの増分(前回の続き→最新点)。描画中に committed を随時削る。
   function eraseIncremental(s: Stroke) {
-    const inkCanvas = inkCanvasRef.current;
+    const inkCanvas = completeLayer(drawingPageRef.current)?.ink;
     if (!inkCanvas) return;
     const { ctx, w, h } = preparedCtx(inkCanvas);
     const pts = s.points;
@@ -563,8 +623,8 @@ export function PdfAnnotator({
     drawnIdxRef.current = n - 1;
   }
 
-  function clearActive() {
-    const a = activeCanvasRef.current;
+  function clearActive(page = drawingPageRef.current) {
+    const a = completeLayer(page)?.active;
     if (!a) return;
     const ctx = liveCtx(a);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -572,24 +632,24 @@ export function PdfAnnotator({
   }
 
   // 全確定ストロークを committed 層へ描き直す(取り消し・消去・ページ切替・再レンダ時のみ)。
-  function redrawInk() {
-    const inkCanvas = inkCanvasRef.current;
+  function redrawInk(page = pageNumRef.current) {
+    const inkCanvas = completeLayer(page)?.ink;
     if (!inkCanvas) return;
     const { ctx, w, h } = preparedCtx(inkCanvas);
     ctx.clearRect(0, 0, inkCanvas.width, inkCanvas.height);
-    const strokes = strokesRef.current.get(pageNumRef.current) ?? [];
+    const strokes = strokesRef.current.get(page) ?? [];
     for (const s of strokes) {
       if (s.erase) eraseFull(ctx, s, w, h);
       else fillPen(ctx, s, w, h, true, EMPTY_PTS);
     }
-    clearActive();
+    clearActive(page);
   }
 
   // 描画中の1本を active 層に毎フレーム再描画(rAF)。予測点で低遅延。ink(確定)は触らない=チラつかない。
   function renderActive() {
     renderRafRef.current = null;
     const s = drawingRef.current;
-    const a = activeCanvasRef.current;
+    const a = completeLayer(drawingPageRef.current)?.active;
     if (!s || s.erase || !a) return;
     const { ctx, w, h } = preparedCtx(a);
     ctx.clearRect(0, 0, a.width, a.height);
@@ -605,19 +665,20 @@ export function PdfAnnotator({
       cancelAnimationFrame(renderRafRef.current);
       renderRafRef.current = null;
     }
-    const inkCanvas = inkCanvasRef.current;
+    const page = drawingPageRef.current;
+    const inkCanvas = completeLayer(page)?.ink;
     if (inkCanvas && !s.erase) {
       const { ctx, w, h } = preparedCtx(inkCanvas);
       fillPen(ctx, s, w, h, true, EMPTY_PTS);
     }
-    clearActive();
+    clearActive(page);
   }
 
   // ---- 座標変換 ----
   // 描画中は変形しない(ペン接地でタッチはクリア)ので ink 矩形はストローク開始時にキャッシュし、
   // 点ごとの getBoundingClientRect(=レイアウト再計算による遅延)を避ける。
   function toNorm(clientX: number, clientY: number, pressure?: number): Point {
-    const rect = inkRectRef.current ?? inkCanvasRef.current!.getBoundingClientRect();
+    const rect = inkRectRef.current ?? completeLayer(drawingPageRef.current)!.ink.getBoundingClientRect();
     return {
       x: Math.min(1, Math.max(0, (clientX - rect.left) / rect.width)),
       y: Math.min(1, Math.max(0, (clientY - rect.top) / rect.height)),
@@ -640,11 +701,16 @@ export function PdfAnnotator({
   }
 
   // ---- 描画開始/継続/終了 ----
-  function startStroke(clientX: number, clientY: number, id: number, isTouch: boolean, pressure: number, timeStamp: number) {
+  function startStroke(page: number, clientX: number, clientY: number, id: number, isTouch: boolean, pressure: number, timeStamp: number) {
+    const layer = completeLayer(page);
+    if (!layer) return;
     // 直前のストロークが未完了なら先に確定してから開始(状態の取り違えを防ぐ)。
     if (drawingRef.current) commitActive(drawingRef.current);
     // ストローク中は変形しないので ink 矩形をここで1回だけ実測してキャッシュ。
-    inkRectRef.current = inkCanvasRef.current!.getBoundingClientRect();
+    inkRectRef.current = layer.ink.getBoundingClientRect();
+    drawingPageRef.current = page;
+    pageNumRef.current = page;
+    setPageNum(page);
     const erase = toolRef.current === "eraser";
     const w = widthRef.current;
     const stroke: Stroke = {
@@ -659,21 +725,22 @@ export function PdfAnnotator({
     drawnIdxRef.current = 0;
     predictedRef.current = [];
     strokeStartTimeRef.current = timeStamp;
-    const list = strokesRef.current.get(pageNumRef.current) ?? [];
+    const list = strokesRef.current.get(page) ?? [];
     list.push(stroke);
-    strokesRef.current.set(pageNumRef.current, list);
-    clearActive();
+    strokesRef.current.set(page, list);
+    clearActive(page);
     if (erase) eraseIncremental(stroke); // 消しゴムは committed を即削る
     else scheduleActiveRender(); // ペンは active 層で描画(rAF)
   }
   function cancelStroke() {
     if (!drawingRef.current) return;
-    const list = strokesRef.current.get(pageNumRef.current);
+    const page = drawingPageRef.current;
+    const list = strokesRef.current.get(page);
     if (list && list[list.length - 1] === drawingRef.current) list.pop();
     drawingRef.current = null;
     drawIdRef.current = null;
     drawIsTouchRef.current = false;
-    redrawInk();
+    redrawInk(page);
     persist();
   }
 
@@ -698,8 +765,14 @@ export function PdfAnnotator({
       const canFingerDraw = !penOnlyRef.current && fingerDrawRef.current;
       if (canFingerDraw && count === 1) {
         // 指で書くモード: 1本指は描画
-        e.preventDefault();
-        startStroke(e.clientX, e.clientY, e.pointerId, true, e.pressure, e.timeStamp);
+        const hit = hitPage(e.clientX, e.clientY);
+        if (hit) {
+          e.preventDefault();
+          startStroke(hit.page, e.clientX, e.clientY, e.pointerId, true, e.pressure, e.timeStamp);
+        } else {
+          e.preventDefault();
+          gestureRef.current = snapshot();
+        }
       } else {
         // ジェスチャ(パン/ピンチ)。指描画中に2本目が来たら描画を取り消してジェスチャへ
         e.preventDefault(); // ブラウザの選択開始(全選択)を抑止
@@ -719,7 +792,9 @@ export function PdfAnnotator({
     // ペンが触れたらタッチ系のジェスチャ状態はクリア(手のひらのパンを止める)。
     touchesRef.current.clear();
     gestureRef.current = null;
-    startStroke(e.clientX, e.clientY, e.pointerId, false, e.pressure, e.timeStamp);
+    const hit = hitPage(e.clientX, e.clientY);
+    if (!hit) return;
+    startStroke(hit.page, e.clientX, e.clientY, e.pointerId, false, e.pressure, e.timeStamp);
   }
 
   function onPointerMove(e: PointerEvent) {
@@ -838,7 +913,7 @@ export function PdfAnnotator({
     const doc = pdfRef.current;
     if (!doc) throw new Error("PDFを開けませんでした。");
     const out: { bytes: Uint8Array; w: number; h: number }[] = [];
-    for (let pn = 1; pn <= numPages; pn++) {
+    for (let pn = 1; pn <= doc.numPages; pn++) {
       const page = await doc.getPage(pn);
       const base = page.getViewport({ scale: 1 });
       // 自己採点で拡大しても粗くならないよう、書き出し解像度を高めに(目標幅2200px, 上限2.6倍)。
@@ -858,7 +933,8 @@ export function PdfAnnotator({
         ink.width = canvas.width;
         ink.height = canvas.height;
         const ictx = ink.getContext("2d")!;
-        const factor = canvas.width / (displayWRef.current || canvas.width);
+        const metric = pageMetricsRef.current.get(pn);
+        const factor = canvas.width / (metric?.w || canvas.width);
         // 画面と同じく: ペンは筆圧塗り輪郭、消しゴムは destination-out(手書きのみ消す)。
         for (const s of strokes) {
           if (s.erase) eraseFull(ictx, { ...s, width: s.width * factor }, canvas.width, canvas.height);
@@ -912,6 +988,15 @@ export function PdfAnnotator({
             try { localStorage.removeItem(storageKey); } catch { /* noop */ }
           }
           toast.success("返却PDFとして保存しました。");
+          if (redirectTo) router.push(redirectTo);
+          else router.refresh();
+          return;
+        }
+        if (batchStudentId) {
+          const fd = new FormData();
+          fd.append("file", new File([out as BlobPart], `${downloadName}.pdf`, { type: "application/pdf" }));
+          await saveStudentReturnedPdf(batchStudentId, fd);
+          toast.success("一括添削PDFを提出ごとの返却PDFとして保存しました。");
           if (redirectTo) router.push(redirectTo);
           else router.refresh();
           return;
@@ -997,22 +1082,22 @@ export function PdfAnnotator({
       <div ref={stageRef} className="annot-stage">
         {!ready && <div className="annot-loading">読み込み中…</div>}
         {/* ポインタ入力は stage にネイティブ登録(上の useEffect)。ここでは props で受けない。 */}
-        <div ref={surfaceRef} className="annot-surface">
-          <div className="annot-canvas-wrap">
-            <canvas ref={pageCanvasRef} className="annot-page" />
-            <canvas ref={inkCanvasRef} className="annot-ink" />
-            <canvas ref={activeCanvasRef} className="annot-active" />
-          </div>
+        <div ref={surfaceRef} className="annot-surface annot-page-stack">
+          {Array.from({ length: numPages }, (_, i) => i + 1).map((pn) => (
+            <div
+              key={pn}
+              ref={(el) => setLayerRef(pn, "wrap", el)}
+              className="annot-canvas-wrap"
+              data-page={pn}
+            >
+              {numPages > 1 && <div className="annot-page-label">P{pn}</div>}
+              <canvas ref={(el) => setLayerRef(pn, "page", el)} className="annot-page" />
+              <canvas ref={(el) => setLayerRef(pn, "ink", el)} className="annot-ink" />
+              <canvas ref={(el) => setLayerRef(pn, "active", el)} className="annot-active" />
+            </div>
+          ))}
         </div>
       </div>
-
-      {numPages > 1 && (
-        <div className="annot-pager">
-          <button type="button" className="annot-btn" onClick={() => { resetZoom(); setPageNum((n) => Math.max(1, n - 1)); }} disabled={pageNum <= 1}>← 前</button>
-          <span>{pageNum} / {numPages} ページ</span>
-          <button type="button" className="annot-btn" onClick={() => { resetZoom(); setPageNum((n) => Math.min(numPages, n + 1)); }} disabled={pageNum >= numPages}>次 →</button>
-        </div>
-      )}
 
       <div className="annot-submit">
         <button type="button" className="btn-primary big" onClick={requestSubmit} disabled={!ready || submitting}>
@@ -1021,7 +1106,9 @@ export function PdfAnnotator({
             : mode === "markup"
               ? submissionId
                 ? "✓ 返却PDFとして保存"
-                : "⬇ 書き込み済みPDFをダウンロード"
+                : batchStudentId
+                  ? "✓ 提出ごとの返却PDFとして保存"
+                  : "⬇ 書き込み済みPDFをダウンロード"
               : resubmit
                 ? "✓ 書き込んで再提出する"
                 : "✓ 完了して提出する"}

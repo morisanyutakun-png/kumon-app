@@ -37,6 +37,7 @@ export default async function GradingDetailPage({
     result: (submission.draftResult ?? "") as "" | "ok" | "ng",
     comment: submission.draftComment ?? "",
   };
+  const latestReturned = returnedFiles[0] ?? null;
 
   return (
     <div>
@@ -53,18 +54,34 @@ export default async function GradingDetailPage({
       </div>
 
       <div className="grade-workspace">
-        {/* 左: 答案 (タブレットで添削しやすい大きな表示) */}
+        {/* 左: 添削済みPDFがあればそれを見ながら入力。なければ提出答案を表示。 */}
         <div className="grade-canvas">
           <div className="grade-canvas-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-            <span>提出された答案</span>
-            {images.length > 0 && (
-              <Link href={`/grading/${submission.id}/write`} className="db-badge">
-                添削PDFを作成
-              </Link>
-            )}
+            <span>{latestReturned ? "添削済みPDFプレビュー" : "提出された答案"}</span>
+            <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {latestReturned && (
+                <a href={`/api/files/returned/${latestReturned.id}`} target="_blank" rel="noreferrer" className="db-badge">添削PDFを開く</a>
+              )}
+              {images.length > 0 && (
+                <Link href={`/grading/${submission.id}/write`} className="db-badge">
+                  個別で書き込む
+                </Link>
+              )}
+            </span>
           </div>
           <div className="grade-canvas-body">
-            <AnswerImages images={images} large />
+            {latestReturned ? (
+              <div className="answer-pdf-large">
+                <div className="answer-pdf-head">
+                  <span className="answer-pdf-icon">PDF</span>
+                  <span className="answer-pdf-name">{latestReturned.fileName}</span>
+                  <a href={`/api/files/returned/${latestReturned.id}?dl=1`} className="db-badge">保存する</a>
+                </div>
+                <iframe src={`/api/files/returned/${latestReturned.id}`} title={latestReturned.fileName} />
+              </div>
+            ) : (
+              <AnswerImages images={images} large />
+            )}
           </div>
         </div>
 

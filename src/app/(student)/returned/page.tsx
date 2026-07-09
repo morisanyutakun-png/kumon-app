@@ -14,9 +14,15 @@ export default async function ReturnedPage() {
   const idList = ids === "*" ? [] : ids;
   const rows = await listSubmissions(p.organizationId, { studentIds: idList });
 
-  const resubmits = rows.filter((r) => r.status === "resubmit_required");
-  const returned = rows.filter((r) => r.status === "returned");
-  const done = rows.filter((r) => r.status === "done");
+  const resubmits = rows
+    .filter((r) => r.status === "resubmit_required")
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  const returned = rows
+    .filter((r) => r.status === "returned")
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  const done = rows
+    .filter((r) => r.status === "done")
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
   let grade = "";
   if (p.role === "student" && p.studentId) {
@@ -32,17 +38,18 @@ export default async function ReturnedPage() {
         <h1>{sec ? "返却" : "へんきゃく"}</h1>
         <p>
           {sec
-            ? "先生の採点コメント、添削PDF、再提出の指示をここで確認します。自己採点は専用タブに分けました。"
-            : "せんせいのコメント、てんさくPDF、もう一度のお願いがここに出るよ。こたえあわせは自己採点タブだよ。"}
+            ? "先生の採点コメント、添削PDF、再提出の指示だけを確認します。"
+            : "せんせいから返ってきたコメントや、てんさくPDFを見るところだよ。"}
         </p>
       </div>
 
       {total === 0 ? (
-        <div className="empty">
-          {sec ? "返却された課題はまだありません。" : "まだ へんきゃくは ないよ。"}
+        <div className="empty task-empty">
+          <b>{sec ? "返却された課題はありません。" : "まだ へんきゃくはないよ。"}</b>
+          <span>{sec ? "提出済みのものは自己採点で確認できます。" : "出した課題は、こたえあわせで見られるよ。"}</span>
         </div>
       ) : (
-        <div style={{ display: "grid", gap: 18 }}>
+        <div className="student-section-stack">
           {resubmits.length > 0 && (
             <section>
               <div className="lsection">

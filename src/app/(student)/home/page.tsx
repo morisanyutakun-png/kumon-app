@@ -8,29 +8,9 @@ import { divisionForGrade } from "@/lib/division";
 import { encourageMessage, levelInfo, studyStreak } from "@/lib/encourage";
 import { listMaterialProgress, type MaterialProgressRow } from "@/lib/material-progress";
 import { listGradingHistory, listNotifications, listSubmissions } from "@/lib/queries";
+import { GradeReport } from "@/components/grade-report";
 import { Mascot } from "@/components/mascot";
 import { IconCalendar, IconCheck, IconFlame, IconMedal, IconRedo, IconStar } from "@/components/icons";
-import { TaskList } from "@/components/task-card";
-
-function subjectColor(subject: string): string {
-  switch (subject) {
-    case "算数": case "数学": return "#1aa3e6";
-    case "国語": return "#ff5d8f";
-    case "理科": case "物理": return "#18c39a";
-    case "化学": return "#00a3a3";
-    case "生物": return "#3bb54a";
-    case "社会": case "地歴公民": return "#ff8a3d";
-    case "英語": return "#7c5cfc";
-    case "情報": case "プログラミング": return "#13b6c9";
-    default: return "#1c9dd8";
-  }
-}
-
-function todoRank(status: string): number {
-  if (status === "resubmit_required") return 0;
-  if (status === "not_submitted") return 1;
-  return 2;
-}
 
 function progressBadge(p: MaterialProgressRow, sec: boolean): string {
   switch (p.state) {
@@ -55,22 +35,17 @@ function progressLine(p: MaterialProgressRow, sec: boolean): string {
 function MaterialProgressCards({ rows, sec }: { rows: MaterialProgressRow[]; sec: boolean }) {
   if (rows.length === 0) return null;
   return (
-    <section style={{ marginBottom: 24 }}>
+    <section className="lp-section">
       <div className="lsection">
-        {sec ? "教材の進み具合" : "きょうざいの すすみぐあい"}
+        {sec ? "教材別の現在地" : "きょうざいの すすみぐあい"}
         <span className="lsection-n">{rows.length}</span>
       </div>
       <div className="mat-progress-grid">
         {rows.map((p) => {
           const total = p.totalCount;
           const pct = total && total > 0 ? Math.min(100, Math.round((p.passedCount / total) * 100)) : 0;
-          const href = p.currentSubmissionId
-            ? `/submissions/${p.currentSubmissionId}`
-            : p.isComplete
-              ? `/api/files/material-complete/${p.assignmentId}?dl=1`
-              : null;
-          const body = (
-            <>
+          return (
+            <div key={p.assignmentId} className="mat-progress-card">
               <div className="mat-progress-head">
                 <span className="mat-progress-subject">{p.subject || "教材"}</span>
                 <span className={`mat-progress-badge ${p.state}`}>{progressBadge(p, sec)}</span>
@@ -80,31 +55,52 @@ function MaterialProgressCards({ rows, sec }: { rows: MaterialProgressRow[]; sec
               <div className="mat-progress-bar"><span style={{ width: `${pct}%` }} /></div>
               <div className="mat-progress-foot">
                 <span>{total ? `合格 ${p.passedCount} / 全${total}` : `合格 ${p.passedCount}`}</span>
-                {p.isComplete && <span>{sec ? "一冊分PDF" : "ぜんぶPDF"}</span>}
                 {p.waitingCount > 0 && <span>{sec ? `採点待ち ${p.waitingCount}` : `先生まち ${p.waitingCount}`}</span>}
                 {p.resubmitCount > 0 && <span>{sec ? `再提出 ${p.resubmitCount}` : `もう一度 ${p.resubmitCount}`}</span>}
+                {p.isComplete && <span>{sec ? "教材終了" : "ぜんぶ合格"}</span>}
               </div>
-            </>
-          );
-          if (p.isComplete) {
-            return (
-              <a key={p.assignmentId} href={`/api/files/material-complete/${p.assignmentId}?dl=1`} className="mat-progress-card">
-                {body}
-              </a>
-            );
-          }
-          return href ? (
-            <Link key={p.assignmentId} href={href} className="mat-progress-card">
-              {body}
-            </Link>
-          ) : (
-            <div key={p.assignmentId} className="mat-progress-card">
-              {body}
             </div>
           );
         })}
       </div>
     </section>
+  );
+}
+
+function ActionIcon({ kind }: { kind: "tasks" | "self" | "returned" | "grades" }) {
+  switch (kind) {
+    case "tasks": return <IconCheck size={22} />;
+    case "self": return <IconStar size={22} />;
+    case "returned": return <IconRedo size={22} />;
+    case "grades": return <IconMedal size={22} />;
+  }
+}
+
+function ActionCard({
+  href,
+  label,
+  value,
+  meta,
+  tone,
+  kind,
+}: {
+  href: string;
+  label: string;
+  value: string;
+  meta: string;
+  tone: string;
+  kind: "tasks" | "self" | "returned" | "grades";
+}) {
+  return (
+    <Link href={href} className={`lp-action-card ${tone}`}>
+      <span className="lp-action-icon"><ActionIcon kind={kind} /></span>
+      <span className="lp-action-main">
+        <span className="lp-action-label">{label}</span>
+        <span className="lp-action-value">{value}</span>
+        <span className="lp-action-meta">{meta}</span>
+      </span>
+      <span className="lp-action-arrow">→</span>
+    </Link>
   );
 }
 
@@ -119,12 +115,9 @@ export default async function StudentHome() {
     listMaterialProgress(p.organizationId, { studentIds: idList }),
   ]);
 
-  const unsubmitted = rows
-    .filter((r) => r.status === "not_submitted" || r.status === "resubmit_required")
-    .sort((a, b) => todoRank(a.status) - todoRank(b.status) || b.updatedAt.getTime() - a.updatedAt.getTime());
-  const waiting = rows
-    .filter((r) => r.status === "submitted" || r.status === "grading")
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  const actionable = rows.filter((r) => r.status === "not_submitted" || r.status === "resubmit_required");
+  const selfGrade = rows.filter((r) => r.status === "submitted" || r.status === "grading");
+  const returned = rows.filter((r) => r.status === "returned" || r.status === "resubmit_required");
   const doneCount = rows.filter((r) => r.status === "done").length;
   const pass = history.filter((h) => h.result === "ok").length;
   const lv = levelInfo(pass);
@@ -134,28 +127,23 @@ export default async function StudentHome() {
   const weekAgo = Date.now() - 7 * 86400000;
   const weekCount = rows.filter((r) => r.submittedAt && new Date(r.submittedAt).getTime() >= weekAgo).length;
 
-  let message = "お子さまの今日の課題と結果を確認できます。";
+  let message = "学習状況と返却結果をまとめて確認できます。";
   let grade = "";
   if (p.role === "student" && p.studentId) {
     const [s] = await db.select({ grade: students.grade }).from(students).where(eq(students.id, p.studentId)).limit(1);
     grade = s?.grade ?? "";
     message = encourageMessage(grade);
   }
-  // 部門 (中高部は落ち着いたトーン・マスコット非表示)。
   const sec = divisionForGrade(grade) === "secondary";
   const greet = p.role === "student"
     ? sec ? `こんにちは、${p.name} さん` : `こんにちは、${p.name} さん！`
     : "こんにちは！";
 
-  const mission = unsubmitted[0];
-  const missionColor = mission ? subjectColor(mission.subject) : "#1c9dd8";
-
   return (
     <div>
-      {/* ヒーロー: キャラ + メッセージ + がんばり状況 */}
-      <div className="learn-hero">
+      <div className="learn-hero lp-hero">
         <div className="learn-hero-body">
-          <div className="learn-hero-title">{greet}</div>
+          <h1 className="learn-hero-title">{greet}</h1>
           <div className="learn-hero-sub">{message}</div>
           <div className="hero-chips">
             <span className="hero-chip"><IconFlame size={15} /> {streak}日{sec ? "連続" : "れんぞく"}</span>
@@ -180,45 +168,42 @@ export default async function StudentHome() {
         </div>
       )}
 
-      {/* 次に取り組む課題 */}
-      {mission ? (
-        <Link href={`/submissions/${mission.submissionId}`} className="mission" style={{ ["--accent" as string]: missionColor }}>
-          {!sec && <span className="mission-mascot"><Mascot pose="point" sizes="90px" /></span>}
-          <div className="mission-body">
-            <div className="mission-label">{sec ? "次に取り組む課題" : "つぎに やること"}</div>
-            <div className="mission-title">{mission.assignmentTitle || mission.materialName}</div>
-            <div className="mission-meta">{mission.subject}{mission.rangeText ? ` ・ ${mission.rangeText}` : ""}</div>
-          </div>
-          <span className="mission-cta" style={{ background: missionColor }}>{sec ? "取り組む →" : "はじめる →"}</span>
-        </Link>
-      ) : rows.length === 0 ? (
-        <div className="mission mission-done">
-          {!sec && <span className="mission-mascot"><Mascot pose="point" sizes="90px" /></span>}
-          <div className="mission-body">
-            <div className="mission-title">{sec ? "準備OK" : "じゅんび オッケー！"}</div>
-            <div className="mission-meta">{sec ? "先生からの課題が届くと、ここに表示されます。" : "先生からの課題がとどくと、ここに出るよ。たのしみにまっててね。"}</div>
-          </div>
-        </div>
-      ) : waiting.length > 0 ? (
-        <div className="mission mission-done">
-          {!sec && <span className="mission-mascot"><Mascot pose="wave" sizes="90px" /></span>}
-          <div className="mission-body">
-            <div className="mission-title">{sec ? "提出済みです" : "ていしゅつ できたよ！"}</div>
-            <div className="mission-meta">{sec ? "下の採点待ちで、提出済みの課題を確認できます。自己採点は専用タブからできます。" : "下の さいてんまちで、出した課題をかくにんできるよ。こたえあわせは自己採点タブでできるよ。"}</div>
-          </div>
-        </div>
-      ) : (
-        <div className="mission mission-done">
-          {!sec && <span className="mission-mascot"><Mascot pose="wave" sizes="90px" /></span>}
-          <div className="mission-body">
-            <div className="mission-title">{sec ? "本日の課題は完了です" : "きょうのミッション かんりょう！"}</div>
-            <div className="mission-meta">{sec ? "お疲れさまでした。新しい課題をお待ちください。" : "よくがんばったね。あたらしい課題をまっててね。"}</div>
-          </div>
-        </div>
-      )}
+      <div className="lp-action-grid">
+        <ActionCard
+          href="/tasks"
+          label={sec ? "課題" : "かだい"}
+          value={`${actionable.length}`}
+          meta={sec ? "実施できる未提出" : "いまできる課題"}
+          tone="tone-task"
+          kind="tasks"
+        />
+        <ActionCard
+          href="/self-grade"
+          label={sec ? "自己採点" : "こたえあわせ"}
+          value={`${selfGrade.length}`}
+          meta={sec ? "提出済み・未返却" : "出したあとに見る"}
+          tone="tone-self"
+          kind="self"
+        />
+        <ActionCard
+          href="/returned"
+          label={sec ? "返却" : "へんきゃく"}
+          value={`${returned.length}`}
+          meta={sec ? "添削済み・再提出" : "先生からの返却"}
+          tone="tone-returned"
+          kind="returned"
+        />
+        <ActionCard
+          href="/history"
+          label={sec ? "成績詳細" : "せいせき"}
+          value={`${doneCount}`}
+          meta={sec ? "完了済みの履歴" : "かんりょう"}
+          tone="tone-grades"
+          kind="grades"
+        />
+      </div>
 
-      {/* がんばりメーター */}
-      <div className="meter">
+      <div className="meter lp-meter">
         <div className="meter-head">
           <span className="meter-title">{sec ? "学習状況" : "がんばりメーター"}</span>
           <span className="meter-level"><IconMedal size={15} /> {lv.name}</span>
@@ -226,7 +211,7 @@ export default async function StudentHome() {
         <div className="meter-bar"><div className="meter-fill" style={{ width: `${lv.progress}%` }} /></div>
         <div className="meter-foot">
           {lv.isMax
-            ? sec ? "最高ランクに到達しました。" : "さいこう称号に とうたつ！すごい！"
+            ? sec ? "最高ランクに到達しました。" : "さいこう称号に とうたつ！"
             : sec ? `次のランクまで あと ${lv.remaining}` : `つぎの称号まで あと ${lv.remaining} こ`}
         </div>
         <div className="meter-stats">
@@ -236,32 +221,15 @@ export default async function StudentHome() {
         </div>
       </div>
 
+      <section className="lp-section">
+        <div className="lsection">
+          {sec ? "成績サマリー" : "せいせきサマリー"}
+          <Link href="/history" className="db-badge">{sec ? "詳しく見る" : "くわしく見る"}</Link>
+        </div>
+        <GradeReport rows={history} showStudentName={p.role === "parent"} secondary={sec} />
+      </section>
+
       <MaterialProgressCards rows={progressRows} sec={sec} />
-
-      {waiting.length > 0 && (
-        <section style={{ marginTop: 8 }}>
-          <div className="lsection">
-            {sec ? "採点待ち" : "さいてんまち"}
-            <span className="lsection-n">{waiting.length}</span>
-          </div>
-          <p className="hint" style={{ marginTop: -6, marginBottom: 10 }}>
-            {sec
-              ? "提出済みです。先生の返却を待たずに、自己採点タブで解答解説を確認できます。"
-              : "ていしゅつずみだよ。先生の返却をまっている間も、自己採点タブでこたえあわせできるよ。"}
-          </p>
-          <TaskList rows={waiting} sec={sec} />
-        </section>
-      )}
-
-      {unsubmitted.length > 0 && (
-        <section style={{ marginTop: 8 }}>
-          <div className="lsection">
-            {sec ? "未提出（割り当て）" : "まだ ていしゅつしていない課題"}
-            <span className="lsection-n">{unsubmitted.length}</span>
-          </div>
-          <TaskList rows={unsubmitted} sec={sec} />
-        </section>
-      )}
     </div>
   );
 }

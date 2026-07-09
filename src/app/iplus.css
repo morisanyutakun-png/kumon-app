@@ -1128,7 +1128,7 @@ body {
   padding: 4px 10px; background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.3);
   margin-bottom: 12px;
 }
-.learn-hero-title { font-size: 27px; font-weight: 900; line-height: 1.28; letter-spacing: 0.01em; }
+.learn-hero-title { margin: 0; font-size: 27px; font-weight: 900; line-height: 1.28; letter-spacing: 0.01em; }
 .learn-hero-sub { margin-top: 8px; font-size: 14px; line-height: 1.7; color: rgba(255, 255, 255, 0.94); max-width: 560px; }
 
 .learn-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
@@ -1203,6 +1203,63 @@ body {
   color: #fff; font-size: 13px; font-weight: 800; padding: 6px 12px;
 }
 .hero-chip svg { flex: 0 0 auto; }
+
+/* 生徒LP: タブ入口 + 成績サマリー */
+.lp-hero { margin-bottom: 14px; }
+.lp-action-grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;
+  margin-bottom: 18px;
+}
+.lp-action-card {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px;
+  min-height: 98px; padding: 14px; border: 1px solid #dde2e7; background: #fff;
+  color: var(--ink, #14365a); text-decoration: none;
+  transition: background .1s, border-color .1s, transform .1s;
+}
+.lp-action-card:hover { background: #f9fcfe; border-color: #c7d3de; transform: translateY(-1px); text-decoration: none; }
+.lp-action-icon {
+  width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; background: var(--lp-tone, var(--primary));
+}
+.lp-action-main { display: grid; gap: 2px; min-width: 0; }
+.lp-action-label { font-size: 13px; font-weight: 900; color: #475569; }
+.lp-action-value { font-size: 28px; line-height: 1; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--lp-tone, var(--primary)); }
+.lp-action-meta { font-size: 12px; font-weight: 800; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-action-arrow { color: #94a3b8; font-weight: 900; }
+.lp-action-card.tone-task { --lp-tone: #1d8bd1; }
+.lp-action-card.tone-self { --lp-tone: #0f9e74; }
+.lp-action-card.tone-returned { --lp-tone: #be123c; }
+.lp-action-card.tone-grades { --lp-tone: #d97706; }
+.lp-section { margin-top: 20px; }
+.lp-section .lsection { justify-content: space-between; }
+.lp-meter { margin-bottom: 18px; }
+
+.task-page-head {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 14px;
+  margin-bottom: 18px;
+}
+.task-page-count {
+  min-width: 112px; padding: 13px 16px; border: 1px solid #dde2e7; background: #fff;
+  text-align: center;
+}
+.task-page-count b { display: block; font-size: 30px; line-height: 1; color: var(--primary); font-weight: 900; font-variant-numeric: tabular-nums; }
+.task-page-count span { display: block; margin-top: 4px; font-size: 12px; font-weight: 900; color: #64748b; }
+.student-section-stack { display: grid; gap: 20px; }
+.task-empty {
+  display: grid; gap: 9px; justify-items: center; padding: 30px 18px;
+}
+.task-empty b { color: var(--ink, #14365a); }
+.task-empty span { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 8px; align-items: center; }
+
+@media (max-width: 880px) {
+  .lp-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .lp-action-grid { grid-template-columns: 1fr; }
+  .lp-action-card { min-height: 82px; }
+  .task-page-head { align-items: stretch; flex-direction: column; }
+  .task-page-count { width: 100%; }
+}
 
 /* 今日のミッション */
 .mission {
@@ -1299,6 +1356,30 @@ body {
 .complete-book b { font-size: 15px; font-weight: 900; }
 .complete-book span { font-size: 13px; font-weight: 700; }
 .write-links { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; min-width: 120px; flex-wrap: wrap; }
+.batch-marking-strip {
+  display: flex; gap: 8px; overflow-x: auto; padding: 8px 14px;
+  border-bottom: 1px solid var(--line); background: #f8fafc;
+}
+.batch-marking-chip {
+  flex: 0 0 auto; display: grid; grid-template-columns: auto minmax(90px, 1fr); gap: 2px 7px;
+  min-width: 190px; max-width: 260px; padding: 7px 9px; border: 1px solid #dbe3ec; background: #fff;
+  color: var(--ink); text-decoration: none; font-size: 12px;
+}
+.batch-marking-chip:hover { border-color: #b8c6d5; background: #fdfefe; text-decoration: none; }
+.batch-marking-chip b { grid-row: span 2; display: grid; place-items: center; width: 24px; height: 24px; background: #1d4ed8; color: #fff; font-size: 12px; }
+.batch-marking-chip span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 900; }
+.batch-marking-chip small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b; font-weight: 700; }
+
+.batch-student-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+.batch-student-card { border: 1px solid var(--line); background: #fff; padding: 15px; }
+.batch-student-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.batch-student-head h2 { margin: 0; font-size: 18px; color: var(--ink); }
+.batch-student-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; font-weight: 700; }
+.batch-student-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.batch-submission-list { margin: 12px 0 0; padding-left: 22px; display: grid; gap: 8px; }
+.batch-submission-list li { color: #334155; font-size: 13px; }
+.batch-submission-list a { font-weight: 900; color: var(--ink); }
+.batch-submission-list span { display: block; margin-top: 2px; color: #64748b; font-size: 12px; font-weight: 700; }
 
 /* ===== 自己採点スプリット(答案 | 解答 を並置) ===== */
 .sg-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
@@ -1366,7 +1447,7 @@ body {
 .annotator { display: grid; gap: 12px; }
 /* 書き込み中に文字選択・長押し選択・タップハイライトが出ないようにする
    (指やペンの操作で青い全選択が発生して描きにくくなるのを防ぐ)。 */
-.annot-stage, .annot-surface, .annot-canvas-wrap, .annot-page, .annot-ink, .annot-active {
+.annot-stage, .annot-surface, .annot-canvas-wrap, .annot-page, .annot-ink, .annot-active, .annot-page-label {
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -1420,15 +1501,21 @@ body {
 .annot-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #64748b; font-weight: 700; z-index: 2; }
 /* 変形する層(ズーム/パン)。原点は左上。 */
 .annot-surface { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; touch-action: none; }
+.annot-page-stack { display: grid; gap: 18px; padding: 16px; align-items: start; justify-items: center; }
 .annot-canvas-wrap { position: relative; display: inline-block; line-height: 0; box-shadow: 0 2px 12px rgba(15,40,70,0.12); background: #fff; }
+.annot-page-label {
+  position: absolute; top: 8px; left: 8px; z-index: 3;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 34px; height: 24px; padding: 0 8px; border-radius: 999px;
+  background: rgba(15, 23, 42, 0.78); color: #fff; font-size: 12px; font-weight: 900;
+  pointer-events: none;
+}
 .annot-page { display: block; background: #fff; }
 .annot-ink { position: absolute; top: 0; left: 0; touch-action: none; cursor: crosshair; }
 /* 描画中の1本だけを描く最前面レイヤー(毎フレーム再描画)。入力はstageで受けるので透過。 */
 .annot-active { position: absolute; top: 0; left: 0; touch-action: none; pointer-events: none; }
 /* ズーム操作(グループ枠は上のトラック定義を使う)。%表示だけ調整。 */
 .annot-zoom-val { min-width: 48px; text-align: center; font-weight: 800; font-size: 12px; color: #334155; }
-
-.annot-pager { display: flex; gap: 12px; align-items: center; justify-content: center; font-weight: 700; color: #475569; }
 .annot-submit { display: flex; align-items: center; }
 /* ツールバー右端の提出ボタン(上部) */
 .annot-top-submit { margin-left: auto; display: inline-flex; align-items: center; }

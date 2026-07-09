@@ -39,9 +39,7 @@ export default async function StudentLayout({
   const taskCount = subRows.filter(
     (r) =>
       r.status === "not_submitted" ||
-      r.status === "resubmit_required" ||
-      r.status === "submitted" ||
-      r.status === "grading",
+      r.status === "resubmit_required",
   ).length;
   const selfGradeCount = subRows.filter(
     (r) => r.status === "submitted" || r.status === "grading",
@@ -51,7 +49,8 @@ export default async function StudentLayout({
   ).length;
 
   const tabs: NavTabItem[] = [
-    { href: "/home", label: "課題", badge: taskCount },
+    { href: "/home", label: "ホーム", exact: true },
+    { href: "/tasks", label: "課題", badge: taskCount },
     { href: "/self-grade", label: "自己採点", badge: selfGradeCount },
     { href: "/returned", label: "返却", badge: returnCount },
     { href: "/history", label: "成績" },

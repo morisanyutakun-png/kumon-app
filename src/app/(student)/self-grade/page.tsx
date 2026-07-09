@@ -56,9 +56,9 @@ export default async function SelfGradePage() {
   const idList = ids === "*" ? [] : ids;
   const rows = await listSubmissions(p.organizationId, { studentIds: idList });
 
-  const active = rows.filter((r) => r.status === "submitted" || r.status === "grading");
-  const resubmits = rows.filter((r) => r.status === "resubmit_required");
-  const reviewed = rows.filter((r) => r.status === "returned" || r.status === "done");
+  const active = rows
+    .filter((r) => r.status === "submitted" || r.status === "grading")
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
   let grade = "";
   if (p.role === "student" && p.studentId) {
@@ -66,7 +66,6 @@ export default async function SelfGradePage() {
     grade = s?.grade ?? "";
   }
   const sec = divisionForGrade(grade) === "secondary";
-  const total = active.length + resubmits.length + reviewed.length;
 
   return (
     <div>
@@ -74,45 +73,27 @@ export default async function SelfGradePage() {
         <h1>{sec ? "自己採点" : "こたえあわせ"}</h1>
         <p>
           {sec
-            ? "提出したらすぐに解答解説を確認できます。先生の返却を待たずに、次の範囲と並行して復習できます。"
-            : "ていしゅつしたら、すぐに解答解説を見られるよ。先生のへんきゃくを待ちながら、次の課題にも進めるよ。"}
+            ? "提出済みで、まだ先生から返却されていない課題だけを表示します。"
+            : "出したあと、先生から返ってくる前の課題だけを出しているよ。"}
         </p>
       </div>
 
-      {total === 0 ? (
-        <div className="empty">
-          {sec ? "自己採点できる提出はまだありません。" : "まだ こたえあわせできる課題はないよ。"}
+      {active.length === 0 ? (
+        <div className="empty task-empty">
+          <b>{sec ? "自己採点できる提出はありません。" : "こたえあわせできる課題はないよ。"}</b>
+          <span>
+            {sec ? "未提出の課題は課題タブにあります。" : "まだ出していない課題は、かだいタブにあるよ。"}
+            <Link href="/tasks" className="db-badge">{sec ? "課題へ" : "かだいへ"}</Link>
+          </span>
         </div>
       ) : (
-        <div style={{ display: "grid", gap: 18 }}>
-          {active.length > 0 && (
-            <section>
-              <div className="lsection">
-                {sec ? "提出済み（自己採点）" : "ていしゅつずみ"}
-                <span className="lsection-n">{active.length}</span>
-              </div>
-              <SelfGradeList rows={active} sec={sec} />
-            </section>
-          )}
-          {resubmits.length > 0 && (
-            <section>
-              <div className="lsection">
-                {sec ? "再提出前の見直し" : "もう一度のまえに見直す"}
-                <span className="lsection-n">{resubmits.length}</span>
-              </div>
-              <SelfGradeList rows={resubmits} sec={sec} />
-            </section>
-          )}
-          {reviewed.length > 0 && (
-            <section>
-              <div className="lsection">
-                {sec ? "返却後の復習" : "へんきゃく後のふくしゅう"}
-                <span className="lsection-n">{reviewed.length}</span>
-              </div>
-              <SelfGradeList rows={reviewed} sec={sec} />
-            </section>
-          )}
-        </div>
+        <section>
+          <div className="lsection">
+            {sec ? "提出済み・未返却" : "ていしゅつずみ"}
+            <span className="lsection-n">{active.length}</span>
+          </div>
+          <SelfGradeList rows={active} sec={sec} />
+        </section>
       )}
     </div>
   );
