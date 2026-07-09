@@ -16,9 +16,9 @@
   --primary-soft: #e8f6fc;
   --primary-line: #bce4f4;
   --ink: #14365a;
-  /* yuta-eng 由来のコーラル(赤)アクセント。主要CTA・強調に使う=学習意欲を促す色。 */
-  --accent: #f2545b;
-  --accent-d: #d63d44;
+  /* ブランドの濃い青アクセント。主要CTA・強調・罫線に使う。 */
+  --accent: #1c4fa0;
+  --accent-d: #163e7d;
   --danger-bg: #fee2e2;
   --danger-fg: #991b1b;
   --ok: #059669;
@@ -1297,16 +1297,16 @@ body {
   padding: 0 26px;
   border: 0;
   border-radius: 0; /* 直角 */
-  background: var(--accent); /* コーラルCTA=学習への前進を促す */
-  color: #fff;
+  background: #fff; /* 濃紺ヒーローに映える白ボタン */
+  color: var(--ink);
   font-size: 15px;
   font-weight: 900;
   letter-spacing: 0.03em;
   text-decoration: none;
-  box-shadow: 0 12px 26px -14px rgba(150, 20, 30, 0.55);
+  box-shadow: 0 12px 26px -14px rgba(9, 30, 55, 0.6);
   transition: transform 0.08s, background 0.15s;
 }
-.hero-primary-cta:hover { background: var(--accent-d); text-decoration: none; }
+.hero-primary-cta:hover { background: #eef3f9; text-decoration: none; }
 .hero-primary-cta:active { transform: translateY(1px); }
 
 /* 生徒LP: タブ入口 + 成績サマリー */
@@ -1317,6 +1317,8 @@ body {
   justify-content: space-between;
   gap: 12px;
   margin: 4px 0 12px;
+  padding-left: 13px;
+  border-left: 3px solid var(--accent); /* 濃い青の左罫線=見出しの視覚的アンカー */
 }
 .lp-section-head h2 {
   margin: 2px 0 0;
@@ -1327,7 +1329,7 @@ body {
 }
 .lp-section-kicker {
   display: block;
-  color: #64748b;
+  color: var(--accent);
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.14em;
@@ -1356,17 +1358,25 @@ body {
   min-height: 150px; padding: 18px 18px 18px 20px;
   border: 1px solid #dbe2ea;
   border-left: 4px solid var(--lp-tone, var(--primary)); /* 左罫線アクセント(yuta-eng の引用ブロック調) */
-  background: #fff;
+  background: linear-gradient(180deg, #ffffff 0%, color-mix(in srgb, var(--lp-tone, var(--primary)) 5%, #ffffff) 100%);
   color: var(--ink, #14365a); text-decoration: none;
   box-shadow: 0 8px 22px -20px rgba(15, 23, 42, 0.3);
   transition: transform .12s cubic-bezier(0.22,1,0.36,1), box-shadow .15s, border-color .15s;
 }
+/* 右上に教科色の淡い角ダイヤ装飾=空白を埋め、視覚的な奥行きを出す(直角基調に合う) */
+.lp-action-card::after {
+  content: ""; position: absolute; right: -30px; top: -30px;
+  width: 108px; height: 108px; transform: rotate(45deg);
+  background: var(--lp-tone, var(--primary)); opacity: 0.08; pointer-events: none;
+}
+.lp-action-card > * { position: relative; z-index: 1; }
 .lp-action-card:hover {
   border-color: #cfd8e2; border-left-color: var(--lp-tone, var(--primary));
   transform: translateY(-2px);
   box-shadow: 0 16px 34px -22px rgba(15, 23, 42, 0.32);
   text-decoration: none;
 }
+.lp-action-card:hover::after { opacity: 0.13; }
 .lp-action-card:active { transform: translateY(0); }
 .lp-action-icon {
   width: 46px; height: 46px; border-radius: 0; /* 直角 */
