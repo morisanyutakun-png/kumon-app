@@ -790,55 +790,80 @@ body {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
+/* ===== ログイン(Apple Music 的な余白・角丸・浮遊感) ===== */
 .auth {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
-  background: #edf0f3;
+  padding: 32px 20px;
+  /* 上方向にブランドの淡い光。視線を上(ロゴ)へ導き、静かで安心感のある背景に。 */
+  background:
+    radial-gradient(1100px 560px at 50% -8%, rgba(28, 157, 216, 0.12), transparent 62%),
+    linear-gradient(180deg, #f7fafc 0%, #eef2f6 100%);
 }
 .auth-box {
   width: 100%;
-  max-width: 392px;
-  background: #fff;
-  border: 1px solid #e2e6ea;
-  border-radius: 0; /* 角を立てる(直角) */
-  padding: 30px 32px 26px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  max-width: 400px;
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 26px;
+  padding: 40px 32px 26px;
+  box-shadow: 0 24px 60px -22px rgba(15, 40, 70, 0.30), 0 2px 8px rgba(15, 40, 70, 0.05);
   text-align: center;
+  animation: auth-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.auth-logo-wrap { margin: 2px 0 14px; }
-.auth-logo { width: 256px; max-width: 86%; height: auto; display: inline-block; }
-.auth-h1 { margin: 0 0 22px; font-size: 22px; font-weight: 800; letter-spacing: 0.04em; color: #0f172a; }
+@keyframes auth-rise {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+.auth-logo-wrap { margin: 0 0 20px; }
+.auth-logo { width: 196px; max-width: 68%; height: auto; display: inline-block; }
+/* 温かい挨拶で心理的ハードルを下げる。大きめ・太字で明快な階層。 */
+.auth-h1 { margin: 0 0 4px; font-size: 26px; font-weight: 800; letter-spacing: 0.005em; color: #0f172a; }
+.auth-sub { margin: 0 0 26px; color: #64748b; font-size: 14px; font-weight: 500; }
 
-.auth-form { display: grid; gap: 10px; text-align: left; }
+.auth-form { display: grid; gap: 12px; text-align: left; }
+/* 塗り(fill)スタイルの入力。フォーカスで白＋ブランドのやわらかい光→「今ここ」が一目で分かる。 */
 .auth-form input {
-  height: 52px;
+  height: 54px;
   width: 100%;
-  border: 1px solid #cdd4db;
-  border-radius: 0; /* 直角 */
+  border: 1.5px solid transparent;
+  border-radius: 14px;
   padding: 0 16px;
   font-size: 16px; /* 16px以上でモバイルの自動ズームを防ぐ */
-  background: #fff;
+  background: #eef2f7;
   color: #0f172a;
-  transition: border-color 0.12s, box-shadow 0.12s;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
-.auth-form input::placeholder { color: #9aa7b8; }
-.auth-form input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
+.auth-form input::placeholder { color: #97a3b4; }
+.auth-form input:focus {
+  outline: none;
+  background: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(28, 157, 216, 0.16);
+}
 .auth-error {
-  margin: 2px 0 0; padding: 9px 12px;
+  margin: 2px 0 0; padding: 11px 14px; border-radius: 12px;
   background: var(--danger-bg); color: var(--danger-fg); font-size: 13px; font-weight: 700;
 }
+/* 主アクションは「浮いて見える」色付き影で自然にタップを誘う。 */
 .auth-submit {
-  height: 52px; width: 100%; margin-top: 8px;
-  border: 0; border-radius: 0; cursor: pointer; /* 直角 */
-  background: var(--primary); color: #fff; font: inherit; font-size: 16px; font-weight: 800;
-  transition: background 0.12s, transform 0.06s;
+  height: 54px; width: 100%; margin-top: 6px;
+  border: 0; border-radius: 14px; cursor: pointer;
+  background: var(--primary); color: #fff; font: inherit; font-size: 16.5px; font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 10px 22px -10px rgba(28, 157, 216, 0.7);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.08s;
 }
-.auth-submit:hover:not(:disabled) { background: var(--primary-d); }
-.auth-submit:active:not(:disabled) { transform: translateY(1px); }
-.auth-submit:disabled { opacity: 0.6; cursor: default; }
+.auth-submit:hover:not(:disabled) { background: var(--primary-d); box-shadow: 0 12px 26px -10px rgba(28, 157, 216, 0.8); }
+.auth-submit:active:not(:disabled) { transform: translateY(1px) scale(0.995); }
+.auth-submit:disabled { opacity: 0.55; cursor: default; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) {
+  .auth-box { animation: none; }
+}
 
 /* /setup の契約情報(表示のみ) */
 .setup-info { margin-bottom: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #f8fafc; }
@@ -846,13 +871,18 @@ body {
 .setup-info-label { flex: 0 0 76px; color: var(--muted); font-weight: 700; }
 .setup-info-val { color: var(--ink); font-weight: 700; word-break: break-all; }
 
-.auth-help { margin: 18px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.7; }
-.auth-demo { margin-top: 18px; padding-top: 16px; border-top: 1px solid #eef1f4; }
-.auth-demo-label { font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
+.auth-help { margin: 16px 0 0; color: #7a8797; font-size: 12.5px; line-height: 1.75; }
+.auth-help a { color: var(--primary); font-weight: 700; text-decoration: none; }
+.auth-help a:hover { text-decoration: underline; }
+.auth-demo { margin-top: 20px; padding-top: 18px; border-top: 1px solid #eceff3; }
+.auth-demo-label {
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #94a3b4; font-weight: 800; margin-bottom: 10px;
+}
 .auth-demo-btns { display: grid; gap: 8px; }
-.auth-demo-btns .btn-secondary { width: 100%; }
-.auth-foot { margin-top: 20px; color: #9aa3ad; font-size: 12px; }
-.auth-foot-sep { margin: 0 8px; color: #c8ced5; }
+.auth-demo-btns .btn-secondary { width: 100%; border-radius: 12px; height: 46px; }
+.auth-foot { margin-top: 22px; color: #a7b0bb; font-size: 11.5px; }
+.auth-foot-sep { margin: 0 8px; color: #d4dae0; }
 
 /* ===== ログイン情報の発行UI ===== */
 .cred-form { display: grid; gap: 12px; max-width: 460px; }
@@ -1109,17 +1139,19 @@ body {
   background:
     linear-gradient(135deg, rgba(26, 163, 230, 0.92) 0%, rgba(21, 195, 154, 0.92) 100%),
     #1aa3e6;
-  color: #fff; padding: 26px 28px; margin-bottom: 18px;
-  border-radius: 8px;
-  box-shadow: 0 18px 38px -28px rgba(15, 23, 42, 0.55);
+  color: #fff; padding: 30px 30px; margin-bottom: 20px;
+  border-radius: 24px;
+  box-shadow: 0 24px 50px -30px rgba(21, 130, 184, 0.7);
 }
 .learn-hero::after {
   content: ""; position: absolute; inset: 0; pointer-events: none;
+  /* 方眼テクスチャは主張しない程度に。上部の柔らかい光で立体感を出す(Apple的)。 */
   background:
-    linear-gradient(90deg, rgba(255,255,255,0.10) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(255,255,255,0.08) 1px, transparent 1px);
-  background-size: 38px 38px;
-  opacity: 0.42;
+    radial-gradient(120% 90% at 85% -20%, rgba(255,255,255,0.28), transparent 55%),
+    linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: auto, 44px 44px, 44px 44px;
+  opacity: 0.9;
 }
 .learn-hero-body { position: relative; z-index: 1; min-width: 0; }
 .learn-hero-mascot {
@@ -1167,8 +1199,8 @@ body {
   margin: 0 0 12px; font-size: 17px; font-weight: 900; color: var(--ink, #14365a);
 }
 .lsection-n {
-  display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0 7px;
-  background: var(--primary); color: #fff; font-size: 12px; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0 8px;
+  background: var(--primary); color: #fff; font-size: 12px; font-weight: 800; border-radius: 999px;
 }
 .lcard-empty {
   background: #fff; border: 1px dashed #cdd9e4; color: #5b6b7c;
@@ -1196,15 +1228,18 @@ body {
 
 .task {
   display: flex; align-items: center; gap: 14px;
-  background: #fff; border: 1px solid #dde2e7;
+  background: #fff; border: 1px solid #eaeef3; border-radius: 18px;
   padding: 16px 18px; text-decoration: none; color: var(--text);
-  transition: background 0.08s, border-color 0.08s;
+  box-shadow: 0 8px 24px -20px rgba(15, 23, 42, 0.24);
+  transition: transform 0.12s cubic-bezier(0.22,1,0.36,1), border-color 0.15s, box-shadow 0.15s;
 }
-.task:hover { background: #f9fcfe; border-color: #c7d3de; text-decoration: none; }
+.task:hover { border-color: #d3dce6; transform: translateY(-2px); box-shadow: 0 16px 34px -22px rgba(15, 23, 42, 0.3); text-decoration: none; }
+.task:active { transform: translateY(0) scale(0.995); }
 .task-ico {
-  flex: 0 0 auto; width: 48px; height: 48px;
+  flex: 0 0 auto; width: 48px; height: 48px; border-radius: 14px;
   display: inline-flex; align-items: center; justify-content: center;
   color: #fff; font-size: 20px; font-weight: 900;
+  box-shadow: 0 8px 18px -8px rgba(15, 40, 70, 0.35);
 }
 .material-cover {
   --cover-accent: var(--primary);
@@ -1238,8 +1273,8 @@ body {
 .task-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 16px; font-weight: 800; color: var(--ink, #14365a); }
 .task-meta { margin-top: 4px; font-size: 13px; color: #5b6b7c; }
 .task-cta {
-  flex: 0 0 auto; color: #fff;
-  font-size: 15px; font-weight: 800; padding: 13px 22px; white-space: nowrap;
+  flex: 0 0 auto; color: #fff; border-radius: 999px;
+  font-size: 15px; font-weight: 800; padding: 12px 22px; white-space: nowrap;
 }
 .task-cta:hover { filter: brightness(0.95); }
 .selfgrade-task { border-left: 5px solid #18c39a; }
@@ -1255,28 +1290,30 @@ body {
 .hero-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .hero-chip {
   display: inline-flex; align-items: center; gap: 6px;
-  background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.32);
-  color: #fff; font-size: 13px; font-weight: 800; padding: 6px 12px;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff; font-size: 13px; font-weight: 800; padding: 7px 13px;
+  border-radius: 999px;
 }
 .hero-chip svg { flex: 0 0 auto; }
 .hero-primary-cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  margin-top: 16px;
-  padding: 0 18px;
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  border-radius: 8px;
+  min-height: 48px;
+  margin-top: 18px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 999px;
   background: #fff;
-  color: #172554;
-  font-size: 14px;
+  color: #0f3d63;
+  font-size: 15px;
   font-weight: 900;
   text-decoration: none;
-  box-shadow: 0 12px 26px -18px rgba(15, 23, 42, 0.5);
+  box-shadow: 0 14px 30px -14px rgba(9, 30, 55, 0.5);
+  transition: transform 0.08s, box-shadow 0.15s, background 0.15s;
 }
-.hero-primary-cta:hover { background: #eff6ff; text-decoration: none; }
+.hero-primary-cta:hover { background: #f2f9ff; text-decoration: none; box-shadow: 0 16px 34px -14px rgba(9, 30, 55, 0.55); }
+.hero-primary-cta:active { transform: translateY(1px) scale(0.99); }
 
 /* 生徒LP: タブ入口 + 成績サマリー */
 .lp-hero { margin-bottom: 18px; }
@@ -1320,30 +1357,27 @@ body {
   margin-bottom: 22px;
 }
 .lp-action-card {
-  position: relative; overflow: hidden; border-radius: 8px;
+  position: relative; overflow: hidden; border-radius: 20px;
   display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; gap: 12px;
-  min-height: 150px; padding: 16px;
-  border: 1px solid color-mix(in srgb, var(--lp-tone, var(--primary)) 26%, #dbe3ec);
-  background:
-    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  min-height: 150px; padding: 18px;
+  border: 1px solid #eaeef3;
+  background: #fff;
   color: var(--ink, #14365a); text-decoration: none;
-  box-shadow: 0 14px 28px -25px rgba(15, 23, 42, 0.42);
-  transition: background .1s, border-color .1s, transform .1s, box-shadow .1s;
+  box-shadow: 0 10px 30px -20px rgba(15, 23, 42, 0.28);
+  transition: transform .12s cubic-bezier(0.22,1,0.36,1), box-shadow .15s, border-color .15s;
 }
-.lp-action-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 5px;
-  background: var(--lp-tone, var(--primary));
+.lp-action-card:hover {
+  border-color: color-mix(in srgb, var(--lp-tone, var(--primary)) 32%, #eaeef3);
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px -22px color-mix(in srgb, var(--lp-tone, var(--primary)) 55%, rgba(15,23,42,0.5));
+  text-decoration: none;
 }
-.lp-action-card:hover { background: #fff; border-color: var(--lp-tone, var(--primary)); transform: translateY(-1px); box-shadow: 0 18px 32px -24px rgba(15, 23, 42, 0.46); text-decoration: none; }
-.lp-action-card:active { transform: translateY(1px); box-shadow: 0 1px 3px rgba(15, 40, 70, 0.08); }
+.lp-action-card:active { transform: translateY(0) scale(0.994); }
 .lp-action-icon {
-  width: 46px; height: 46px; border-radius: 8px;
+  width: 48px; height: 48px; border-radius: 14px;
   display: inline-flex; align-items: center; justify-content: center;
   color: #fff; background: var(--lp-tone, var(--primary));
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--lp-tone, var(--primary)) 80%, transparent);
 }
 .lp-action-main { display: grid; gap: 14px; min-width: 0; }
 .lp-action-copy { display: grid; gap: 5px; min-width: 0; }
@@ -1362,16 +1396,16 @@ body {
   background: color-mix(in srgb, var(--lp-tone, var(--primary)) 12%, #fff);
   border: 1px solid color-mix(in srgb, var(--lp-tone, var(--primary)) 34%, #fff);
   font-size: 21px; line-height: 1; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--lp-tone, var(--primary));
-  border-radius: 8px;
+  border-radius: 12px;
 }
 .lp-action-cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 78px;
-  min-height: 36px;
-  padding: 0 12px;
-  border-radius: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
   background: var(--lp-tone, var(--primary));
   color: #fff;
   font-size: 12px;
@@ -1470,12 +1504,13 @@ body {
 
 .mat-progress-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
 .mat-progress-card {
-  display: block; background: #fff; border: 1px solid #dde2e7; padding: 16px;
+  display: block; background: #fff; border: 1px solid #eaeef3; padding: 18px;
   color: var(--text); text-decoration: none;
-  border-radius: 8px;
-  box-shadow: 0 12px 28px -25px rgba(15, 23, 42, 0.36);
+  border-radius: 18px;
+  box-shadow: 0 10px 28px -22px rgba(15, 23, 42, 0.26);
+  transition: transform .12s cubic-bezier(0.22,1,0.36,1), box-shadow .15s, border-color .15s;
 }
-.mat-progress-card:hover { background: #f9fcfe; border-color: #c7d3de; text-decoration: none; }
+.mat-progress-card:hover { border-color: #d3dce6; transform: translateY(-2px); box-shadow: 0 18px 36px -22px rgba(15, 23, 42, 0.32); text-decoration: none; }
 .mat-progress-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .mat-progress-subject { font-size: 12px; font-weight: 900; color: #64748b; }
 .mat-progress-badge { flex: 0 0 auto; padding: 3px 8px; font-size: 11px; font-weight: 900; border: 1px solid #cbd5e1; color: #334155; background: #f8fafc; border-radius: 999px; }

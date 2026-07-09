@@ -25,7 +25,8 @@ export default async function LoginPage() {
           <Logo className="auth-logo" />
         </div>
 
-        <h1 className="auth-h1">ログイン</h1>
+        <h1 className="auth-h1">おかえりなさい</h1>
+        <p className="auth-sub">ログインして学習を続けましょう</p>
 
         <LoginForm />
 
