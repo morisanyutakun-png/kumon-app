@@ -9,7 +9,7 @@ import type { SubmissionStatus } from "@/db/schema";
 /** 状態ごとの行動ラベル(生徒向け)。 */
 function ctaLabel(status: SubmissionStatus, sec: boolean): string | undefined {
   switch (status) {
-    case "not_submitted": return sec ? "続ける" : "つづける";
+    case "not_submitted": return sec ? "取り組む" : "とりくむ";
     case "resubmit_required": return sec ? "やり直す" : "もう一度";
     case "submitted": case "grading": return sec ? "答え合わせ" : "こたえあわせ";
     case "returned": return sec ? "結果を見る" : "けっかを見る";
