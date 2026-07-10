@@ -151,12 +151,26 @@ export default async function StudentHome() {
       : returned.length > 0
         ? sec ? "返却を確認する" : "へんきゃくを見る"
         : sec ? "課題を確認する" : "かだいを見る";
-  const focusLabel = actionable.length > 0
-    ? sec ? `未提出の課題が${actionable.length}件あります` : `まだのかだいが ${actionable.length}こ`
+  const focusLead = actionable.length > 0
+    ? sec ? "未提出の課題が" : "まだのかだいが "
     : selfGrade.length > 0
-      ? sec ? `自己採点が${selfGrade.length}件あります` : `こたえあわせが ${selfGrade.length}こ`
+      ? sec ? "自己採点が" : "こたえあわせが "
       : returned.length > 0
-        ? sec ? `返却が${returned.length}件届いています` : `へんきゃくが ${returned.length}こ`
+        ? sec ? "返却が" : "へんきゃくが "
+        : "";
+  const focusCount = actionable.length > 0
+    ? sec ? `${actionable.length}件` : `${actionable.length}こ`
+    : selfGrade.length > 0
+      ? sec ? `${selfGrade.length}件` : `${selfGrade.length}こ`
+      : returned.length > 0
+        ? sec ? `${returned.length}件` : `${returned.length}こ`
+        : "";
+  const focusTail = actionable.length > 0
+    ? sec ? "あります" : "あるよ"
+    : selfGrade.length > 0
+      ? sec ? "あります" : "あるよ"
+      : returned.length > 0
+        ? sec ? "届いています" : "きているよ"
         : sec ? "今できる課題はありません" : "いまできる かだいはないよ";
   const focusHint = actionable.length > 0
     ? sec ? "まずは答案を保存して提出へ。" : "まずは とりくんで 出そう。"
@@ -187,7 +201,11 @@ export default async function StudentHome() {
               <span className="hero-command-pulse" aria-hidden />
             </div>
             <div className="hero-command-focus">
-              <span className="hero-command-focus-label">{focusLabel}</span>
+              <span className="hero-command-focus-label">
+                {focusLead}
+                {focusCount && <strong className="hero-command-focus-count">{focusCount}</strong>}
+                {focusTail}
+              </span>
               <span className="hero-command-focus-hint">{focusHint}</span>
             </div>
           </div>

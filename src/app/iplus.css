@@ -1226,7 +1226,16 @@ body {
 .hero-command-focus { display: grid; gap: 8px; }
 .hero-command-focus-label {
   display: block;
-  font-size: 23px; font-weight: 900; line-height: 1.38; color: #fff;
+  font-size: 21px; font-weight: 900; line-height: 1.45; color: #fff;
+}
+.hero-command-focus-count {
+  display: inline;
+  margin: 0 4px;
+  color: #f6c453;
+  font-size: 1.38em;
+  line-height: inherit;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
 }
 .hero-command-focus-hint {
   display: block;
@@ -1242,7 +1251,7 @@ body {
   .learn-hero-title { font-size: 28px; }
   .learn-hero-sub { max-width: none; }
   .hero-command { min-height: 150px; padding: 18px; }
-  .hero-command-focus-label { font-size: 20px; }
+  .hero-command-focus-label { font-size: 19px; }
 }
 
 @media (max-width: 430px) {
