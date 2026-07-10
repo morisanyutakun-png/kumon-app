@@ -151,26 +151,19 @@ export default async function StudentHome() {
       : returned.length > 0
         ? sec ? "返却を確認する" : "へんきゃくを見る"
         : sec ? "課題を確認する" : "かだいを見る";
-  const focusCount = actionable.length > 0
-    ? actionable.length
-    : selfGrade.length > 0
-      ? selfGrade.length
-      : returned.length > 0
-        ? returned.length
-        : 0;
   const focusLabel = actionable.length > 0
-    ? sec ? "未提出の課題" : "まだのかだい"
+    ? sec ? `未提出の課題が${actionable.length}件あります` : `まだのかだいが ${actionable.length}こ`
     : selfGrade.length > 0
-      ? sec ? "自己採点待ち" : "こたえあわせ"
+      ? sec ? `自己採点が${selfGrade.length}件あります` : `こたえあわせが ${selfGrade.length}こ`
       : returned.length > 0
-        ? sec ? "返却の確認" : "へんきゃく"
-        : sec ? "学習準備OK" : "じゅんびOK";
+        ? sec ? `返却が${returned.length}件届いています` : `へんきゃくが ${returned.length}こ`
+        : sec ? "今できる課題はありません" : "いまできる かだいはないよ";
   const focusHint = actionable.length > 0
-    ? sec ? "まず答案を保存して提出へ進みます。" : "まずは とりくんで 出そう。"
+    ? sec ? "まずは答案を保存して提出へ。" : "まずは とりくんで 出そう。"
     : selfGrade.length > 0
-      ? sec ? "提出済みの範囲はすぐ解答解説で確認できます。" : "出したら すぐこたえあわせ。"
+      ? sec ? "提出済みの範囲を答え合わせ。" : "出したら すぐこたえあわせ。"
       : returned.length > 0
-        ? sec ? "先生の添削PDFとコメントを確認できます。" : "先生からの へんきゃくを見よう。"
+        ? sec ? "先生の添削を確認しましょう。" : "先生からの へんきゃくを見よう。"
         : sec ? "新しい課題が届いたらここに表示されます。" : "あたらしいかだいは ここに出るよ。";
 
   return (
@@ -188,27 +181,14 @@ export default async function StudentHome() {
           <Link href={primaryHref} className="hero-primary-cta">{primaryLabel}</Link>
         </div>
         {sec ? (
-          <div className="hero-command" aria-label="今日の学習サマリー">
+          <div className="hero-command" aria-label="今日の一歩">
             <div className="hero-command-top">
-              <span className="hero-command-eyebrow">Today&apos;s Priority</span>
+              <span className="hero-command-eyebrow">Today&apos;s Focus</span>
               <span className="hero-command-pulse" aria-hidden />
             </div>
             <div className="hero-command-focus">
-              <span>
-                <span className="hero-command-focus-label">{focusLabel}</span>
-                <span className="hero-command-focus-hint">{focusHint}</span>
-              </span>
-              <b>{focusCount}</b>
-            </div>
-            <div className="hero-command-steps" aria-label="学習の流れ">
-              <span className={actionable.length > 0 ? "is-active" : ""}>提出</span>
-              <span className={selfGrade.length > 0 ? "is-active" : ""}>自己採点</span>
-              <span className={returned.length > 0 ? "is-active" : ""}>返却</span>
-            </div>
-            <div className="hero-command-metrics">
-              <span><b>{actionable.length}</b>未提出</span>
-              <span><b>{selfGrade.length}</b>自己採点</span>
-              <span><b>{weekCount}</b>今週提出</span>
+              <span className="hero-command-focus-label">{focusLabel}</span>
+              <span className="hero-command-focus-hint">{focusHint}</span>
             </div>
           </div>
         ) : (
