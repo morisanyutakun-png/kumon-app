@@ -1,5 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import {
+  ArrowLeft,
+  BookOpenCheck,
+  CheckCircle2,
+  Download,
+  ExternalLink,
+  FileText,
+  PenLine,
+  Sparkles,
+  UploadCloud,
+} from "lucide-react";
 
 import { canAccessStudent, requirePrincipal } from "@/lib/access";
 import { isSecondary } from "@/lib/division";
@@ -35,6 +46,10 @@ export default async function StudentSubmissionPage({
     (f) => f.contentType === "application/pdf" || f.fileName.toLowerCase().endsWith(".pdf"),
   );
   const pdfUrl = pdfFile ? `/api/files/material/${pdfFile.id}` : null;
+  const rangeLabel = submission.rangeText || assignment.rangeText || material.name;
+  const sessionLabel = submission.sessionNo > 1 ? `${submission.sessionNo}回目` : "初回";
+  const actionTitle =
+    submission.status === "resubmit_required" ? "再提出の準備" : "答案を作成して提出";
   // 提出後(採点待ち含む)と再提出時は、解答解説と前回答案を見直せるようにする。
   const afterSubmit =
     !canSubmit ||
@@ -48,71 +63,123 @@ export default async function StudentSubmissionPage({
     submission.status === "resubmit_required";
 
   return (
-    <div>
+    <div className="submission-page">
       <MarkRead submissionId={submission.id} />
-      <div className="page-head" style={{ marginBottom: 14 }}>
-        <Link href="/home" className="db-badge">← 課題一覧へ</Link>
-        <h1 style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
-          {assignment.title || material.name}
-          <StatusBadge status={submission.status} />
-        </h1>
-        <p>
-          {detail.student.name} ・ {material.subject}
-          {submission.rangeText ? ` ・ 範囲 ${submission.rangeText}` : ""}
-          {submission.sessionNo > 1 ? ` ・ ${submission.sessionNo}回目` : ""}
-        </p>
-      </div>
+      <header className="submission-hero">
+        <div className="submission-hero-top">
+          <Link href="/home" className="submission-back">
+            <ArrowLeft size={16} aria-hidden />
+            課題一覧へ
+          </Link>
+          {canSubmit && (
+            <span className="submission-ready-pill">
+              <Sparkles size={15} aria-hidden />
+              提出前に確認
+            </span>
+          )}
+        </div>
+        <div className="submission-hero-main">
+          <div>
+            <div className="submission-kicker">TODAY&apos;S WORK</div>
+            <h1 className="submission-title">
+              {assignment.title || material.name}
+              <StatusBadge status={submission.status} />
+            </h1>
+            <div className="submission-meta">
+              <span>{detail.student.name}</span>
+              <span>{material.subject}</span>
+              <span>範囲 {rangeLabel}</span>
+              <span>{sessionLabel}</span>
+            </div>
+          </div>
+          {canSubmit && (
+            <div className="submission-focus">
+              <span>次にやること</span>
+              <b>答案を添付して提出</b>
+              <small>提出後すぐに解答解説を確認できます。</small>
+            </div>
+          )}
+        </div>
+      </header>
 
       {/* 課題の説明・問題ファイル */}
-      <div className="card">
-        <h2>課題</h2>
-        {assignment.instructions && <p style={{ whiteSpace: "pre-wrap" }}>{assignment.instructions}</p>}
-        {material.description && <p className="muted">{material.description}</p>}
+      <section className="submission-card submission-material-card">
+        <div className="submission-section-head">
+          <span className="submission-section-icon"><BookOpenCheck size={21} aria-hidden /></span>
+          <div>
+            <span>問題PDF</span>
+            <h2>課題内容</h2>
+          </div>
+        </div>
+        {assignment.instructions && <p className="submission-lead">{assignment.instructions}</p>}
+        {material.description && <p className="submission-muted">{material.description}</p>}
         {materialFiles.length > 0 ? (
-          <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+          <div className="submission-file-list">
             {materialFiles.map((f) => (
-              <div key={f.id} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                <span style={{ fontWeight: 700 }}>📄 {f.fileName}</span>
-                <a href={`/api/files/material/${f.id}`} target="_blank" rel="noreferrer" className="db-badge">開く</a>
-                <a href={`/api/files/material/${f.id}?dl=1`} className="db-badge">保存する</a>
+              <div key={f.id} className="submission-file-row">
+                <span className="submission-file-icon"><FileText size={19} aria-hidden /></span>
+                <span className="submission-file-main">
+                  <b>{f.fileName}</b>
+                  <small>この範囲の問題PDF</small>
+                </span>
+                <span className="submission-file-actions">
+                  <a href={`/api/files/material/${f.id}`} target="_blank" rel="noreferrer" className="submission-mini-button">
+                    <ExternalLink size={15} aria-hidden />
+                    開く
+                  </a>
+                  <a href={`/api/files/material/${f.id}?dl=1`} className="submission-mini-button">
+                    <Download size={15} aria-hidden />
+                    保存
+                  </a>
+                </span>
               </div>
             ))}
           </div>
         ) : (
           !assignment.instructions && !material.description && (
-            <p className="muted">課題の補足はありません。</p>
+            <p className="submission-muted">課題の補足はありません。</p>
           )
         )}
-      </div>
+      </section>
 
       {/* 解く(一画面) */}
       {canSubmit && (
-        <div className="card">
-          <h2>{submission.status === "resubmit_required" ? "もう一度取り組む" : "この課題を進める"}</h2>
+        <section className="submission-card submission-work-card">
+          <div className="submission-section-head">
+            <span className="submission-section-icon submission-section-icon-blue"><PenLine size={21} aria-hidden /></span>
+            <div>
+              <span>WORKFLOW</span>
+              <h2>{actionTitle}</h2>
+            </div>
+          </div>
           {submission.status === "resubmit_required" && (
-            <p className="r-NG" style={{ marginTop: 0 }}>
+            <p className="submission-alert">
               先生から再提出の依頼があります。コメントを確認して、もう一度提出してください。
             </p>
           )}
           {pdfUrl ? (
             <>
+              <div className="submission-stepper" aria-label="提出までの流れ">
+                <span className="is-current"><CheckCircle2 size={15} aria-hidden />問題を解く</span>
+                <span>答案を添付</span>
+                <span>提出する</span>
+              </div>
               <Link
                 href={`/submissions/${submission.id}/write`}
-                className="btn-primary big"
-                style={{ width: "100%" }}
+                className="submission-write-cta"
               >
-                ✏️ 一画面で書き込んで解く
+                <PenLine size={21} aria-hidden />
+                <span>
+                  <b>一画面で書き込んで解く</b>
+                  <small>保存すると、この画面の添付欄に戻ります。</small>
+                </span>
               </Link>
-              <p className="muted" style={{ margin: "10px 0 0", fontSize: 13 }}>
-                タッチペン・指で直接書き込めます。解き終わったら「これで保存する」でPDF化し、
-                この画面で添付内容を確認してから提出します。
-              </p>
               <div className="solve-alt">
-                <span>または</span>
+                <span>GoodNotes・紙で解いた場合</span>
               </div>
               <div id="submit" className="submit-panel">
                 <div className="submit-panel-head">
-                  <b>提出前の確認</b>
+                  <b><UploadCloud size={16} aria-hidden />答案を添付</b>
                   <span>保存したPDF、GoodNotesのPDF、途中式の写真などを最大3件まで添付できます。</span>
                 </div>
                 <SubmitForm submissionId={submission.id} resubmit={submission.status === "resubmit_required"} secondary={sec} />
@@ -121,13 +188,13 @@ export default async function StudentSubmissionPage({
           ) : (
             <div id="submit" className="submit-panel">
               <div className="submit-panel-head">
-                <b>提出前の確認</b>
+                <b><UploadCloud size={16} aria-hidden />答案を添付</b>
                 <span>PDF・写真を最大3件まで添付できます。</span>
               </div>
               <SubmitForm submissionId={submission.id} resubmit={submission.status === "resubmit_required"} secondary={sec} />
             </div>
           )}
-        </div>
+        </section>
       )}
 
       {/* 提出後: 答え合わせ(自己採点) — 解答解説 + 自分の答案 を即時開示 */}

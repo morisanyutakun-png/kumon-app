@@ -2,6 +2,16 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import {
+  CheckCircle2,
+  FileCheck2,
+  FileText,
+  Image as ImageIcon,
+  Plus,
+  Send,
+  UploadCloud,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { submitAnswer } from "@/lib/actions/submission-actions";
@@ -118,7 +128,7 @@ export function SubmitForm({
   }
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
+    <div className="submit-form">
       <input
         ref={inputRef}
         type="file"
@@ -131,48 +141,65 @@ export function SubmitForm({
 
       {picks.length === 0 ? (
         <button type="button" className="photo-drop" onClick={() => inputRef.current?.click()}>
-          <span className="photo-drop-ico" aria-hidden>📎</span>
-          <span style={{ fontWeight: 700 }}>{secondary ? "PDF・写真を添付する" : "PDF・写真をえらぶ"}</span>
-          <span className="muted" style={{ fontSize: 13 }}>
-            GoodNotesなどで書き込んだPDF、途中式の写真も添付できます（最大{MAX_FILES}件）
+          <span className="photo-drop-ico" aria-hidden><UploadCloud size={30} /></span>
+          <span className="photo-drop-title">{secondary ? "PDF・写真を添付する" : "PDF・写真をえらぶ"}</span>
+          <span className="photo-drop-copy">
+            GoodNotesのPDF、途中式の写真も使えます。
+          </span>
+          <span className="photo-drop-limit">
+            最大{MAX_FILES}件
           </span>
         </button>
       ) : (
         <>
+          <div className="photo-attached-head">
+            <span><CheckCircle2 size={17} aria-hidden />添付済み</span>
+            <b>{picks.length} / {MAX_FILES}</b>
+          </div>
           <div className="photo-grid">
             {picks.map((p, i) =>
               isPdf(p.file) ? (
                 <div key={p.url} className="photo-file">
-                  <span className="photo-file-icon">PDF</span>
+                  <span className="photo-file-icon"><FileText size={18} aria-hidden />PDF</span>
                   <span className="photo-file-name">{p.file.name}</span>
                   <span className="photo-file-size">{formatBytes(p.file.size)}</span>
-                  <button type="button" className="photo-del" onClick={() => remove(i)} aria-label="削除">×</button>
+                  <button type="button" className="photo-del" onClick={() => remove(i)} aria-label="削除">
+                    <X size={15} aria-hidden />
+                  </button>
                 </div>
               ) : (
                 <div key={p.url} className="photo-thumb">
+                  <span className="photo-kind"><ImageIcon size={15} aria-hidden />写真</span>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.url} alt={`選択 ${i + 1}`} />
-                  <button type="button" className="photo-del" onClick={() => remove(i)} aria-label="削除">×</button>
+                  <button type="button" className="photo-del" onClick={() => remove(i)} aria-label="削除">
+                    <X size={15} aria-hidden />
+                  </button>
                 </div>
               ),
             )}
             {picks.length < MAX_FILES && (
-              <button type="button" className="photo-add" onClick={() => inputRef.current?.click()}>＋ 追加</button>
+              <button type="button" className="photo-add" onClick={() => inputRef.current?.click()}>
+                <Plus size={20} aria-hidden />
+                追加
+              </button>
             )}
           </div>
           <p className="photo-help">
-            {picks.length} / {MAX_FILES} 件 添付中。提出するとすぐに解答解説で答え合わせへ進めます。
+            <FileCheck2 size={15} aria-hidden />
+            添付内容を確認してから提出します。提出後は解答解説へ進めます。
           </p>
         </>
       )}
 
-      <div>
-        <button type="button" className="btn-primary big" onClick={submit} disabled={pending}>
+      <div className="submit-form-actions">
+        <button type="button" className="submit-final-button" onClick={submit} disabled={pending}>
+          {picks.length > 0 && !pending && <Send size={18} aria-hidden />}
           {pending
             ? "提出中…"
             : picks.length === 0
-              ? secondary ? "まず答案を添付する" : "まず答案をえらぶ"
-              : resubmit ? "この内容で再提出する" : "この内容で提出する"}
+              ? secondary ? "答案を添付する" : "答案をえらぶ"
+              : resubmit ? "内容を確認して再提出する" : "内容を確認して提出する"}
         </button>
       </div>
     </div>
