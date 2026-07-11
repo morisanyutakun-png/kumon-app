@@ -1666,6 +1666,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
   min-width: 78px;
   min-height: 38px;
   padding: 0 14px;
@@ -1675,7 +1676,17 @@ body {
   font-size: 12px;
   font-weight: 900;
   white-space: nowrap;
+  box-shadow: 0 2px 6px -2px color-mix(in srgb, var(--lp-tone, var(--primary)) 60%, transparent);
 }
+/* タップして進める「ボタン」であることを示す矢印 */
+.lp-action-cta::after {
+  content: "\203A";
+  font-size: 1.2em;
+  line-height: 0;
+  font-weight: 900;
+  margin-top: -1px;
+}
+.lp-action-card:active .lp-action-cta { transform: translateY(1px); }
 .lp-action-card.tone-task { --lp-tone: #1d8bd1; }
 .lp-action-card.tone-self { --lp-tone: #0f9e74; }
 .lp-action-card.tone-returned { --lp-tone: #be123c; }
