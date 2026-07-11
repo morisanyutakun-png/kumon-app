@@ -1339,12 +1339,10 @@ body {
      モバイル生徒ホーム: yuta-eng.com の編集的デザインに寄せる。
      あたたかい紙色の地 + 濃紺→ティールの上質なヒーロー + 丸ピルの装飾。
      ============================================================ */
+  /* 生徒アプリの全画面を、あたたかい紙色 + 角のやわらかい光の地に統一。 */
   .iplus-main.narrow {
     max-width: none;
     padding: 14px 13px calc(72px + env(safe-area-inset-bottom));
-  }
-  /* ホーム画面だけ、紙色の背景 + 角のやわらかい光でデザイン感を出す。 */
-  .iplus-main.narrow:has(.student-home) {
     background:
       radial-gradient(120% 55% at 100% -2%, rgba(94, 234, 212, 0.13), transparent 60%),
       radial-gradient(95% 42% at -10% 2%, rgba(249, 115, 22, 0.06), transparent 58%),
@@ -1847,6 +1845,58 @@ body {
   }
   .lp-meter {
     margin: 4px 0 24px;
+  }
+
+  /* ── 他の生徒画面(課題/自己採点/返却/成績)もホームと同じ editorial に統一 ── */
+
+  /* 見出し: ブランドグラデのヘアライン + 太い h1(ホームの lp-section-head と統一)。 */
+  .iplus-main.narrow .page-head {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .iplus-main.narrow .page-head::before {
+    content: "";
+    width: 42px;
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #1d4ed8 0%, #0d9488 42%, #16a34a 70%, #f97316 100%);
+    margin-bottom: 9px;
+  }
+  .iplus-main.narrow .page-head h1 {
+    font-size: 23px;
+    font-weight: 900;
+    letter-spacing: 0.005em;
+    color: var(--ink, #14365a);
+  }
+  .iplus-main.narrow .page-head p {
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: #5b6b7c;
+  }
+
+  /* カード: 紙面に浮く白カード(角丸・やわらかい影・薄い罫線)。 */
+  .iplus-main.narrow .card {
+    border: 1px solid rgba(11, 29, 74, 0.08);
+    border-radius: 18px;
+    box-shadow: 0 18px 40px -34px rgba(11, 29, 74, 0.26);
+  }
+  /* 課題カード(.task)も直角→角丸のやわらかいカードに。 */
+  .iplus-main.narrow .task {
+    border-radius: 16px;
+    border-color: rgba(11, 29, 74, 0.08);
+    box-shadow: 0 14px 30px -26px rgba(11, 29, 74, 0.28);
+  }
+  /* 主ボタン・課題カードのCTAを丸ピルに(ホームCTAと統一)。 */
+  .iplus-main.narrow .btn-primary,
+  .iplus-main.narrow .task-cta {
+    border-radius: 999px;
+  }
+  /* 課題カードのステータスバッジも角丸ピルに。 */
+  .iplus-main.narrow .task-title > span {
+    border-radius: 999px;
   }
 }
 @media (max-width: 560px) {
