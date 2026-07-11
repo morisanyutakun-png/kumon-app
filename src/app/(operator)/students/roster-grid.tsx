@@ -287,9 +287,12 @@ export function RosterGrid({ rows, admin }: { rows: RosterRow[]; admin: boolean 
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // ログインID/PIN/パスワードはクライアントでのみ乱数生成する(SSRとのhydration不一致を避けるため mount 後に設定)。
+    /* eslint-disable react-hooks/set-state-in-effect */
     setLoginId(genId());
     setPin(genPin());
     setGPassword(genPassword());
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   function add() {

@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // ベンダー配布物(pdf.js worker 等の minified アセット)は lint 対象外。
+    "public/**",
   ]),
 ]);
 

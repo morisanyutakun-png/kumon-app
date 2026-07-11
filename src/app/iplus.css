@@ -1344,102 +1344,111 @@ body {
   }
   .learn-hero {
     grid-template-columns: 1fr;
-    gap: 13px;
-    margin: 0 -2px 18px;
-    padding: 18px 16px;
-    border-radius: 18px;
+    gap: 11px;
+    margin: 0 -2px 16px;
+    padding: 15px 15px 16px;
+    border-radius: 16px;
     border-color: rgba(27, 75, 140, 0.14);
     background:
-      radial-gradient(circle at 92% 8%, rgba(45, 212, 191, 0.24), transparent 32%),
+      radial-gradient(circle at 92% 8%, rgba(45, 212, 191, 0.22), transparent 34%),
       linear-gradient(135deg, #102a67 0%, #1d477f 56%, #0f766e 100%);
-    box-shadow: 0 20px 44px -36px rgba(15, 40, 70, 0.72);
+    box-shadow: 0 16px 36px -32px rgba(15, 40, 70, 0.72);
   }
   .learn-hero::before {
     background:
-      linear-gradient(125deg, transparent 0 61%, rgba(255, 255, 255, 0.10) 61% 61.5%, transparent 61.5% 100%);
-    opacity: 0.65;
+      linear-gradient(125deg, transparent 0 61%, rgba(255, 255, 255, 0.08) 61% 61.5%, transparent 61.5% 100%);
+    opacity: 0.5;
   }
   .learn-hero::after {
-    background-size: 28px 28px;
-    opacity: 0.3;
+    background-size: 30px 30px;
+    opacity: 0.2;
   }
   .learn-hero-body {
     justify-content: flex-start;
   }
   .learn-hero-kicker {
-    min-height: 21px;
-    margin-bottom: 10px;
-    padding: 0 9px;
-    font-size: 9.5px;
-    letter-spacing: 0.14em;
+    min-height: 19px;
+    margin-bottom: 8px;
+    padding: 0 8px;
+    font-size: 9px;
+    letter-spacing: 0.13em;
   }
   .learn-hero-title {
-    font-size: clamp(23px, 7vw, 29px);
-    line-height: 1.18;
+    font-size: clamp(20px, 5.6vw, 24px);
+    line-height: 1.24;
     letter-spacing: -0.01em;
     text-wrap: balance;
   }
   .learn-hero-sub {
-    margin-top: 8px;
-    font-size: 12.5px;
-    line-height: 1.72;
+    margin-top: 5px;
+    font-size: 12px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.85);
   }
   .hero-chips {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
     gap: 6px;
-    margin-top: 13px;
+    margin-top: 10px;
   }
   .hero-chip {
     width: auto;
     min-width: 0;
     justify-content: center;
     gap: 4px;
-    padding: 7px 4px;
-    font-size: 11px;
+    padding: 6px 3px;
+    font-size: 10.5px;
     line-height: 1;
     text-align: center;
     border-radius: 8px;
   }
   .hero-chip svg {
-    width: 13px;
-    height: 13px;
+    width: 12px;
+    height: 12px;
   }
   .hero-primary-cta {
     width: 100%;
-    min-height: 46px;
-    margin-top: 13px;
+    min-height: 44px;
+    margin-top: 11px;
     border-radius: 12px;
-    font-size: 14px;
-    box-shadow: 0 16px 28px -20px rgba(9, 30, 55, 0.8);
+    font-size: 13.5px;
+    box-shadow: 0 14px 24px -20px rgba(9, 30, 55, 0.8);
   }
   .hero-command {
     min-height: 0;
-    gap: 11px;
-    padding: 14px;
-    border-radius: 14px;
-    background: rgba(8, 22, 52, 0.34);
+    gap: 6px;
+    padding: 11px 13px 12px;
+    border-radius: 12px;
+    background: rgba(8, 22, 52, 0.32);
   }
   .hero-command::after {
-    inset: 8px;
-    border-radius: 10px;
+    display: none;
+  }
+  .hero-command-top {
+    /* eyebrow と pulse を1行に収め、フォーカス文へ視線を送る */
+    margin-bottom: 1px;
   }
   .hero-command-eyebrow {
-    font-size: 9px;
-    letter-spacing: 0.15em;
+    font-size: 8.5px;
+    letter-spacing: 0.14em;
+  }
+  .hero-command-pulse {
+    width: 8px;
+    height: 8px;
+    box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.14);
   }
   .hero-command-focus-label {
-    font-size: 18px;
-    line-height: 1.35;
+    font-size: 15px;
+    line-height: 1.4;
   }
   .hero-command-focus-count {
-    margin: 0 3px;
-    font-size: 1.28em;
+    margin: 0 2px;
+    font-size: 1.22em;
   }
   .hero-command-focus-hint {
-    font-size: 11.5px;
-    line-height: 1.55;
+    font-size: 11px;
+    line-height: 1.5;
   }
 }
 

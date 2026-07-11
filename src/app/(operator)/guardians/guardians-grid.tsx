@@ -41,6 +41,8 @@ export function GuardiansGrid({ parents }: { parents: GuardianRow[] }) {
   const [issued, setIssued] = useState<{ name: string; email: string; password: string } | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
 
+  // パスワードはクライアントでのみ乱数生成する(SSRとのhydration不一致を避けるため mount 後に設定)。
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setPassword(genPassword()), []);
 
   function add() {

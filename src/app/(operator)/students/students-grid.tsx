@@ -47,10 +47,13 @@ export function StudentsGrid({ students }: { students: StudentRow[] }) {
   const [issued, setIssued] = useState<{ name: string; loginId: string; pin: string } | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
 
-  // 初期表示で ID/PIN を自動割当(編集可)
+  // 初期表示で ID/PIN を自動割当(編集可)。
   useEffect(() => {
+    // ID/PIN はクライアントでのみ乱数生成する(SSRとのhydration不一致を避けるため mount 後に設定)。
+    /* eslint-disable react-hooks/set-state-in-effect */
     setLoginId(genId());
     setPin(genPin());
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   function add() {

@@ -187,11 +187,13 @@ function FileSlot({
 function MaterialListRow({
   m,
   selected,
+  subjects,
   onSelect,
   onChanged,
 }: {
   m: WsMaterial;
   selected: boolean;
+  subjects: string[];
   onSelect: () => void;
   onChanged: () => void;
 }) {
@@ -262,7 +264,7 @@ function MaterialListRow({
     >
       <button type="button" className="mws-open" onClick={onSelect} title="範囲を開く">範囲</button>
       <select value={subject} onChange={(e) => { setSubject(e.target.value); save({ subject: e.target.value }); }} style={{ ...ctrl, width: 84 }} aria-label="教科">
-        {SUBJECT_OPTIONS(subject).map((s) => <option key={s} value={s}>{s}</option>)}
+        {SUBJECT_OPTIONS(subject, subjects).map((s) => <option key={s} value={s}>{s}</option>)}
       </select>
       <input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => save()} onKeyDown={onEnter((e) => (e.target as HTMLInputElement).blur())} style={{ ...ctrl, flex: "1 1 140px", minWidth: 100, fontWeight: 600 }} aria-label="教材名" />
       <select value={progressType} onChange={(e) => { setProgressType(e.target.value); save({ progressType: e.target.value }); }} style={{ ...ctrl, width: 76 }} aria-label="進み方">
@@ -279,10 +281,8 @@ function MaterialListRow({
   );
 }
 
-// SUBJECT_OPTIONS は親から渡す代わりに、選択中の教科を必ず含めるためのヘルパ。
-let SUBJECTS_GLOBAL: string[] = [];
-function SUBJECT_OPTIONS(current: string): string[] {
-  const base = SUBJECTS_GLOBAL;
+// 選択中の教科を必ず候補に含めるヘルパ(教科一覧は props で受け取る)。
+function SUBJECT_OPTIONS(current: string, base: string[]): string[] {
   return current && !base.includes(current) ? [current, ...base] : base;
 }
 
@@ -454,7 +454,7 @@ function RangePanel({ sel, onChanged }: { sel: WsSelected; onChanged: () => void
         ) : (
           <>
             <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-              <input ref={addRef} value={newRange} onChange={(e) => setNewRange(e.target.value)} onKeyDown={onEnter((e) => { e.preventDefault(); add(); })} placeholder="範囲を末尾に追加" style={{ ...ctrl, flex: 1, height: 38 }} />
+              <input ref={addRef} value={newRange} onChange={(e) => setNewRange(e.target.value)} onKeyDown={(e) => { if (e.key !== "Enter" || e.nativeEvent.isComposing || e.keyCode === 229) return; e.preventDefault(); add(); }} placeholder="範囲を末尾に追加" style={{ ...ctrl, flex: 1, height: 38 }} />
               <button type="button" className="btn-primary" onClick={add} disabled={pending}>＋ 末尾に追加</button>
             </div>
 
@@ -502,7 +502,6 @@ export function MaterialsWorkspace({
   selected: WsSelected | null;
   subjects: string[];
 }) {
-  SUBJECTS_GLOBAL = subjects;
   const router = useRouter();
   const refresh = () => router.refresh();
   const select = (id: string) => router.push(`/materials?m=${id}`);
@@ -580,7 +579,7 @@ export function MaterialsWorkspace({
               <p className="empty" style={{ padding: 16 }}>教材がありません。「＋ 教材追加」から作成してください。</p>
             ) : (
               filtered.map((m) => (
-                <MaterialListRow key={m.id} m={m} selected={selected?.id === m.id} onSelect={() => select(m.id)} onChanged={refresh} />
+                <MaterialListRow key={m.id} m={m} selected={selected?.id === m.id} subjects={subjects} onSelect={() => select(m.id)} onChanged={refresh} />
               ))
             )}
           </div>

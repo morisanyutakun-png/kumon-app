@@ -19,12 +19,13 @@ export function LoginForm() {
 
   // 送信が長引いたら「無言の空回り」にせず、状況を伝える。
   useEffect(() => {
-    if (!pending) {
-      setSlow(false);
-      return;
-    }
+    if (!pending) return;
     const t = setTimeout(() => setSlow(true), 8000);
-    return () => clearTimeout(t);
+    // 送信が終わったら(pending: true→false でこの cleanup が走る)遅延表示を解除。
+    return () => {
+      clearTimeout(t);
+      setSlow(false);
+    };
   }, [pending]);
 
   return (
