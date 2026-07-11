@@ -1090,23 +1090,16 @@ body:has(.iplus-main.narrow) {
 }
 
 /* ============================================================
-   直角・フラットに統一 (丸角/強い影/グラス = AI感を排除)
+   直角を維持するのは、密なフォーム/採点グリッドの入力とセグメント操作のみ
+   (機能優先)。カード・ボタン・バッジ等の chrome は yuta-eng 調の角丸に委ねる。
    ============================================================ */
-.card,
-.btn-primary, .btn-secondary, .btn-danger,
-.badge, .metric-chip,
-.dashboard .tile,
-.grid-scroll, .assign-wrap, .grade-canvas, .grade-canvas-head,
-.action-menu-body,
-.notice, .notice .notice-ico,
-.cred-result, .login-demo .btn-secondary,
-.radio-group, .radio-group .radio, .tag-chip,
+.radio-group, .radio-group .radio,
 .form-row input, .form-row select, .form-row textarea,
 .toolbar-field input, .toolbar-field select,
 .entry-grid input[type="text"], .entry-grid input[type="number"],
 .grade-field input, .grade-panel textarea, .grade-panel input[type="text"],
 .cred-form input, .cred-inline input,
-.assign-grid .ag-add-form select, .assign-grid .ag-add-form input, .assign-grid .ag-add-btn {
+.assign-grid .ag-add-form select, .assign-grid .ag-add-form input {
   border-radius: 0 !important;
 }
 /* 影は使わず、境界線できっちり見せる */
@@ -3708,6 +3701,55 @@ body:has(.iplus-main.narrow) {
 [data-division] .hero-chip {
   background: rgba(255, 255, 255, 0.10);
   border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+}
+
+/* ── 運営(採点者/管理者)画面も yuta-eng 調に統一 ──
+   密度の高い作業画面のため、表・グリッドは機能を保ち、周りの chrome
+   (地・見出し・カード・ボタン・バッジ)だけを editorial に寄せる。 */
+body:has(.iplus-main.wide) {
+  background: #fbf9f4;
+}
+.iplus-main.wide {
+  background:
+    radial-gradient(70% 26% at 100% -2%, rgba(94, 234, 212, 0.10), transparent 60%),
+    radial-gradient(55% 22% at -3% 1%, rgba(249, 115, 22, 0.05), transparent 58%),
+    #fbf9f4;
+}
+/* 見出し: ブランドグラデのヘアライン(生徒画面と統一)。 */
+.iplus-main.wide .page-head {
+  position: relative;
+  padding-top: 15px;
+}
+.iplus-main.wide .page-head::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 42px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1d4ed8 0%, #0d9488 42%, #16a34a 70%, #f97316 100%);
+}
+.iplus-main.wide .page-head h1 { font-weight: 900; letter-spacing: 0.005em; }
+.iplus-main.wide .page-head p { color: #5b6b7c; }
+/* セクション見出しの件数バッジを丸ピルに。 */
+.iplus-main.wide .lsection-n { border-radius: 999px; }
+/* カード類を角丸・薄い罫線・やわらかい影で紙面に浮かせる。 */
+.iplus-main.wide .card,
+.iplus-main.wide .batch-student-card,
+.iplus-main.wide .gstudent,
+.iplus-main.wide .dashboard .tile,
+.iplus-main.wide .grid-scroll {
+  border: 1px solid rgba(11, 29, 74, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 16px 38px -34px rgba(11, 29, 74, 0.22);
+}
+/* ボタン・操作バッジを丸ピルに。 */
+.iplus-main.wide .btn-primary,
+.iplus-main.wide .btn-secondary,
+.iplus-main.wide .btn-danger,
+.iplus-main.wide .db-badge {
   border-radius: 999px;
 }
 
