@@ -1374,23 +1374,21 @@ body {
     letter-spacing: 0.13em;
   }
   .learn-hero-title {
-    font-size: clamp(20px, 5.6vw, 24px);
-    line-height: 1.24;
+    font-size: clamp(18px, 4.9vw, 22px);
+    line-height: 1.3;
     letter-spacing: -0.01em;
     text-wrap: balance;
   }
+  /* モバイルでは説明文は冗長。挨拶→ステータス→主アクションだけに絞る。 */
   .learn-hero-sub {
-    margin-top: 5px;
-    font-size: 12px;
-    line-height: 1.55;
-    color: rgba(255, 255, 255, 0.85);
+    display: none;
   }
   .hero-chips {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
     gap: 6px;
-    margin-top: 10px;
+    margin-top: 11px;
   }
   .hero-chip {
     width: auto;
@@ -1407,48 +1405,20 @@ body {
     width: 12px;
     height: 12px;
   }
+  /* 主アクション=1つだけ。ラベルは状態に応じて変わり「次の一手」を明示する。 */
   .hero-primary-cta {
     width: 100%;
-    min-height: 44px;
-    margin-top: 11px;
+    min-height: 48px;
+    margin-top: 13px;
     border-radius: 12px;
-    font-size: 13.5px;
-    box-shadow: 0 14px 24px -20px rgba(9, 30, 55, 0.8);
+    font-size: 14px;
+    font-weight: 900;
+    box-shadow: 0 16px 26px -18px rgba(9, 30, 55, 0.85);
   }
+  /* TODAY'S FOCUS ボックスは、直下の「今日の学習」カード群と主CTAで
+     役割が重複するため、モバイルでは非表示にしてヒーローの高さを抑える。 */
   .hero-command {
-    min-height: 0;
-    gap: 6px;
-    padding: 11px 13px 12px;
-    border-radius: 12px;
-    background: rgba(8, 22, 52, 0.32);
-  }
-  .hero-command::after {
     display: none;
-  }
-  .hero-command-top {
-    /* eyebrow と pulse を1行に収め、フォーカス文へ視線を送る */
-    margin-bottom: 1px;
-  }
-  .hero-command-eyebrow {
-    font-size: 8.5px;
-    letter-spacing: 0.14em;
-  }
-  .hero-command-pulse {
-    width: 8px;
-    height: 8px;
-    box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.14);
-  }
-  .hero-command-focus-label {
-    font-size: 15px;
-    line-height: 1.4;
-  }
-  .hero-command-focus-count {
-    margin: 0 2px;
-    font-size: 1.22em;
-  }
-  .hero-command-focus-hint {
-    font-size: 11px;
-    line-height: 1.5;
   }
 }
 
