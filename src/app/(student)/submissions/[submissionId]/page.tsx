@@ -142,7 +142,6 @@ export default async function StudentSubmissionPage({
                 <PenLine size={21} aria-hidden />
                 <span>
                   <b>画面で解く</b>
-                  <small>保存後、この画面で提出します</small>
                 </span>
               </Link>
               <div id="submit" className="submit-panel">

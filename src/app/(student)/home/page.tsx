@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CSSProperties, ReactNode } from "react";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -9,8 +10,10 @@ import { encourageMessage, levelInfo, studyStreak } from "@/lib/encourage";
 import { listMaterialProgress, type MaterialProgressRow } from "@/lib/material-progress";
 import { listGradingHistory, listNotifications, listSubmissions } from "@/lib/queries";
 import { GradeReport } from "@/components/grade-report";
+import { MaterialCoverIcon } from "@/components/material-cover-icon";
 import { Mascot } from "@/components/mascot";
 import { IconCalendar, IconCheck, IconFlame, IconMedal, IconRedo, IconStar } from "@/components/icons";
+import { subjectAccentColor } from "@/lib/material-covers";
 
 function progressBadge(p: MaterialProgressRow, sec: boolean): string {
   switch (p.state) {
@@ -32,6 +35,30 @@ function progressLine(p: MaterialProgressRow, sec: boolean): string {
   return sec ? "次の案内をお待ちください。" : "つぎの案内をまってね。";
 }
 
+function ProgressShell({
+  p,
+  children,
+}: {
+  p: MaterialProgressRow;
+  children: ReactNode;
+}) {
+  const style = {
+    "--accent": subjectAccentColor(p.subject),
+  } as CSSProperties;
+  if (p.currentSubmissionId) {
+    return (
+      <Link href={`/submissions/${p.currentSubmissionId}`} className="mat-progress-card" style={style}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <div className="mat-progress-card" style={style}>
+      {children}
+    </div>
+  );
+}
+
 function MaterialProgressCards({ rows, sec }: { rows: MaterialProgressRow[]; sec: boolean }) {
   if (rows.length === 0) return null;
   return (
@@ -45,13 +72,22 @@ function MaterialProgressCards({ rows, sec }: { rows: MaterialProgressRow[]; sec
           const total = p.totalCount;
           const pct = total && total > 0 ? Math.min(100, Math.round((p.passedCount / total) * 100)) : 0;
           return (
-            <div key={p.assignmentId} className="mat-progress-card">
-              <div className="mat-progress-head">
-                <span className="mat-progress-subject">{p.subject || "教材"}</span>
-                <span className={`mat-progress-badge ${p.state}`}>{progressBadge(p, sec)}</span>
+            <ProgressShell key={p.assignmentId} p={p}>
+              <div className="mat-progress-top">
+                <MaterialCoverIcon
+                  materialName={p.materialName}
+                  subject={p.subject}
+                  className="mat-progress-cover"
+                />
+                <div className="mat-progress-main">
+                  <div className="mat-progress-head">
+                    <span className="mat-progress-subject">{p.subject || "教材"}</span>
+                    <span className={`mat-progress-badge ${p.state}`}>{progressBadge(p, sec)}</span>
+                  </div>
+                  <div className="mat-progress-title">{p.materialName}</div>
+                  <div className="mat-progress-line">{progressLine(p, sec)}</div>
+                </div>
               </div>
-              <div className="mat-progress-title">{p.materialName}</div>
-              <div className="mat-progress-line">{progressLine(p, sec)}</div>
               <div className="mat-progress-bar"><span style={{ width: `${pct}%` }} /></div>
               <div className="mat-progress-foot">
                 <span>{total ? `合格 ${p.passedCount} / 全${total}` : `合格 ${p.passedCount}`}</span>
@@ -59,7 +95,7 @@ function MaterialProgressCards({ rows, sec }: { rows: MaterialProgressRow[]; sec
                 {p.resubmitCount > 0 && <span>{sec ? `再提出 ${p.resubmitCount}` : `もう一度 ${p.resubmitCount}`}</span>}
                 {p.isComplete && <span>{sec ? "教材終了" : "ぜんぶ合格"}</span>}
               </div>
-            </div>
+            </ProgressShell>
           );
         })}
       </div>
