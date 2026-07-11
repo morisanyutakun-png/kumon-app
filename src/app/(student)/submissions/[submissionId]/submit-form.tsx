@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
-  FileCheck2,
   FileText,
   Image as ImageIcon,
   Plus,
@@ -141,13 +140,10 @@ export function SubmitForm({
 
       {picks.length === 0 ? (
         <button type="button" className="photo-drop" onClick={() => inputRef.current?.click()}>
-          <span className="photo-drop-ico" aria-hidden><UploadCloud size={30} /></span>
-          <span className="photo-drop-title">{secondary ? "PDF・写真を添付する" : "PDF・写真をえらぶ"}</span>
-          <span className="photo-drop-copy">
-            GoodNotesのPDF、途中式の写真も使えます。
-          </span>
-          <span className="photo-drop-limit">
-            最大{MAX_FILES}件
+          <span className="photo-drop-ico" aria-hidden><UploadCloud size={24} /></span>
+          <span className="photo-drop-text">
+            <b>{secondary ? "答案ファイルを選ぶ" : "答案をえらぶ"}</b>
+            <small>PDF・写真・GoodNotes（最大{MAX_FILES}件）</small>
           </span>
         </button>
       ) : (
@@ -185,23 +181,17 @@ export function SubmitForm({
               </button>
             )}
           </div>
-          <p className="photo-help">
-            <FileCheck2 size={15} aria-hidden />
-            添付内容を確認してから提出します。提出後は解答解説へ進めます。
-          </p>
         </>
       )}
 
-      <div className="submit-form-actions">
-        <button type="button" className="submit-final-button" onClick={submit} disabled={pending}>
-          {picks.length > 0 && !pending && <Send size={18} aria-hidden />}
-          {pending
-            ? "提出中…"
-            : picks.length === 0
-              ? secondary ? "答案を添付する" : "答案をえらぶ"
-              : resubmit ? "内容を確認して再提出する" : "内容を確認して提出する"}
-        </button>
-      </div>
+      {picks.length > 0 && (
+        <div className="submit-form-actions">
+          <button type="button" className="submit-final-button" onClick={submit} disabled={pending}>
+            {!pending && <Send size={18} aria-hidden />}
+            {pending ? "提出中…" : resubmit ? "再提出する" : "提出する"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
