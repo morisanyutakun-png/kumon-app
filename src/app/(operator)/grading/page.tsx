@@ -5,6 +5,7 @@ import { getActiveDivision } from "@/lib/active-division";
 import { divisionForGrade } from "@/lib/division";
 import { listSubmissions, type SubmissionRow } from "@/lib/queries";
 import { GradeByStudent, type StudentGroup } from "./grade-by-student";
+import { StudentBundleDownloadActions } from "./student-bundle-download-actions";
 
 function fmt(d: Date | null): string {
   if (!d) return "—";
@@ -139,14 +140,19 @@ export default async function GradingPage({
                     <h2>{g.name}</h2>
                     <p>{g.grade} ・ 未処理の提出 {g.submitted.length} 件</p>
                   </div>
-                  <a href={`${answersUrl}&dl=1`} className="btn-primary">答案セットを保存</a>
+                  <StudentBundleDownloadActions
+                    answerDownloadUrl={`${answersUrl}&dl=1`}
+                    solutionDownloadUrl={`${solutionsUrl}&dl=1`}
+                  />
                 </div>
                 <div className="batch-student-actions">
-                  <a href={`${solutionsUrl}&dl=1`} className="db-badge strong">解答セットを保存</a>
-                  <a href={answersUrl} target="_blank" rel="noreferrer" className="db-badge">答案セットを確認</a>
-                  <a href={solutionsUrl} target="_blank" rel="noreferrer" className="db-badge">解答セットを確認</a>
+                  <a href={answersUrl} target="_blank" rel="noreferrer" className="db-badge">答案PDFを確認</a>
+                  <a href={solutionsUrl} target="_blank" rel="noreferrer" className="db-badge">解答解説PDFを確認</a>
                   <Link href="/grading?tab=input" className="db-badge">点数入力へ</Link>
                 </div>
+                <p className="batch-bundle-note">
+                  表示中の{g.submitted.length}件だけでPDFを作成します。あとから提出が増えても、このPDFには混ざりません。
+                </p>
                 <ol className="batch-submission-list">
                   {g.submitted.map((s) => (
                     <li key={s.submissionId}>
@@ -175,7 +181,7 @@ export default async function GradingPage({
     <div>
       <GradingHead view="input" todoCount={groups.length} />
       <p className="hint" style={{ marginTop: -6, marginBottom: 12 }}>
-        点数入力には、答案セットを保存または確認した提出だけが表示されます。GoodNotesなどで添削したPDFは各生徒欄から取り込めます。
+        点数入力には、答案PDFまたは解答解説PDFを保存・確認した提出だけが表示されます。GoodNotesなどで添削したPDFは各生徒欄から取り込めます。
       </p>
 
       <GradeByStudent groups={groups} grader={p.name} />
@@ -214,7 +220,7 @@ function GradingHead({ view, todoCount }: { view: "markup" | "input" | "done"; t
     <>
       <div className="page-head" style={{ marginBottom: 14 }}>
         <h1>採点</h1>
-        <p>答案セットと解答セットを保存し、GoodNotesなどで添削したPDFを取り込んでから点数入力・返却を確定します。</p>
+        <p>答案PDFと解答解説PDFを保存し、GoodNotesなどで添削したPDFを取り込んでから点数入力・返却を確定します。</p>
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         <Link href="/grading?tab=markup" className={tabCls(view === "markup")} style={{ padding: "8px 18px" }}>

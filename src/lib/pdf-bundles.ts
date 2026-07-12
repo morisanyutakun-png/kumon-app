@@ -182,26 +182,49 @@ export async function buildStudentSolutionBundlePdf(
   organizationId: string,
   studentId: string,
   options: StudentBundleOptions = {},
-): Promise<Uint8Array | null> {
+): Promise<{ bytes: Uint8Array; submissions: StudentBundleSubmission[] } | null> {
   const rows = await listStudentGradableSubmissions(organizationId, studentId, options);
   if (rows.length === 0) return null;
 
   const pdf = await PDFDocument.create();
+  const metas: StudentBundleSubmission[] = [];
+
   for (const row of rows) {
     const detail = await getSubmissionDetail(organizationId, row.submissionId);
     const solutionFiles = detail?.solutionFiles.filter(isPdfFile) ?? [];
+    const startPage = pdf.getPageCount();
+    let appended = 0;
+
     for (const f of solutionFiles) {
       const file = await readStored(f);
       if (!file) continue;
       try {
-        await appendPdf(pdf, file.body);
+        appended += await appendPdf(pdf, file.body);
       } catch {
         continue;
       }
     }
+
+    if (appended <= 0) continue;
+
+    const endPage = pdf.getPageCount() - 1;
+    metas.push({
+      submissionId: row.submissionId,
+      studentId: row.studentId,
+      studentName: row.studentName,
+      studentGrade: row.studentGrade,
+      materialName: row.materialName,
+      subject: row.subject,
+      rangeText: row.rangeText,
+      sessionNo: row.sessionNo,
+      attemptCount: row.attemptCount,
+      startPage,
+      endPage,
+      pageCount: endPage - startPage + 1,
+    });
   }
 
-  return pdf.getPageCount() > 0 ? pdf.save() : null;
+  return pdf.getPageCount() > 0 ? { bytes: await pdf.save(), submissions: metas } : null;
 }
 
 /** 答案セットPDFを開いた/保存した提出を「採点中」に移し、添削キューから外す。 */

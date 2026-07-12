@@ -2175,7 +2175,50 @@ body:has(.iplus-main.narrow) {
 .batch-student-head h2 { margin: 0; font-size: 18px; color: var(--ink); }
 .batch-student-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; font-weight: 700; }
 .batch-student-head .btn-primary { white-space: nowrap; }
+.bundle-save-actions {
+  display: grid;
+  gap: 7px;
+  min-width: 190px;
+  justify-items: stretch;
+}
+.bundle-save-button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: 0 12px 24px -18px rgba(11, 29, 74, 0.55);
+}
+.bundle-save-button.primary { background: #243f95; color: #fff; }
+.bundle-save-button.secondary { background: #0d9488; color: #fff; }
+.bundle-save-button.is-saved {
+  background: #e6f7ef;
+  border-color: #9ad9bd;
+  color: #0e7a55;
+  box-shadow: none;
+}
+.bundle-save-note {
+  margin: -1px 0 0;
+  text-align: center;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+}
 .batch-student-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.batch-bundle-note {
+  margin: 10px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.6;
+}
 .batch-submission-list { margin: 12px 0 0; padding-left: 22px; display: grid; gap: 8px; }
 .batch-submission-list li { color: #334155; font-size: 13px; }
 .batch-submission-list a { font-weight: 900; color: var(--ink); }

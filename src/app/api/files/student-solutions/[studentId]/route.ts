@@ -26,15 +26,18 @@ export async function GET(
     submissionIds: ids,
   };
 
-  const bytes = await buildStudentSolutionBundlePdf(p.organizationId, studentId, options);
-  if (!bytes) return new Response("Not found", { status: 404 });
+  const bundle = await buildStudentSolutionBundlePdf(p.organizationId, studentId, options);
+  if (!bundle) return new Response("Not found", { status: 404 });
 
-  if (scope === "submitted") {
-    await markStudentBundlePickedForGrading(p.organizationId, studentId, ids ?? [], p.id);
-  }
+  await markStudentBundlePickedForGrading(
+    p.organizationId,
+    studentId,
+    bundle.submissions.map((s) => s.submissionId),
+    p.id,
+  );
 
   const dl = url.searchParams.get("dl") === "1";
-  return new Response(bytes as BodyInit, {
+  return new Response(bundle.bytes as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `${dl ? "attachment" : "inline"}; filename*=UTF-8''solutions-${studentId}.pdf`,
