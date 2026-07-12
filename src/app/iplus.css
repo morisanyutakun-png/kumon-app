@@ -153,6 +153,11 @@ body {
   text-decoration: none;
 }
 .db-badge:hover { text-decoration: none; background: #f8fafc; }
+.db-badge.strong {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
 
 .iplus-main {
   padding: 22px 24px 40px;
@@ -2151,41 +2156,25 @@ body:has(.iplus-main.narrow) {
 }
 .complete-book b { font-size: 15px; font-weight: 900; }
 .complete-book span { font-size: 13px; font-weight: 700; }
-.write-links { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; min-width: 120px; flex-wrap: wrap; }
-.batch-return-upload,
 .entry-return-upload {
   display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;
   padding: 3px; border: 1px solid #dbe5ef; border-radius: 10px; background: #f8fafc;
 }
-.batch-return-upload label,
 .entry-file-label {
   display: inline-flex; align-items: center; gap: 6px;
   min-height: 28px; padding: 0 8px; border-radius: 8px;
   color: #334155; font-size: 12px; font-weight: 900; white-space: nowrap;
 }
-.batch-return-upload input[type="file"],
 .entry-return-upload input[type="file"] {
   max-width: 138px; font-size: 11px; color: #64748b;
 }
-.batch-marking-strip {
-  display: flex; gap: 8px; overflow-x: auto; padding: 8px 14px;
-  border-bottom: 1px solid var(--line); background: #f8fafc;
-}
-.batch-marking-chip {
-  flex: 0 0 auto; display: grid; grid-template-columns: auto minmax(90px, 1fr); gap: 2px 7px;
-  min-width: 190px; max-width: 260px; padding: 7px 9px; border: 1px solid #dbe3ec; background: #fff;
-  color: var(--ink); text-decoration: none; font-size: 12px;
-}
-.batch-marking-chip:hover { border-color: #b8c6d5; background: #fdfefe; text-decoration: none; }
-.batch-marking-chip b { grid-row: span 2; display: grid; place-items: center; width: 24px; height: 24px; background: #1d4ed8; color: #fff; font-size: 12px; }
-.batch-marking-chip span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 900; }
-.batch-marking-chip small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b; font-weight: 700; }
 
 .batch-student-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
 .batch-student-card { border: 1px solid var(--line); background: #fff; padding: 15px; }
 .batch-student-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .batch-student-head h2 { margin: 0; font-size: 18px; color: var(--ink); }
 .batch-student-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; font-weight: 700; }
+.batch-student-head .btn-primary { white-space: nowrap; }
 .batch-student-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
 .batch-submission-list { margin: 12px 0 0; padding-left: 22px; display: grid; gap: 8px; }
 .batch-submission-list li { color: #334155; font-size: 13px; }
@@ -3322,7 +3311,6 @@ body:has(.iplus-main.narrow) {
 @media (max-width: 820px) {
   .write-bar { align-items: stretch; flex-direction: column; gap: 8px; }
   .write-title { justify-content: flex-start; text-align: left; }
-  .write-links { justify-content: flex-start; }
   .write-body .annot-stage { height: calc(100vh - 240px); min-height: 360px; }
 }
 

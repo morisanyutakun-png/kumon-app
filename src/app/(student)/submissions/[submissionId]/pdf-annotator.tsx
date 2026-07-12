@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getStroke } from "perfect-freehand";
 
-import { saveReturnedPdf, saveStudentReturnedPdf } from "@/lib/actions/submission-actions";
+import { saveReturnedPdf } from "@/lib/actions/submission-actions";
 import { savePendingAnswerFiles } from "@/lib/pending-answer-files";
 
 /** 正規化座標(0〜1)の点。表示サイズ・ズームが変わっても保持できる。p=筆圧(0〜1)。 */
@@ -117,8 +117,6 @@ export function PdfAnnotator({
   mode = "submit",
   downloadName = "添削",
   penOnly = false,
-  batchStudentId,
-  batchSubmissionIds,
 }: {
   pdfUrl: string;
   submissionId?: string;
@@ -130,10 +128,6 @@ export function PdfAnnotator({
   downloadName?: string;
   /** true=ペン専用(手のひら無効を固定・切替不可)。指はスクロール/ズーム専用。 */
   penOnly?: boolean;
-  /** 生徒ごとの一括添削PDFを提出ごとに切り分けて返却PDF保存する場合に指定。 */
-  batchStudentId?: string;
-  /** 一括添削PDFに含めた提出ID。返却PDFの切り分け対象を固定する。 */
-  batchSubmissionIds?: string[];
 }) {
   const router = useRouter();
   // 手書きをブラウザに自動保存するキー(提出前に閉じても復元できる)。
@@ -1010,17 +1004,6 @@ export function PdfAnnotator({
           else router.refresh();
           return;
         }
-        if (batchStudentId) {
-          const fd = new FormData();
-          fd.append("file", new File([out as BlobPart], `${downloadName}.pdf`, { type: "application/pdf" }));
-          if (batchSubmissionIds?.length) fd.append("submissionIds", batchSubmissionIds.join(","));
-          await saveStudentReturnedPdf(batchStudentId, fd);
-          toast.success("一括添削PDFを提出ごとの返却PDFとして保存しました。");
-          if (redirectTo) router.push(redirectTo);
-          else router.refresh();
-          return;
-        }
-
         // 生徒一括の添削画面など、提出物に紐づかない場合は従来どおりダウンロード。
         const url = URL.createObjectURL(new Blob([out as BlobPart], { type: "application/pdf" }));
         const a = document.createElement("a");
@@ -1121,9 +1104,7 @@ export function PdfAnnotator({
             : mode === "markup"
               ? submissionId
                 ? "✓ 返却PDFとして保存"
-                : batchStudentId
-                  ? "✓ 添削PDFを保存して点数入力へ"
-                  : "⬇ 書き込み済みPDFをダウンロード"
+                : "⬇ 書き込み済みPDFをダウンロード"
               : resubmit
                 ? "✓ これで保存する"
                 : "✓ これで保存する"}

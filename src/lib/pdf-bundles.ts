@@ -204,7 +204,7 @@ export async function buildStudentSolutionBundlePdf(
   return pdf.getPageCount() > 0 ? pdf.save() : null;
 }
 
-/** 一括添削PDFを開いた/保存した提出を「採点中」に移し、一括添削キューから外す。 */
+/** 答案セットPDFを開いた/保存した提出を「採点中」に移し、PDF保存キューから外す。 */
 export async function markStudentBundlePickedForGrading(
   organizationId: string,
   studentId: string,
@@ -240,7 +240,7 @@ export async function markStudentBundlePickedForGrading(
         fromStatus: "submitted" as const,
         toStatus: "grading" as const,
         byUserId,
-        note: "一括添削PDFを取得",
+        note: "答案セットPDFを取得",
       })),
     );
     return targets.length;

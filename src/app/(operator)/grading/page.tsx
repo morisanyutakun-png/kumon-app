@@ -83,7 +83,7 @@ export default async function GradingPage({
     );
   }
 
-  // --- 採点待ち: submitted=未処理の一括添削キュー / grading=PDF取得済み・点数入力待ち ---
+  // --- 採点待ち: submitted=未処理のPDF保存キュー / grading=PDF取得済み・点数入力待ち ---
   const allSubs = await listSubmissions(p.organizationId);
   const agg = new Map<string, Agg>();
   for (const sub of allSubs) {
@@ -125,7 +125,7 @@ export default async function GradingPage({
         <GradingHead view="markup" todoCount={markupAgg.length} />
 
         {markupAgg.length === 0 ? (
-          <p className="empty">一括添削できる提出はありません。</p>
+          <p className="empty">保存できる新しい答案セットはありません。</p>
         ) : (
           <div className="batch-student-grid">
             {markupAgg.map((g) => {
@@ -139,12 +139,12 @@ export default async function GradingPage({
                     <h2>{g.name}</h2>
                     <p>{g.grade} ・ 未処理の提出 {g.submitted.length} 件</p>
                   </div>
-                  <Link href={`/grading/write/${g.studentId}?${query}`} className="btn-primary">まとめて添削</Link>
+                  <a href={`${answersUrl}&dl=1`} className="btn-primary">答案セットを保存</a>
                 </div>
                 <div className="batch-student-actions">
-                  <a href={answersUrl} target="_blank" rel="noreferrer" className="db-badge">提出PDFを開く</a>
-                  <a href={`${answersUrl}&dl=1`} className="db-badge">提出PDFを保存</a>
-                  <a href={solutionsUrl} target="_blank" rel="noreferrer" className="db-badge">解答解説PDF</a>
+                  <a href={`${solutionsUrl}&dl=1`} className="db-badge strong">解答セットを保存</a>
+                  <a href={answersUrl} target="_blank" rel="noreferrer" className="db-badge">答案セットを確認</a>
+                  <a href={solutionsUrl} target="_blank" rel="noreferrer" className="db-badge">解答セットを確認</a>
                   <Link href="/grading?tab=input" className="db-badge">点数入力へ</Link>
                 </div>
                 <ol className="batch-submission-list">
@@ -164,7 +164,7 @@ export default async function GradingPage({
         {inProgress.length > 0 && (
           <div style={{ marginTop: 22 }}>
             <div className="lsection" style={{ marginBottom: 10 }}>実施中<span className="lsection-n">{inProgress.length}</span></div>
-            <p className="hint" style={{ marginTop: -4, marginBottom: 10 }}>提出待ちの課題だけが残っている生徒です。提出されると一括添削タブに表示されます。</p>
+            <p className="hint" style={{ marginTop: -4, marginBottom: 10 }}>提出待ちの課題だけが残っている生徒です。提出されるとPDF保存タブに表示されます。</p>
           </div>
         )}
       </div>
@@ -175,7 +175,7 @@ export default async function GradingPage({
     <div>
       <GradingHead view="input" todoCount={groups.length} />
       <p className="hint" style={{ marginTop: -6, marginBottom: 12 }}>
-        点数入力には、一括添削で提出PDFを開く・保存する・書き込み保存した答案だけが表示されます。新しく提出された答案は、一括添削タブに蓄積されます。
+        点数入力には、答案セットを保存または確認した提出だけが表示されます。GoodNotesなどで添削したPDFは各生徒欄から取り込めます。
       </p>
 
       <GradeByStudent groups={groups} grader={p.name} />
@@ -214,11 +214,11 @@ function GradingHead({ view, todoCount }: { view: "markup" | "input" | "done"; t
     <>
       <div className="page-head" style={{ marginBottom: 14 }}>
         <h1>採点</h1>
-        <p>一括添削でPDFへ書き込み、点数入力・返却で合否とコメントを確定します。生徒は返却を待たずに次の範囲へ進みます。</p>
+        <p>答案セットと解答セットを保存し、GoodNotesなどで添削したPDFを取り込んでから点数入力・返却を確定します。</p>
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         <Link href="/grading?tab=markup" className={tabCls(view === "markup")} style={{ padding: "8px 18px" }}>
-          一括添削{view === "markup" && <b style={{ marginLeft: 6 }}>{todoCount}</b>}
+          PDF保存{view === "markup" && <b style={{ marginLeft: 6 }}>{todoCount}</b>}
         </Link>
         <Link href="/grading?tab=input" className={tabCls(view === "input")} style={{ padding: "8px 18px" }}>
           点数入力・返却{view === "input" && <b style={{ marginLeft: 6 }}>{todoCount}</b>}

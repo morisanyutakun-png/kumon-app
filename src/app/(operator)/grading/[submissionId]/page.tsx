@@ -63,9 +63,9 @@ export default async function GradingDetailPage({
                 <a href={`/api/files/returned/${latestReturned.id}`} target="_blank" rel="noreferrer" className="db-badge">添削PDFを開く</a>
               )}
               {images.length > 0 && (
-                <Link href={`/grading/${submission.id}/write`} className="db-badge">
-                  個別で書き込む
-                </Link>
+                <a href={`/api/files/submission-pdf/${submission.id}?dl=1`} className="db-badge">
+                  答案PDFを保存
+                </a>
               )}
             </span>
           </div>

@@ -110,7 +110,6 @@ function revalidateAll(submissionId: string) {
   revalidatePath("/dashboard");
   revalidatePath("/grading");
   revalidatePath(`/grading/${submissionId}`);
-  revalidatePath(`/grading/${submissionId}/write`);
   revalidatePath("/home");
   revalidatePath("/self-grade");
   revalidatePath("/returned");
@@ -681,7 +680,7 @@ export async function saveReturnedPdf(submissionId: string, formData: FormData) 
   revalidateAll(submissionId);
 }
 
-/** 生徒ごとにまとめて添削したPDFを、区切りページ単位で各提出物の返却PDFとして保存する。 */
+/** 生徒ごとにまとめて外部添削したPDFを、答案セットの区切り単位で各提出物の返却PDFとして保存する。 */
 export async function saveStudentReturnedPdf(studentId: string, formData: FormData) {
   const p = await getPrincipal();
   if (!p || !isOperator(p)) throw new ActionError("権限がありません。");
@@ -713,7 +712,7 @@ export async function saveStudentReturnedPdf(studentId: string, formData: FormDa
   const source = await PDFDocument.load(sourceBytes);
   const expectedPages = Math.max(...bundle.submissions.map((s) => s.endPage)) + 1;
   if (source.getPageCount() !== expectedPages) {
-    throw new ActionError("保存するPDFのページ数が、現在の一括添削PDFと一致しません。最新の一括添削画面から保存してください。");
+    throw new ActionError("保存するPDFのページ数が、現在の答案セットPDFと一致しません。最新のPDF保存画面から保存してください。");
   }
 
   const now = Date.now();
@@ -744,9 +743,9 @@ export async function saveStudentReturnedPdf(studentId: string, formData: FormDa
     revalidateAll(meta.submissionId);
   }
 
-  revalidatePath(`/grading/write/${studentId}`);
   revalidatePath("/grading");
   revalidatePath("/grading?tab=markup");
+  revalidatePath("/grading?tab=input");
 }
 
 /** 生徒・保護者がその提出物のお知らせを既読にする。 */

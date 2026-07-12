@@ -375,7 +375,7 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
                       </div>
                       <div className="material-actions">
                         <Link href={`/grading/${a.submissionId}`} className="entry-mini-link">答案を見る</Link>
-                        <Link href={`/grading/${a.submissionId}/write`} className="entry-mini-link strong">添削PDF</Link>
+                        <a href={`/api/files/submission-pdf/${a.submissionId}?dl=1`} className="entry-mini-link strong">答案PDF保存</a>
                       </div>
                     </div>
                   );

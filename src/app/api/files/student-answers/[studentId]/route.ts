@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 /**
  * その生徒の答案を1つのPDFへ結合して配信。
- * scope=submitted なら未処理の提出だけを結合し、取得後に grading へ移して一括添削キューから外す。
+ * scope=submitted なら未処理の提出だけを結合し、取得後に grading へ移してPDF保存キューから外す。
  */
 export async function GET(
   req: Request,
