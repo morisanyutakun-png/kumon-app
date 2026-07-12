@@ -21,8 +21,15 @@ interface Agg {
   studentId: string;
   name: string;
   grade: string;
-  gradable: SubmissionRow[];
+  submitted: SubmissionRow[];
+  grading: SubmissionRow[];
   pend: number;
+}
+
+function batchQuery(rows: SubmissionRow[]): string {
+  const params = new URLSearchParams();
+  params.set("ids", rows.map((s) => s.submissionId).join(","));
+  return params.toString();
 }
 
 export default async function GradingPage({
@@ -76,30 +83,32 @@ export default async function GradingPage({
     );
   }
 
-  // --- 採点待ち: 提出済みが1件でもあれば採点可能 ---
+  // --- 採点待ち: submitted=未処理の一括添削キュー / grading=PDF取得済み・点数入力待ち ---
   const allSubs = await listSubmissions(p.organizationId);
   const agg = new Map<string, Agg>();
   for (const sub of allSubs) {
     if (divisionForGrade(sub.studentGrade) !== division) continue; // 選択中の部門の生徒のみ
     let g = agg.get(sub.studentId);
     if (!g) {
-      g = { studentId: sub.studentId, name: sub.studentName, grade: sub.studentGrade, gradable: [], pend: 0 };
+      g = { studentId: sub.studentId, name: sub.studentName, grade: sub.studentGrade, submitted: [], grading: [], pend: 0 };
       agg.set(sub.studentId, g);
     }
-    if (sub.status === "submitted" || sub.status === "grading") g.gradable.push(sub);
+    if (sub.status === "submitted") g.submitted.push(sub);
+    else if (sub.status === "grading") g.grading.push(sub);
     else if (sub.status === "not_submitted" || sub.status === "resubmit_required") g.pend++;
     // returned / done はどちらにも数えない
   }
 
   const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, "ja");
-  const readyAgg = [...agg.values()].filter((g) => g.gradable.length > 0).sort(byName);
-  const inProgress = [...agg.values()].filter((g) => g.gradable.length === 0 && g.pend > 0).sort(byName);
+  const markupAgg = [...agg.values()].filter((g) => g.submitted.length > 0).sort(byName);
+  const inputAgg = [...agg.values()].filter((g) => g.grading.length > 0).sort(byName);
+  const inProgress = [...agg.values()].filter((g) => g.submitted.length === 0 && g.grading.length === 0 && g.pend > 0).sort(byName);
 
-  const groups: StudentGroup[] = readyAgg.map((g) => ({
+  const groups: StudentGroup[] = inputAgg.map((g) => ({
     studentId: g.studentId,
     studentName: g.name,
     studentGrade: g.grade,
-    answers: g.gradable.map((s) => ({
+    answers: g.grading.map((s) => ({
       submissionId: s.submissionId,
       materialName: s.materialName,
       subject: s.subject,
@@ -113,28 +122,33 @@ export default async function GradingPage({
   if (view === "markup") {
     return (
       <div>
-        <GradingHead view="markup" todoCount={groups.length} />
+        <GradingHead view="markup" todoCount={markupAgg.length} />
 
-        {readyAgg.length === 0 ? (
+        {markupAgg.length === 0 ? (
           <p className="empty">一括添削できる提出はありません。</p>
         ) : (
           <div className="batch-student-grid">
-            {readyAgg.map((g) => (
+            {markupAgg.map((g) => {
+              const query = batchQuery(g.submitted);
+              const answersUrl = `/api/files/student-answers/${g.studentId}?${query}`;
+              const solutionsUrl = `/api/files/student-solutions/${g.studentId}?${query}`;
+              return (
               <section key={g.studentId} className="batch-student-card">
                 <div className="batch-student-head">
                   <div>
                     <h2>{g.name}</h2>
-                    <p>{g.grade} ・ 提出 {g.gradable.length} 件</p>
+                    <p>{g.grade} ・ 未処理の提出 {g.submitted.length} 件</p>
                   </div>
-                  <Link href={`/grading/write/${g.studentId}`} className="btn-primary">まとめて添削</Link>
+                  <Link href={`/grading/write/${g.studentId}?${query}`} className="btn-primary">まとめて添削</Link>
                 </div>
                 <div className="batch-student-actions">
-                  <a href={`/api/files/student-answers/${g.studentId}`} target="_blank" rel="noreferrer" className="db-badge">提出PDFを開く</a>
-                  <a href={`/api/files/student-solutions/${g.studentId}`} target="_blank" rel="noreferrer" className="db-badge">解答解説PDF</a>
+                  <a href={answersUrl} target="_blank" rel="noreferrer" className="db-badge">提出PDFを開く</a>
+                  <a href={`${answersUrl}&dl=1`} className="db-badge">提出PDFを保存</a>
+                  <a href={solutionsUrl} target="_blank" rel="noreferrer" className="db-badge">解答解説PDF</a>
                   <Link href="/grading?tab=input" className="db-badge">点数入力へ</Link>
                 </div>
                 <ol className="batch-submission-list">
-                  {g.gradable.map((s) => (
+                  {g.submitted.map((s) => (
                     <li key={s.submissionId}>
                       <Link href={`/grading/${s.submissionId}`}>{s.materialName}</Link>
                       <span>{s.subject} ・ {s.rangeText || "範囲なし"}</span>
@@ -142,7 +156,8 @@ export default async function GradingPage({
                   ))}
                 </ol>
               </section>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -159,6 +174,9 @@ export default async function GradingPage({
   return (
     <div>
       <GradingHead view="input" todoCount={groups.length} />
+      <p className="hint" style={{ marginTop: -6, marginBottom: 12 }}>
+        点数入力には、一括添削で提出PDFを開く・保存する・書き込み保存した答案だけが表示されます。新しく提出された答案は、一括添削タブに蓄積されます。
+      </p>
 
       <GradeByStudent groups={groups} grader={p.name} />
 
@@ -173,11 +191,11 @@ export default async function GradingPage({
               </thead>
               <tbody>
                 {inProgress.map((g) => {
-                  const total = g.gradable.length + g.pend;
+                  const total = g.submitted.length + g.grading.length + g.pend;
                   return (
                     <tr key={g.studentId}>
                       <td style={{ fontWeight: 600 }}>{g.name}<span className="muted" style={{ fontWeight: 400 }}> ・ {g.grade}</span><span className="status-chip wait">● 実施中</span></td>
-                      <td className="muted">提出 {g.gradable.length} / {total} ・ のこり {g.pend} 件</td>
+                      <td className="muted">提出 {g.submitted.length + g.grading.length} / {total} ・ のこり {g.pend} 件</td>
                     </tr>
                   );
                 })}

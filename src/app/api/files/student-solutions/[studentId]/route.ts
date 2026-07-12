@@ -1,9 +1,13 @@
-import { canAccessStudent, getPrincipal } from "@/lib/access";
-import { buildStudentSolutionBundlePdf } from "@/lib/pdf-bundles";
+import { canAccessStudent, getPrincipal, isOperator } from "@/lib/access";
+import {
+  buildStudentSolutionBundlePdf,
+  markStudentBundlePickedForGrading,
+  type StudentBundleOptions,
+} from "@/lib/pdf-bundles";
 
 export const runtime = "nodejs";
 
-/** 採点待ち答案に対応する解答解説PDFを、生徒ごとに区切りページつきで結合して配信。 */
+/** 採点対象の答案に対応する解答解説PDFを、生徒ごとに結合して配信。 */
 export async function GET(
   req: Request,
   ctx: { params: Promise<{ studentId: string }> },
@@ -11,12 +15,25 @@ export async function GET(
   const { studentId } = await ctx.params;
   const p = await getPrincipal();
   if (!p) return new Response("Unauthorized", { status: 401 });
+  if (!isOperator(p)) return new Response("Forbidden", { status: 403 });
   if (!(await canAccessStudent(p, studentId))) return new Response("Forbidden", { status: 403 });
 
-  const bytes = await buildStudentSolutionBundlePdf(p.organizationId, studentId);
+  const url = new URL(req.url);
+  const ids = url.searchParams.get("ids")?.split(",").map((s) => s.trim()).filter(Boolean);
+  const scope = url.searchParams.get("scope");
+  const options: StudentBundleOptions = {
+    statuses: scope === "submitted" ? ["submitted"] : scope === "grading" ? ["grading"] : ["submitted", "grading"],
+    submissionIds: ids,
+  };
+
+  const bytes = await buildStudentSolutionBundlePdf(p.organizationId, studentId, options);
   if (!bytes) return new Response("Not found", { status: 404 });
 
-  const dl = new URL(req.url).searchParams.get("dl") === "1";
+  if (scope === "submitted") {
+    await markStudentBundlePickedForGrading(p.organizationId, studentId, ids ?? [], p.id);
+  }
+
+  const dl = url.searchParams.get("dl") === "1";
   return new Response(bytes as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",

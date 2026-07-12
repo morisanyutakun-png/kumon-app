@@ -695,15 +695,24 @@ export async function saveStudentReturnedPdf(studentId: string, formData: FormDa
     throw new ActionError("PDFサイズが大きすぎます (320MBまで)。");
   }
 
-  const bundle = await buildStudentAnswerBundlePdf(p.organizationId, studentId);
+  const submissionIdsRaw = formData.get("submissionIds");
+  const submissionIds =
+    typeof submissionIdsRaw === "string"
+      ? submissionIdsRaw.split(",").map((s) => s.trim()).filter(Boolean)
+      : undefined;
+
+  const bundle = await buildStudentAnswerBundlePdf(p.organizationId, studentId, {
+    statuses: ["submitted", "grading"],
+    submissionIds,
+  });
   if (!bundle || bundle.submissions.length === 0) {
     throw new ActionError("採点待ちの提出がありません。");
   }
 
   const sourceBytes = Buffer.from(await file.arrayBuffer());
   const source = await PDFDocument.load(sourceBytes);
-  const maxPage = Math.max(...bundle.submissions.map((s) => s.endPage));
-  if (source.getPageCount() <= maxPage) {
+  const expectedPages = Math.max(...bundle.submissions.map((s) => s.endPage)) + 1;
+  if (source.getPageCount() !== expectedPages) {
     throw new ActionError("保存するPDFのページ数が、現在の一括添削PDFと一致しません。最新の一括添削画面から保存してください。");
   }
 

@@ -2152,6 +2152,21 @@ body:has(.iplus-main.narrow) {
 .complete-book b { font-size: 15px; font-weight: 900; }
 .complete-book span { font-size: 13px; font-weight: 700; }
 .write-links { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; min-width: 120px; flex-wrap: wrap; }
+.batch-return-upload,
+.entry-return-upload {
+  display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 3px; border: 1px solid #dbe5ef; border-radius: 10px; background: #f8fafc;
+}
+.batch-return-upload label,
+.entry-file-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 28px; padding: 0 8px; border-radius: 8px;
+  color: #334155; font-size: 12px; font-weight: 900; white-space: nowrap;
+}
+.batch-return-upload input[type="file"],
+.entry-return-upload input[type="file"] {
+  max-width: 138px; font-size: 11px; color: #64748b;
+}
 .batch-marking-strip {
   display: flex; gap: 8px; overflow-x: auto; padding: 8px 14px;
   border-bottom: 1px solid var(--line); background: #f8fafc;
@@ -3296,13 +3311,20 @@ body:has(.iplus-main.narrow) {
 }
 .write-title { font-weight: 900; color: var(--ink); text-align: center; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; justify-content: center; }
 .write-range { font-size: 12px; font-weight: 700; color: #64748b; }
-.write-body { flex: 1; overflow: auto; padding: 8px; }
+.write-body { flex: 1; overflow: auto; padding: 8px; min-height: 0; }
 /* PDFを画面いっぱいに。上部ツールバー(約64px)以外はステージに使う。 */
-.write-body .annot-stage { background: #e6ecf2; height: calc(100vh - 150px); min-height: 420px; }
+.write-body .annot-stage { background: #e6ecf2; height: calc(100vh - 178px); min-height: 420px; }
 .write-body .annotator { gap: 8px; }
 /* 全画面では操作バーを上部に貼り付けて使いやすく */
 .write-body .annot-toolbar { position: sticky; top: 0; z-index: 5; }
 .write-body .annot-submit .btn-primary { width: 100%; min-height: 52px; font-size: 17px; }
+
+@media (max-width: 820px) {
+  .write-bar { align-items: stretch; flex-direction: column; gap: 8px; }
+  .write-title { justify-content: flex-start; text-align: left; }
+  .write-links { justify-content: flex-start; }
+  .write-body .annot-stage { height: calc(100vh - 240px); min-height: 360px; }
+}
 
 /* ============================================================
    成績(グレード)レポート

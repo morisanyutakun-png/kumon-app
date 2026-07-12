@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { batchGrade, type BatchGradeItem } from "@/lib/actions/submission-actions";
+import { batchGrade, saveStudentReturnedPdf, type BatchGradeItem } from "@/lib/actions/submission-actions";
 import { divisionForGrade, DIVISION_LABEL } from "@/lib/division";
 import type { NextWindow } from "@/lib/progress-db";
 
@@ -328,6 +328,14 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
                 </span>
               </div>
               <div className="toolbar-right" style={{ gap: 8 }}>
+                <form action={saveStudentReturnedPdf.bind(null, g.studentId)} className="entry-return-upload">
+                  <input type="hidden" name="submissionIds" value={g.answers.map((a) => a.submissionId).join(",")} />
+                  <label className="entry-file-label">
+                    添削済みPDF
+                    <input type="file" name="file" accept="application/pdf,.pdf" required />
+                  </label>
+                  <button type="submit" className="entry-mini-link strong">返却PDF保存</button>
+                </form>
                 <span className={`status-chip ${isSent ? "done" : "ok"}`}>{isSent ? "● 反映済み" : "● 未反映"}</span>
                 {isSent ? (
                   <span className="btn-sent">✓ 反映済み</span>

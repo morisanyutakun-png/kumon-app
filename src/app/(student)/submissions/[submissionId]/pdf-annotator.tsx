@@ -118,6 +118,7 @@ export function PdfAnnotator({
   downloadName = "添削",
   penOnly = false,
   batchStudentId,
+  batchSubmissionIds,
 }: {
   pdfUrl: string;
   submissionId?: string;
@@ -131,6 +132,8 @@ export function PdfAnnotator({
   penOnly?: boolean;
   /** 生徒ごとの一括添削PDFを提出ごとに切り分けて返却PDF保存する場合に指定。 */
   batchStudentId?: string;
+  /** 一括添削PDFに含めた提出ID。返却PDFの切り分け対象を固定する。 */
+  batchSubmissionIds?: string[];
 }) {
   const router = useRouter();
   // 手書きをブラウザに自動保存するキー(提出前に閉じても復元できる)。
@@ -1010,6 +1013,7 @@ export function PdfAnnotator({
         if (batchStudentId) {
           const fd = new FormData();
           fd.append("file", new File([out as BlobPart], `${downloadName}.pdf`, { type: "application/pdf" }));
+          if (batchSubmissionIds?.length) fd.append("submissionIds", batchSubmissionIds.join(","));
           await saveStudentReturnedPdf(batchStudentId, fd);
           toast.success("一括添削PDFを提出ごとの返却PDFとして保存しました。");
           if (redirectTo) router.push(redirectTo);
@@ -1118,7 +1122,7 @@ export function PdfAnnotator({
               ? submissionId
                 ? "✓ 返却PDFとして保存"
                 : batchStudentId
-                  ? "✓ 提出ごとの返却PDFとして保存"
+                  ? "✓ 添削PDFを保存して点数入力へ"
                   : "⬇ 書き込み済みPDFをダウンロード"
               : resubmit
                 ? "✓ これで保存する"
