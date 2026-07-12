@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { requireOperator } from "@/lib/access";
 import { getSubmissionDetail, listMistakeTags } from "@/lib/queries";
-import { completeSubmission } from "@/lib/actions/submission-actions";
+import { completeSubmission, returnSubmissionsToCorrectionQueue } from "@/lib/actions/submission-actions";
 import { ActionButton } from "@/components/action-button";
 import { AnswerImages } from "@/components/answer-images";
 import { GradingHistory } from "@/components/grading-history";
@@ -97,6 +97,19 @@ export default async function GradingDetailPage({
                 autoAdvance={autoAdvance}
                 hasDraft={submission.draftUpdatedAt != null}
               />
+              {submission.status === "grading" && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}>
+                  <p className="hint" style={{ margin: "0 0 8px" }}>返却前なら、現在回の返却PDFと下書きを消して添削タブへ戻せます。</p>
+                  <ActionButton
+                    action={returnSubmissionsToCorrectionQueue.bind(null, [submission.id])}
+                    variant="secondary"
+                    confirm="この提出を未添削に戻します。現在回の返却PDFと採点下書きは削除されます。"
+                    successMessage="未添削に戻しました。"
+                  >
+                    未添削に戻す
+                  </ActionButton>
+                </div>
+              )}
             </div>
           )}
 

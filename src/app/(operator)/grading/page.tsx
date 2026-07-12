@@ -83,7 +83,7 @@ export default async function GradingPage({
     );
   }
 
-  // --- 採点待ち: submitted=未処理のPDF保存キュー / grading=PDF取得済み・点数入力待ち ---
+  // --- 採点待ち: submitted=未処理の添削キュー / grading=PDF取得済み・点数入力待ち ---
   const allSubs = await listSubmissions(p.organizationId);
   const agg = new Map<string, Agg>();
   for (const sub of allSubs) {
@@ -125,7 +125,7 @@ export default async function GradingPage({
         <GradingHead view="markup" todoCount={markupAgg.length} />
 
         {markupAgg.length === 0 ? (
-          <p className="empty">保存できる新しい答案セットはありません。</p>
+          <p className="empty">添削できる新しい答案はありません。</p>
         ) : (
           <div className="batch-student-grid">
             {markupAgg.map((g) => {
@@ -164,7 +164,7 @@ export default async function GradingPage({
         {inProgress.length > 0 && (
           <div style={{ marginTop: 22 }}>
             <div className="lsection" style={{ marginBottom: 10 }}>実施中<span className="lsection-n">{inProgress.length}</span></div>
-            <p className="hint" style={{ marginTop: -4, marginBottom: 10 }}>提出待ちの課題だけが残っている生徒です。提出されるとPDF保存タブに表示されます。</p>
+            <p className="hint" style={{ marginTop: -4, marginBottom: 10 }}>提出待ちの課題だけが残っている生徒です。提出されると添削タブに表示されます。</p>
           </div>
         )}
       </div>
@@ -218,7 +218,7 @@ function GradingHead({ view, todoCount }: { view: "markup" | "input" | "done"; t
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         <Link href="/grading?tab=markup" className={tabCls(view === "markup")} style={{ padding: "8px 18px" }}>
-          PDF保存{view === "markup" && <b style={{ marginLeft: 6 }}>{todoCount}</b>}
+          添削{view === "markup" && <b style={{ marginLeft: 6 }}>{todoCount}</b>}
         </Link>
         <Link href="/grading?tab=input" className={tabCls(view === "input")} style={{ padding: "8px 18px" }}>
           点数入力・返却{view === "input" && <b style={{ marginLeft: 6 }}>{todoCount}</b>}

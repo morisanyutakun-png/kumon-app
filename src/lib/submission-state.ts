@@ -52,6 +52,7 @@ export const ALLOWED_TRANSITIONS: Transition[] = [
   { from: "returned", to: "done", by: "student_side", label: "確認して完了にする" },
   // 運営者・採点者側
   { from: "submitted", to: "grading", by: "operator_side", label: "採点を開始" },
+  { from: "grading", to: "submitted", by: "operator_side", label: "未添削に戻す" },
   { from: "grading", to: "returned", by: "operator_side", label: "採点結果を返却" },
   { from: "grading", to: "resubmit_required", by: "operator_side", label: "再提出を依頼" },
   // 返却後でも運営判断で完了にできる

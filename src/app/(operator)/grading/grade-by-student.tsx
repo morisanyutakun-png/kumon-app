@@ -1,10 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { batchGrade, saveStudentReturnedPdf, type BatchGradeItem } from "@/lib/actions/submission-actions";
+import {
+  batchGrade,
+  returnSubmissionsToCorrectionQueue,
+  saveStudentReturnedPdf,
+  type BatchGradeItem,
+} from "@/lib/actions/submission-actions";
 import { divisionForGrade, DIVISION_LABEL } from "@/lib/division";
 import type { NextWindow } from "@/lib/progress-db";
 
@@ -127,6 +133,7 @@ function nextBusinessDay(): string {
 }
 
 export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; grader: string }) {
+  const router = useRouter();
   const [state, setState] = useState<Record<string, Cell>>(() => {
     const init: Record<string, Cell> = {};
     for (const g of groups) for (const a of g.answers) init[a.submissionId] = { ...emptyCell, range: a.rangeText };
@@ -141,6 +148,7 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
     return init;
   });
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [resettingId, setResettingId] = useState<string | null>(null);
   const [sent, setSent] = useState<Record<string, boolean>>({});
   const [, startTransition] = useTransition();
 
@@ -267,6 +275,24 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
     });
   }
 
+  function resetToCorrectionQueue(g: StudentGroup) {
+    const message = `${g.studentName}さんの未返却答案 ${g.answers.length}件を添削タブへ戻します。\n現在回の返却PDFと採点下書きは削除されます。`;
+    if (!window.confirm(message)) return;
+    setResettingId(g.studentId);
+    startTransition(async () => {
+      try {
+        const res = await returnSubmissionsToCorrectionQueue(g.answers.map((a) => a.submissionId));
+        toast.success(`${res.reset}件を未添削に戻しました。`);
+        router.push("/grading?tab=markup");
+        router.refresh();
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "未添削に戻せませんでした。");
+      } finally {
+        setResettingId(null);
+      }
+    });
+  }
+
   // 矢印キーでセル移動。data-gx=列, data-gy=行。
   function onGridKey(e: React.KeyboardEvent<HTMLElement>) {
     const t = e.target as HTMLElement;
@@ -297,6 +323,7 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
 
       {groups.map((g) => {
         const busy = pendingId === g.studentId;
+        const resetting = resettingId === g.studentId;
         const isSent = !!sent[g.studentId];
         const n = g.answers.length;
         const errN = g.answers.filter((a) => rowError(state[a.submissionId])).length;
@@ -341,8 +368,11 @@ export function GradeByStudent({ groups, grader }: { groups: StudentGroup[]; gra
                   <span className="btn-sent">✓ 反映済み</span>
                 ) : (
                   <>
-                    <button type="button" className="btn-primary reflect-btn" onClick={() => reflect(g)} disabled={pendingId !== null || errN > 0}>
+                    <button type="button" className="btn-primary reflect-btn" onClick={() => reflect(g)} disabled={pendingId !== null || resettingId !== null || errN > 0}>
                       {busy ? "反映中…" : "結果を反映"}
+                    </button>
+                    <button type="button" className="btn-secondary" onClick={() => resetToCorrectionQueue(g)} disabled={pendingId !== null || resettingId !== null}>
+                      {resetting ? "戻し中…" : "未添削に戻す"}
                     </button>
                     <button type="button" className="btn-secondary" onClick={() => clearDraft(g)}>下書きをクリア</button>
                   </>

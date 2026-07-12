@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { PDFDocument } from "pdf-lib";
 
@@ -20,7 +20,7 @@ import {
 import type { Submission, SubmissionStatus } from "@/db/schema";
 import { getPrincipal, isOperator } from "@/lib/access";
 import type { Principal } from "@/auth";
-import { saveBlob, saveFile } from "@/lib/blob";
+import { deleteBlob, saveBlob, saveFile } from "@/lib/blob";
 import { validateScorePair } from "@/lib/grading-validation";
 import { syncAssignmentCompletion } from "@/lib/material-progress";
 import { buildStudentAnswerBundlePdf } from "@/lib/pdf-bundles";
@@ -495,6 +495,86 @@ const DRAFT_CLEARED = {
   draftUpdatedAt: null,
 } as const;
 
+/**
+ * PDF取得/返却PDF保存まで進んだ未返却答案を、添削タブの未処理キューへ戻す。
+ * 現在attemptの返却PDFと採点下書きだけを消し、過去attemptの返却履歴は残す。
+ */
+export async function returnSubmissionsToCorrectionQueue(
+  submissionIds: string[],
+): Promise<{ reset: number; skipped: number }> {
+  const p = await getPrincipal();
+  if (!p || !isOperator(p)) throw new ActionError("権限がありません。");
+
+  const ids = [...new Set(submissionIds.map((id) => id.trim()).filter(Boolean))];
+  if (ids.length === 0) throw new ActionError("戻す提出物がありません。");
+
+  const rows = await db
+    .select()
+    .from(submissions)
+    .where(and(eq(submissions.organizationId, p.organizationId), inArray(submissions.id, ids)));
+  const targets = rows.filter((sub) => sub.status === "grading");
+  if (targets.length === 0) {
+    throw new ActionError("未返却で戻せる提出物がありません。");
+  }
+  for (const sub of targets) {
+    assertTransition(sub.status, "submitted", actorForRole(p.role));
+  }
+
+  const targetIds = targets.map((sub) => sub.id);
+  const attemptBySubmission = new Map(targets.map((sub) => [sub.id, Math.max(1, sub.attemptCount || 1)]));
+  const currentAttemptFiles = (
+    await db
+      .select({
+        id: returnedFiles.id,
+        submissionId: returnedFiles.submissionId,
+        attemptNo: returnedFiles.attemptNo,
+        blobUrl: returnedFiles.blobUrl,
+        pathname: returnedFiles.pathname,
+      })
+      .from(returnedFiles)
+      .where(and(eq(returnedFiles.organizationId, p.organizationId), inArray(returnedFiles.submissionId, targetIds)))
+  ).filter((file) => file.attemptNo === attemptBySubmission.get(file.submissionId));
+
+  const now = new Date();
+  await db.transaction(async (tx) => {
+    if (currentAttemptFiles.length > 0) {
+      await tx
+        .delete(returnedFiles)
+        .where(inArray(returnedFiles.id, currentAttemptFiles.map((file) => file.id)));
+    }
+    await tx
+      .update(submissions)
+      .set({
+        ...DRAFT_CLEARED,
+        status: "submitted",
+        returnedAt: null,
+        updatedAt: now,
+      })
+      .where(and(eq(submissions.organizationId, p.organizationId), inArray(submissions.id, targetIds)));
+    await tx.insert(submissionEvents).values(
+      targets.map((sub) => ({
+        organizationId: sub.organizationId,
+        submissionId: sub.id,
+        fromStatus: "grading" as const,
+        toStatus: "submitted" as const,
+        byUserId: p.id,
+        note: "未添削に戻す",
+        createdAt: now,
+      })),
+    );
+  });
+
+  await Promise.allSettled(
+    currentAttemptFiles.map((file) => deleteBlob(file.blobUrl, file.pathname)),
+  );
+
+  for (const sub of targets) revalidateAll(sub.id);
+  revalidatePath("/grading");
+  revalidatePath("/grading?tab=markup");
+  revalidatePath("/grading?tab=input");
+  return { reset: targets.length, skipped: ids.length - targets.length };
+}
+
 /** 提出済みなら採点中へ遷移させて現在の submission を返す。 */
 async function ensureGrading(p: Principal, sub: Submission): Promise<Submission> {
   if (sub.status === "submitted") {
@@ -712,7 +792,7 @@ export async function saveStudentReturnedPdf(studentId: string, formData: FormDa
   const source = await PDFDocument.load(sourceBytes);
   const expectedPages = Math.max(...bundle.submissions.map((s) => s.endPage)) + 1;
   if (source.getPageCount() !== expectedPages) {
-    throw new ActionError("保存するPDFのページ数が、現在の答案セットPDFと一致しません。最新のPDF保存画面から保存してください。");
+    throw new ActionError("保存するPDFのページ数が、現在の答案セットPDFと一致しません。最新の添削タブから保存してください。");
   }
 
   const now = Date.now();
