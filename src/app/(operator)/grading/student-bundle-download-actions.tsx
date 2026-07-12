@@ -1,5 +1,6 @@
 "use client";
 
+import { BookOpenCheck, CheckCircle2, Download, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -44,16 +45,24 @@ export function StudentBundleDownloadActions({
         className={`bundle-save-button primary${saved.answers ? " is-saved" : ""}`}
         onClick={() => markSaved("answers")}
       >
-        {saved.answers ? "✓ 答案PDFを保存済み" : "答案PDFを保存"}
+        {saved.answers ? <CheckCircle2 size={18} aria-hidden="true" /> : <Download size={18} aria-hidden="true" />}
+        <span>
+          <b>{saved.answers ? "答案PDF 保存済み" : "答案PDFを保存"}</b>
+          <small>提出答案セット</small>
+        </span>
       </a>
       <a
         href={solutionDownloadUrl}
         className={`bundle-save-button secondary${saved.solutions ? " is-saved" : ""}`}
         onClick={() => markSaved("solutions")}
       >
-        {saved.solutions ? "✓ 解答解説PDFを保存済み" : "解答解説PDFを保存"}
+        {saved.solutions ? <CheckCircle2 size={18} aria-hidden="true" /> : <BookOpenCheck size={18} aria-hidden="true" />}
+        <span>
+          <b>{saved.solutions ? "解答PDF 保存済み" : "解答PDFを保存"}</b>
+          <small>解答解説セット</small>
+        </span>
       </a>
-      <p className="bundle-save-note">2つ保存後、点数入力へ移動</p>
+      <p className="bundle-save-note"><FileText size={13} aria-hidden="true" />2つ保存後、点数入力へ移動</p>
     </div>
   );
 }

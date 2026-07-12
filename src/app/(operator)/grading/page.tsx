@@ -104,6 +104,8 @@ export default async function GradingPage({
   const markupAgg = [...agg.values()].filter((g) => g.submitted.length > 0).sort(byName);
   const inputAgg = [...agg.values()].filter((g) => g.grading.length > 0).sort(byName);
   const inProgress = [...agg.values()].filter((g) => g.submitted.length === 0 && g.grading.length === 0 && g.pend > 0).sort(byName);
+  const markupSubmissionCount = markupAgg.reduce((sum, g) => sum + g.submitted.length, 0);
+  const inputSubmissionCount = inputAgg.reduce((sum, g) => sum + g.grading.length, 0);
 
   const groups: StudentGroup[] = inputAgg.map((g) => ({
     studentId: g.studentId,
@@ -124,6 +126,21 @@ export default async function GradingPage({
     return (
       <div>
         <GradingHead view="markup" todoCount={markupAgg.length} />
+        <div className="grading-focus-strip" aria-label="添削状況">
+          <div className="grading-focus-main">
+            <span className="grading-focus-kicker">TODAY&apos;S CORRECTION</span>
+            <b>添削待ちの答案 {markupSubmissionCount}件</b>
+            <small>答案PDFと解答PDFを保存して、外部アプリで添削します。</small>
+          </div>
+          <div className="grading-focus-meter">
+            <span>入力待ち</span>
+            <b>{inputSubmissionCount}</b>
+          </div>
+          <div className="grading-focus-meter">
+            <span>実施中</span>
+            <b>{inProgress.length}</b>
+          </div>
+        </div>
 
         {markupAgg.length === 0 ? (
           <p className="empty">添削できる新しい答案はありません。</p>
@@ -136,15 +153,27 @@ export default async function GradingPage({
               return (
               <section key={g.studentId} className="batch-student-card">
                 <div className="batch-student-head">
+                  <div className="batch-student-avatar" aria-hidden="true">{g.name.slice(0, 1)}</div>
                   <div>
+                    <span className="batch-student-eyebrow">添削待ち</span>
                     <h2>{g.name}</h2>
-                    <p>{g.grade} ・ 未処理の提出 {g.submitted.length} 件</p>
+                    <p>{g.grade}</p>
                   </div>
-                  <StudentBundleDownloadActions
-                    answerDownloadUrl={`${answersUrl}&dl=1`}
-                    solutionDownloadUrl={`${solutionsUrl}&dl=1`}
-                  />
+                  <div className="batch-student-count">
+                    <b>{g.submitted.length}</b>
+                    <span>答案</span>
+                  </div>
                 </div>
+                <div className="batch-flow" aria-label="添削の流れ">
+                  <span><b>1</b>答案保存</span>
+                  <span><b>2</b>解答保存</span>
+                  <span><b>3</b>外部添削</span>
+                  <span><b>4</b>点数入力</span>
+                </div>
+                <StudentBundleDownloadActions
+                  answerDownloadUrl={`${answersUrl}&dl=1`}
+                  solutionDownloadUrl={`${solutionsUrl}&dl=1`}
+                />
                 <div className="batch-student-actions">
                   <a href={answersUrl} target="_blank" rel="noreferrer" className="db-badge">答案PDFを確認</a>
                   <a href={solutionsUrl} target="_blank" rel="noreferrer" className="db-badge">解答解説PDFを確認</a>
@@ -153,14 +182,23 @@ export default async function GradingPage({
                 <p className="batch-bundle-note">
                   表示中の{g.submitted.length}件だけでPDFを作成します。あとから提出が増えても、このPDFには混ざりません。
                 </p>
-                <ol className="batch-submission-list">
-                  {g.submitted.map((s) => (
-                    <li key={s.submissionId}>
-                      <Link href={`/grading/${s.submissionId}`}>{s.materialName}</Link>
-                      <span>{s.subject} ・ {s.rangeText || "範囲なし"}</span>
-                    </li>
-                  ))}
-                </ol>
+                <div className="batch-submission-panel">
+                  <div className="batch-submission-title">
+                    <b>対象答案</b>
+                    <span>{g.submitted.length}件</span>
+                  </div>
+                  <ol className="batch-submission-list">
+                    {g.submitted.map((s, index) => (
+                      <li key={s.submissionId}>
+                        <span className="batch-submission-index">{index + 1}</span>
+                        <span className="batch-submission-body">
+                          <Link href={`/grading/${s.submissionId}`}>{s.materialName}</Link>
+                          <small>{s.subject} ・ {s.rangeText || "範囲なし"}</small>
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
               </section>
               );
             })}
