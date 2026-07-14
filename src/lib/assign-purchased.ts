@@ -10,7 +10,7 @@
  */
 import "server-only";
 
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -44,18 +44,18 @@ export async function assignPurchasedSubjects(opts: {
 }): Promise<AssignResult> {
   const { organizationId, studentId, assignedById } = opts;
 
-  const [sub] = await db
+  // 同一生徒に複数契約(例: お試し→本契約)がある場合も全契約の科目を合算する。
+  const subs = await db
     .select({ id: subscriptions.id })
     .from(subscriptions)
-    .where(and(eq(subscriptions.studentId, studentId), eq(subscriptions.organizationId, organizationId)))
-    .limit(1);
-  if (!sub) return { assigned: 0, skipped: 0, matched: 0, subjects: [], reason: "no_subscription" };
+    .where(and(eq(subscriptions.studentId, studentId), eq(subscriptions.organizationId, organizationId)));
+  if (subs.length === 0) return { assigned: 0, skipped: 0, matched: 0, subjects: [], reason: "no_subscription" };
 
   const subjRows = await db
     .select({ subjectId: subscriptionSubjects.subjectId })
     .from(subscriptionSubjects)
-    .where(eq(subscriptionSubjects.subscriptionId, sub.id));
-  const subjectIds = subjRows.map((r) => r.subjectId);
+    .where(inArray(subscriptionSubjects.subscriptionId, subs.map((s) => s.id)));
+  const subjectIds = [...new Set(subjRows.map((r) => r.subjectId))];
   const labels = materialSubjectsForPurchase(subjectIds);
   const targets = materialTargetsForPurchase(subjectIds);
   if (labels.length === 0) return { assigned: 0, skipped: 0, matched: 0, subjects: [], reason: "no_subjects" };

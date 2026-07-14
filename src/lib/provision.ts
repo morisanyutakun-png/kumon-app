@@ -15,12 +15,13 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 
 import bcrypt from "bcryptjs";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
 import { students, subscriptions, subscriptionSubjects } from "@/db/schema";
 import { assignPurchasedSubjects } from "@/lib/assign-purchased";
+import { isTrialSubjectId } from "@/lib/subject-map";
 
 /** grade コード → 表示用学年(中高部=secondary に解決される表記)。 */
 const GRADE_LABEL: Record<string, string> = { h1: "高1", h2: "高2", h3: "高3", grad: "高卒", other: "その他" };
@@ -45,6 +46,15 @@ export const provisionPayloadSchema = z.object({
   subjectCount: z.union([z.number(), z.string()]).optional(),
   amount: z.union([z.number(), z.string()]).optional(), // 購入金額(一回払い・新)
   monthlyAmount: z.union([z.number(), z.string()]).optional(), // 旧: 月額(後方互換)
+  // お試し/本契約アップグレード連携(docs/trial-upgrade-protocol.md)。
+  // yuta-eng は Registration(camelCase) / Stripe metadata(snake_case) の両表記があるため双方を寛容に受ける。
+  plan: z.string().optional(), // "full" | "trial" | "upgrade"(既定 full)
+  trialOf: z.string().optional(),
+  trial_of: z.string().optional(),
+  creditAmount: z.union([z.number(), z.string()]).optional(),
+  credit_amount: z.union([z.number(), z.string()]).optional(),
+  upgradeOf: z.string().optional(),
+  upgrade_of: z.string().optional(),
   stripeCustomerId: z.string().optional(),
   stripePaymentIntentId: z.string().optional(), // 一回払い PaymentIntent(新)
   stripeSubscriptionId: z.string().optional(), // 旧: サブスクID(後方互換)
@@ -66,10 +76,6 @@ function toInt(v: number | string | undefined): number {
 function subjectIdsFromInput(input: SubjectInput): string[] {
   const raw = Array.isArray(input) ? input : input.split(",");
   return raw.map((s) => s.trim()).filter(Boolean);
-}
-
-function subjectInputToString(input: SubjectInput): string {
-  return subjectIdsFromInput(input).join(",");
 }
 
 /** ログ用にメールを部分マスク(個人情報を平文で大量に残さない)。 */
@@ -134,7 +140,18 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
 
   const studentName = (payload.studentName || payload.name || "").trim();
   const grade = gradeLabel((payload.grade || "").trim());
-  const subjectIds = subjectIdsFromInput(payload.subjects);
+
+  // お試し/本契約アップグレード連携(docs/trial-upgrade-protocol.md)。camel/snake 両表記を吸収。
+  const plan = ((payload.plan || "full").trim() || "full");
+  const trialOf = (payload.trialOf ?? payload.trial_of ?? "").trim() || null;
+  const upgradeOf = (payload.upgradeOf ?? payload.upgrade_of ?? "").trim() || null;
+  const creditAmount = toInt(payload.creditAmount ?? payload.credit_amount);
+
+  let subjectIds = subjectIdsFromInput(payload.subjects);
+  // plan=trial で subjects に *-trial が含まれない場合、trial_of から補う(例 math-1a → math-1a-trial)。
+  if (plan === "trial" && trialOf && !subjectIds.some(isTrialSubjectId)) {
+    subjectIds = [...subjectIds, `${trialOf}-trial`];
+  }
 
   const contract = {
     organizationId: orgId,
@@ -144,16 +161,54 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
     studentName,
     grade,
     gradeCode: (payload.grade || "").trim(),
-    subjects: subjectInputToString(payload.subjects),
+    subjects: subjectIds.join(","),
     subjectLabels: (payload.subjectLabels || "").trim(),
     subjectCount: payload.subjectCount !== undefined ? toInt(payload.subjectCount) : subjectIds.length,
     monthlyAmount: toInt(payload.monthlyAmount), // 旧列(後方互換)
     amount: toInt(payload.amount ?? payload.monthlyAmount), // 購入金額(旧月額もフォールバック)
+    plan,
+    trialOf,
+    creditAmount,
+    upgradeOf,
     stripeCustomerId: payload.stripeCustomerId ?? null,
     stripeSubscriptionId: payload.stripeSubscriptionId ?? null, // 旧列(後方互換)
     stripePaymentIntentId: payload.stripePaymentIntentId ?? null,
     stripeSessionId,
   };
+
+  // 本契約アップグレード: 既存のお試し生徒を昇格(新規生徒は作らない)。お試し生徒が居なければ通常発行にフォールバック。
+  if (plan === "upgrade") {
+    const conds = [
+      eq(subscriptions.organizationId, orgId),
+      eq(subscriptions.email, email),
+      eq(subscriptions.plan, "trial"),
+      isNotNull(subscriptions.studentId),
+      isNull(subscriptions.upgradedAt),
+    ];
+    if (upgradeOf) conds.push(eq(subscriptions.trialOf, upgradeOf));
+    const [trial] = await db
+      .select({ id: subscriptions.id, studentId: subscriptions.studentId })
+      .from(subscriptions)
+      .where(and(...conds))
+      .orderBy(desc(subscriptions.createdAt))
+      .limit(1);
+
+    if (trial?.studentId) {
+      const upgradeContract = { ...contract, status: "active" as const, activatedAt: new Date(), studentId: trial.studentId };
+      const [sub] = await db
+        .insert(subscriptions)
+        .values(upgradeContract)
+        .onConflictDoUpdate({ target: subscriptions.stripeSessionId, set: upgradeContract })
+        .returning({ id: subscriptions.id });
+      await replaceSubjects(sub.id, subjectIds);
+      // お試し契約に upgraded_at を刻む(=ホームのアップグレード導線/トークン発行を止める。二重適用防止)。
+      await db.update(subscriptions).set({ upgradedAt: new Date() }).where(eq(subscriptions.id, trial.id));
+      await autoAssignPurchasedSubjects(orgId, trial.studentId);
+      const creds = await fetchStudentCreds(trial.studentId);
+      return { status: "already_active", email, subscriptionId: sub.id, ...(creds ?? { studentId: trial.studentId }) };
+    }
+    // お試し生徒が見つからない → 通常発行(フル教材)にフォールバック。
+  }
 
   const activeContract = { ...contract, status: "active" as const, activatedAt: new Date() };
 

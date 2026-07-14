@@ -1615,6 +1615,32 @@ body:has(.iplus-main.narrow) {
 
 /* 生徒LP: タブ入口 + 成績サマリー */
 .lp-hero { margin-bottom: 18px; }
+
+/* お試し→本契約 アップグレード導線バナー(yuta-eng 調・あたたかいオレンジ) */
+.upgrade-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  margin: 0 0 18px; padding: 16px 18px;
+  border-radius: 16px;
+  background: linear-gradient(120deg, #fb7185 0%, #f97316 56%, #fbbf24 100%);
+  color: #fff; text-decoration: none;
+  box-shadow: 0 22px 44px -30px rgba(234, 88, 12, 0.6);
+}
+.upgrade-banner:hover { text-decoration: none; filter: brightness(1.02); }
+.upgrade-banner-body { display: grid; gap: 3px; min-width: 0; }
+.upgrade-banner-eyebrow { font-size: 11px; font-weight: 900; letter-spacing: 0.08em; color: rgba(255, 255, 255, 0.92); }
+.upgrade-banner-title { font-size: 17px; font-weight: 900; line-height: 1.3; }
+.upgrade-banner-sub { font-size: 13px; font-weight: 700; color: rgba(255, 255, 255, 0.95); }
+.upgrade-banner-sub strong { font-size: 15px; }
+.upgrade-banner-cta {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+  padding: 11px 20px; border-radius: 999px; background: #fff; color: #ea580c;
+  font-size: 14px; font-weight: 900; white-space: nowrap;
+  box-shadow: 0 10px 22px -12px rgba(88, 20, 0, 0.5);
+}
+@media (max-width: 520px) {
+  .upgrade-banner { padding: 14px 15px; }
+  .upgrade-banner-cta { width: 100%; justify-content: center; }
+}
 .lp-section-head {
   display: flex;
   align-items: flex-end;

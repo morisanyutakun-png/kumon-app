@@ -11,6 +11,22 @@ export interface PurchaseMaterialTarget {
   label: string;
   subjects: string[];
   nameIncludes: string[];
+  /** これらの語を教材名に含む教材は除外する(お試し⇄フルの相互誤マッチ防止)。 */
+  nameExcludes?: string[];
+}
+
+/** お試し購入ID(`<fullId>-trial`)の接尾辞。 */
+const TRIAL_SUFFIX = "-trial";
+
+/** 例: "math-1a-trial" → true。 */
+export function isTrialSubjectId(subjectId: string): boolean {
+  return subjectId.trim().endsWith(TRIAL_SUFFIX);
+}
+
+/** お試しID → 対応するフル科目ID。フルIDならそのまま返す。例: "math-1a-trial" → "math-1a"。 */
+export function fullSubjectIdOf(subjectId: string): string {
+  const id = subjectId.trim();
+  return isTrialSubjectId(id) ? id.slice(0, -TRIAL_SUFFIX.length) : id;
 }
 
 export const YUTA_SUBJECT_TARGET: Record<string, Omit<PurchaseMaterialTarget, "subjectId">> = {
@@ -70,7 +86,15 @@ function normalize(s: string): string {
   return s.normalize("NFKC").toLowerCase().replace(/\s+/g, "");
 }
 
-/** 購入科目ID配列 → 教材マッチ条件(重複排除)。未知IDは subject 完全一致で扱う。 */
+/** お試し教材(名前に含む語)。フルとお試しの相互誤マッチを防ぐ既定の除外語でもある。 */
+const TRIAL_NAME_TOKEN = "お試し";
+
+/**
+ * 購入科目ID配列 → 教材マッチ条件(重複排除)。
+ * - フルID(例 math-1a): 通常のターゲット。既定で「お試し」教材を除外する。
+ * - お試しID(例 math-1a-trial): 対応フルの科目候補 + 「お試し」名を要求(=お試し教材だけを拾う)。
+ * - 未知ID: subject 完全一致で扱う。
+ */
 export function materialTargetsForPurchase(subjectIds: string[]): PurchaseMaterialTarget[] {
   const seen = new Set<string>();
   const targets: PurchaseMaterialTarget[] = [];
@@ -78,15 +102,31 @@ export function materialTargetsForPurchase(subjectIds: string[]): PurchaseMateri
     const subjectId = rawId.trim();
     if (!subjectId || seen.has(subjectId)) continue;
     seen.add(subjectId);
+
+    if (isTrialSubjectId(subjectId)) {
+      const fullId = fullSubjectIdOf(subjectId);
+      const base = YUTA_SUBJECT_TARGET[fullId];
+      targets.push({
+        subjectId,
+        label: `${base?.label ?? fullId} お試し`,
+        subjects: base?.subjects ?? [fullId],
+        nameIncludes: [TRIAL_NAME_TOKEN], // お試し教材(名前に「お試し」)だけを拾う
+        nameExcludes: [],
+      });
+      continue;
+    }
+
     const target = YUTA_SUBJECT_TARGET[subjectId];
     if (target) {
-      targets.push({ subjectId, ...target });
+      // フル購入はお試し教材を拾わない(名前に「お試し」を含む教材を除外)。
+      targets.push({ subjectId, ...target, nameExcludes: target.nameExcludes ?? [TRIAL_NAME_TOKEN] });
     } else {
       targets.push({
         subjectId,
         label: subjectId,
         subjects: [subjectId],
         nameIncludes: [],
+        nameExcludes: [TRIAL_NAME_TOKEN],
       });
     }
   }
@@ -106,6 +146,8 @@ export function matchesPurchaseTarget(
   const name = normalize(material.name);
   const subjectMatches = target.subjects.some((s) => normalize(s) === subject);
   if (!subjectMatches) return false;
+  // 除外語(例: お試し)を含む教材はマッチさせない。
+  if (target.nameExcludes?.some((token) => name.includes(normalize(token)))) return false;
   if (target.nameIncludes.length === 0) return true;
   return target.nameIncludes.some((token) => name.includes(normalize(token)));
 }

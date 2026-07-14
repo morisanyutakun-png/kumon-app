@@ -202,6 +202,12 @@ export const subscriptions = pgTable(
     subjectCount: integer("subject_count").notNull().default(0),
     monthlyAmount: integer("monthly_amount").notNull().default(0), // 旧: 月額(サブスク時代・後方互換)
     amount: integer("amount").notNull().default(0), // 購入金額(一回払い new_purchase)
+    // お試し/本契約アップグレード連携(yuta-eng metadata)。docs/trial-upgrade-protocol.md 参照。
+    plan: text("plan").notNull().default("full"), // "full" | "trial" | "upgrade"
+    trialOf: text("trial_of"), // plan=trial のとき対応するフル科目ID(例 math-1a)
+    creditAmount: integer("credit_amount").notNull().default(0), // plan=upgrade の値引き額(¥1,980)
+    upgradeOf: text("upgrade_of"), // plan=upgrade のとき本契約するフル科目ID
+    upgradedAt: timestamp("upgraded_at", { withTimezone: true }), // お試し→本契約が成立した時刻(二重適用防止)
     stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
     stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }), // 旧: サブスクID(後方互換)
     stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 255 }), // 一回払いの PaymentIntent

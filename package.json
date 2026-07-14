@@ -20,6 +20,8 @@
     "materials:seed-chemistry": "tsx scripts/seed-chemistry-material.ts",
     "materials:seed-chemistry-basic": "CHEM_TARGET=chemistry-basic tsx scripts/seed-chemistry-material.ts",
     "materials:seed-physics": "tsx scripts/seed-physics-materials.ts",
+    "materials:seed-trial": "tsx scripts/seed-trial-materials.ts",
+    "test:token": "tsx scripts/upgrade-token-test.ts",
     "assignments:backfill-purchased": "tsx scripts/backfill-purchased-assignments.ts",
     "test:unit": "tsx scripts/progress-test.ts",
     "e2e": "playwright test",
