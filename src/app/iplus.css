@@ -1616,10 +1616,11 @@ body:has(.iplus-main.narrow) {
 /* 生徒LP: タブ入口 + 成績サマリー */
 .lp-hero { margin-bottom: 18px; }
 
-/* お試し→本契約 アップグレード導線バナー(yuta-eng 調・あたたかいオレンジ) */
+/* お試し→本契約 アップグレード導線バナー(yuta-eng 調・あたたかいオレンジ)。科目ごとに1枚。 */
+.upgrade-banner-list { display: grid; gap: 10px; margin: 0 0 18px; }
 .upgrade-banner {
   display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
-  margin: 0 0 18px; padding: 16px 18px;
+  padding: 16px 18px;
   border-radius: 16px;
   background: linear-gradient(120deg, #fb7185 0%, #f97316 56%, #fbbf24 100%);
   color: #fff; text-decoration: none;

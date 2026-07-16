@@ -148,9 +148,12 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
   const creditAmount = toInt(payload.creditAmount ?? payload.credit_amount);
 
   let subjectIds = subjectIdsFromInput(payload.subjects);
-  // plan=trial で subjects に *-trial が含まれない場合、trial_of から補う(例 math-1a → math-1a-trial)。
+  // plan=trial で subjects に *-trial が無い場合、trial_of から補う。
+  // trial_of はカンマ区切り(複数科目)なので、必ず先に分割してから各idに -trial を付ける
+  // (例 "math-1a,chemistry" → ["math-1a-trial","chemistry-trial"]。全体に付けると壊れる)。
   if (plan === "trial" && trialOf && !subjectIds.some(isTrialSubjectId)) {
-    subjectIds = [...subjectIds, `${trialOf}-trial`];
+    const derived = trialOf.split(",").map((s) => s.trim()).filter(Boolean).map((id) => `${id}-trial`);
+    subjectIds = [...subjectIds, ...derived];
   }
 
   const contract = {
@@ -177,22 +180,9 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
   };
 
   // 本契約アップグレード: 既存のお試し生徒を昇格(新規生徒は作らない)。お試し生徒が居なければ通常発行にフォールバック。
-  if (plan === "upgrade") {
-    const conds = [
-      eq(subscriptions.organizationId, orgId),
-      eq(subscriptions.email, email),
-      eq(subscriptions.plan, "trial"),
-      isNotNull(subscriptions.studentId),
-      isNull(subscriptions.upgradedAt),
-    ];
-    if (upgradeOf) conds.push(eq(subscriptions.trialOf, upgradeOf));
-    const [trial] = await db
-      .select({ id: subscriptions.id, studentId: subscriptions.studentId })
-      .from(subscriptions)
-      .where(and(...conds))
-      .orderBy(desc(subscriptions.createdAt))
-      .limit(1);
-
+  // 1トークン=1科目(upgrade_of は単一)。複数お試し保有でも、この科目のお試しを持つ生徒だけを昇格する。
+  if (plan === "upgrade" && upgradeOf) {
+    const trial = await findTrialStudentForSubject(orgId, email, upgradeOf);
     if (trial?.studentId) {
       const upgradeContract = { ...contract, status: "active" as const, activatedAt: new Date(), studentId: trial.studentId };
       const [sub] = await db
@@ -200,10 +190,10 @@ export async function provisionAccount(payload: ProvisionPayload): Promise<Provi
         .values(upgradeContract)
         .onConflictDoUpdate({ target: subscriptions.stripeSessionId, set: upgradeContract })
         .returning({ id: subscriptions.id });
-      await replaceSubjects(sub.id, subjectIds);
-      // お試し契約に upgraded_at を刻む(=ホームのアップグレード導線/トークン発行を止める。二重適用防止)。
+      await replaceSubjects(sub.id, subjectIds); // = [upgradeOf]
+      // 監査用に当該お試し契約へ upgraded_at を刻む(バナーの停止は plan=upgrade 契約の有無で判定)。
       await db.update(subscriptions).set({ upgradedAt: new Date() }).where(eq(subscriptions.id, trial.id));
-      await autoAssignPurchasedSubjects(orgId, trial.studentId);
+      await autoAssignPurchasedSubjects(orgId, trial.studentId); // upgradeOf のフル教材を割当
       const creds = await fetchStudentCreds(trial.studentId);
       return { status: "already_active", email, subscriptionId: sub.id, ...(creds ?? { studentId: trial.studentId }) };
     }
@@ -290,6 +280,34 @@ async function replaceSubjects(subscriptionId: string, subjectIds: string[]): Pr
       .values(subjectIds.map((subjectId) => ({ subscriptionId, subjectId })))
       .onConflictDoNothing();
   }
+}
+
+/**
+ * email/org のお試し契約のうち、指定フル科目のお試し(`${fullId}-trial`)を科目に含み、
+ * 生徒に紐付いている契約を1件返す(最新)。複数お試しを1契約に含む場合も科目単位で正しく引ける。
+ */
+async function findTrialStudentForSubject(
+  orgId: string,
+  email: string,
+  fullId: string,
+): Promise<{ id: string; studentId: string } | null> {
+  const rows = await db
+    .select({ id: subscriptions.id, studentId: subscriptions.studentId })
+    .from(subscriptions)
+    .innerJoin(subscriptionSubjects, eq(subscriptionSubjects.subscriptionId, subscriptions.id))
+    .where(
+      and(
+        eq(subscriptions.organizationId, orgId),
+        eq(subscriptions.email, email),
+        eq(subscriptions.plan, "trial"),
+        isNotNull(subscriptions.studentId),
+        eq(subscriptionSubjects.subjectId, `${fullId}-trial`),
+      ),
+    )
+    .orderBy(desc(subscriptions.createdAt))
+    .limit(1);
+  const r = rows[0];
+  return r?.studentId ? { id: r.id, studentId: r.studentId } : null;
 }
 
 /** 購入科目の自動割り当て。失敗してもアカウント発行は妨げない。 */

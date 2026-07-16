@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { students, subscriptions } from "@/db/schema";
+import { students, subscriptions, subscriptionSubjects } from "@/db/schema";
 import { issueUpgradeToken } from "@/lib/upgrade-token";
+import { fullSubjectIdOf, isTrialSubjectId, materialTargetsForPurchase } from "@/lib/subject-map";
 import { accessibleStudentIds, requirePrincipal } from "@/lib/access";
 import { divisionForGrade } from "@/lib/division";
 import { encourageMessage, levelInfo, studyStreak } from "@/lib/encourage";
@@ -171,35 +172,47 @@ export default async function StudentHome() {
 
   let message = "学習状況と返却結果をまとめて確認できます。";
   let grade = "";
-  let upgradeHref: string | null = null;
+  // お試し中(未アップグレード)の科目ごとに本契約導線を出す。docs/trial-upgrade-protocol.md 参照。
+  const upgradeLinks: { label: string; href: string }[] = [];
   if (p.role === "student" && p.studentId) {
     const [s] = await db.select({ grade: students.grade }).from(students).where(eq(students.id, p.studentId)).limit(1);
     grade = s?.grade ?? "";
     message = encourageMessage(grade);
 
-    // お試し中(未アップグレード)の生徒に本契約導線を提示する。docs/trial-upgrade-protocol.md 参照。
-    const [trialSub] = await db
-      .select({
-        id: subscriptions.id,
-        trialOf: subscriptions.trialOf,
-        cust: subscriptions.stripeCustomerId,
-      })
-      .from(subscriptions)
-      .where(
-        and(
-          eq(subscriptions.studentId, p.studentId),
-          eq(subscriptions.plan, "trial"),
-          isNull(subscriptions.upgradedAt),
-        ),
-      )
-      .orderBy(desc(subscriptions.createdAt))
-      .limit(1);
-    if (trialSub?.trialOf && process.env.NOBIT_REGISTER_SECRET) {
+    if (process.env.NOBIT_REGISTER_SECRET) {
+      // 生徒の全契約と科目を取得し、「お試し保有」から「本契約済み」を引いた科目に導線を出す。
+      const rows = await db
+        .select({
+          subId: subscriptions.id,
+          plan: subscriptions.plan,
+          cust: subscriptions.stripeCustomerId,
+          subject: subscriptionSubjects.subjectId,
+        })
+        .from(subscriptions)
+        .leftJoin(subscriptionSubjects, eq(subscriptionSubjects.subscriptionId, subscriptions.id))
+        .where(eq(subscriptions.studentId, p.studentId));
+
+      const upgraded = new Set<string>(); // 本契約済みのフル科目ID
+      const trials = new Map<string, { subId: string; cust: string | null }>(); // 未使用: フル科目ID → お試し契約
+      for (const r of rows) {
+        if (!r.subject) continue;
+        if (r.plan === "trial" && isTrialSubjectId(r.subject)) {
+          const full = fullSubjectIdOf(r.subject);
+          if (!trials.has(full)) trials.set(full, { subId: r.subId, cust: r.cust });
+        } else if (r.plan === "upgrade") {
+          upgraded.add(fullSubjectIdOf(r.subject));
+        }
+      }
+
       // Server Component: request-time の now。純度チェックを抑止(既存の weekAgo と同様)。
       // eslint-disable-next-line react-hooks/purity
       const nowSec = Math.floor(Date.now() / 1000);
-      const token = issueUpgradeToken({ s: trialSub.trialOf, jti: trialSub.id, nowSec, c: trialSub.cust ?? undefined });
-      upgradeHref = `https://yuta-eng.com/apply?u=${encodeURIComponent(token)}`;
+      for (const [fullId, info] of trials) {
+        if (upgraded.has(fullId)) continue; // 本契約済みは導線を出さない(二重適用防止のUI面)
+        const token = issueUpgradeToken({ s: fullId, jti: `${info.subId}:${fullId}`, nowSec, c: info.cust ?? undefined });
+        const label = materialTargetsForPurchase([fullId])[0]?.label ?? fullId;
+        upgradeLinks.push({ label, href: `https://yuta-eng.com/apply?u=${encodeURIComponent(token)}` });
+      }
     }
   }
   const sec = divisionForGrade(grade) === "secondary";
@@ -277,15 +290,19 @@ export default async function StudentHome() {
         )}
       </div>
 
-      {upgradeHref && (
-        <a className="upgrade-banner" href={upgradeHref}>
-          <span className="upgrade-banner-body">
-            <span className="upgrade-banner-eyebrow">添削3回、おつかれさま</span>
-            <span className="upgrade-banner-title">本契約に進んで、全範囲に挑戦しよう</span>
-            <span className="upgrade-banner-sub">いまなら特典 <strong>−¥1,980</strong>（お試し分を割引）</span>
-          </span>
-          <span className="upgrade-banner-cta">本契約へ進む →</span>
-        </a>
+      {upgradeLinks.length > 0 && (
+        <div className="upgrade-banner-list">
+          {upgradeLinks.map((l) => (
+            <a key={l.href} className="upgrade-banner" href={l.href}>
+              <span className="upgrade-banner-body">
+                <span className="upgrade-banner-eyebrow">添削3回、おつかれさま</span>
+                <span className="upgrade-banner-title">{l.label}を本契約に進めよう</span>
+                <span className="upgrade-banner-sub">いまなら特典 <strong>−¥1,980</strong>（お試し分を割引）</span>
+              </span>
+              <span className="upgrade-banner-cta">本契約へ進む →</span>
+            </a>
+          ))}
+        </div>
       )}
 
       {notices.length > 0 && (
